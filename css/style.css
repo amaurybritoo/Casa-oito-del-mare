@@ -112,6 +112,7 @@ body.drawer-open{position:fixed;overflow:hidden!important;overscroll-behavior:no
 @media(max-width:560px){.video-card .video-player-shell{width:100%;border-radius:7px}.video-card .video-player-shell video{width:100%;max-width:100%;max-height:none;min-height:0;aspect-ratio:auto;object-fit:contain}.video-play-prompt{font-size:11px;padding:11px 15px}}
 .hero-media{transition:opacity .35s ease}
 .hero-media.is-carousel-loading{opacity:0}
+<<<<<<< HEAD
 
 /* Ajustes mobile-first seguros: não alteram a estrutura dos cards nem o carregamento do Supabase. */
 .drawer{z-index:70!important;}
@@ -137,3 +138,5 @@ body.drawer-open{position:fixed;overflow:hidden!important;overscroll-behavior:no
   .hero-content,.hero-bottom{width:calc(100% - 24px);}
   .card-featured .card-caption strong{font-size:48px;}
 }
+=======
+>>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc

@@ -88,12 +88,17 @@ let editableCopy={}; async function loadEditableCopy(){if(!supabase)return;const
 function applyCopy(root){root.querySelectorAll('[data-copy]').forEach(el=>{if(editableCopy[el.dataset.copy])el.textContent=editableCopy[el.dataset.copy]})}
 async function getRows(table) {
   if (!supabase) return [];
+<<<<<<< HEAD
   try {
     const query=supabase.from(table).select('*').eq('active',true);
     const timeout=new Promise(resolve=>setTimeout(()=>resolve({data:null,error:{message:'timeout'}}),4000));
     const {data,error}=await Promise.race([query,timeout]);
     return error ? [] : (data || []);
   } catch { return []; }
+=======
+  const {data,error} = await supabase.from(table).select('*').eq('active',true);
+  return error ? [] : (data || []);
+>>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
 }
 function orderOf(row){return Number(row.position??row.sort_order)||0}
 function renderCard(card,index) {
@@ -105,6 +110,7 @@ function renderCard(card,index) {
   return `<button class="card reveal${large}" data-page="${esc(pageName)}" aria-label="${esc(card.title || 'Conheça a casa')}"><img src="${esc(image)}" alt="" loading="lazy"><span class="card-symbol" aria-hidden="true">${icon}</span><span class="card-caption"><small>CASA OITO DEL MARE · BÚZIOS</small><strong>${esc(card.title || 'Conheça a casa')}</strong><span class="card-deck">${esc(card.subtitle||card.description || 'Dias tranquilos à beira-mar.')}</span><span class="card-link">${['casa','estrutura'].includes(pageName)?'Descubra mais':pageName==='reserva'?'Consulte disponibilidade':'Explore Búzios'} </span></span></button>`;
 }
 async function renderHomeCards() {
+<<<<<<< HEAD
   // Renderiza o conteúdo-base imediatamente. O Supabase só substitui depois
   // se devolver cards válidos; a home nunca fica vazia esperando a rede.
   homeCards.innerHTML = featureCards.map(renderCard).join('');
@@ -113,6 +119,11 @@ async function renderHomeCards() {
   const pageRows = rows.filter(r=>['casa','estrutura','buzios','reserva'].includes(r.target_section||r.url) && (r.image_url || featureCards.some(card=>card.url===(r.target_section||r.url))));
   if (!pageRows.length) return;
   const ordered = pageRows.slice().sort((a,b)=>orderOf(a)-orderOf(b));
+=======
+  const rows = await getRows('links');
+  const pageRows = rows.filter(r=>['casa','estrutura','buzios','reserva'].includes(r.target_section||r.url));
+  const ordered = (pageRows.length ? pageRows : featureCards).slice().sort((a,b)=>orderOf(a)-orderOf(b));
+>>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
   homeCards.innerHTML = ordered.map(renderCard).join('');
   observeReveals();
 }
@@ -134,6 +145,7 @@ function videoMarkup(item,index) {
   const media=isFile?`<div class="video-player-shell"><video src="${esc(url)}" controls playsinline webkit-playsinline preload="metadata" aria-label="${esc(title)}"><source src="${esc(url)}" type="${type}">Seu navegador não conseguiu abrir este vídeo.</video><button class="video-play-prompt" type="button" aria-label="Reproduzir ${esc(title)}"><span aria-hidden="true">▶</span><b>Toque para assistir</b></button></div>`:`<iframe src="${esc(url)}" title="${esc(title)}" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
   return `<figure class="video-card ${isFile?'is-pending-orientation':'is-landscape'}"><figcaption><strong>${esc(title)}</strong>${row.description?`<small>${esc(row.description)}</small>`:''}</figcaption>${media}</figure>`;
 }
+<<<<<<< HEAD
 function arrangeVideos(root){
   root.querySelectorAll('.video-card video').forEach((video,index)=>{
     const card=video.closest('.video-card');
@@ -174,6 +186,9 @@ function arrangeVideos(root){
     video.load();
   });
 }
+=======
+function arrangeVideos(root){root.querySelectorAll('.video-card video').forEach(video=>{const card=video.closest('.video-card');const prompt=card.querySelector('.video-play-prompt');const setLayout=()=>{card.classList.remove('is-pending-orientation');card.classList.toggle('is-portrait',video.videoHeight>video.videoWidth);card.classList.toggle('is-landscape',video.videoWidth>=video.videoHeight)};if(video.readyState>=1)setLayout();else video.addEventListener('loadedmetadata',setLayout,{once:true});prompt?.addEventListener('click',()=>{video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');video.play().then(()=>card.classList.add('is-playing')).catch(()=>{prompt.querySelector('b').textContent='Toque no vídeo para tentar novamente'})});video.addEventListener('playing',()=>card.classList.add('is-playing'));video.addEventListener('pause',()=>card.classList.remove('is-playing'));video.addEventListener('ended',()=>card.classList.remove('is-playing'));video.addEventListener('error',()=>{card.classList.remove('is-pending-orientation');const note=document.createElement('p');note.className='video-load-error';note.textContent='Este vídeo não carregou. Você pode tentar abri-lo diretamente.';const link=document.createElement('a');link.href=video.currentSrc||video.querySelector('source')?.src||video.src;link.target='_blank';link.rel='noopener';link.textContent='Abrir vídeo';note.append(' ',link);card.append(note)},{once:true});video.load()})}
+>>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
 async function openPage(type) {
   lockPageScroll();
   let html = '';
@@ -230,11 +245,17 @@ function showPhoto(index,list=photos) {
   galleryPhotosForDrawer=list;
   activePhotoIndex=(index+list.length)%list.length;
   const [title,src,description='']=list[activePhotoIndex];
+<<<<<<< HEAD
   lightboxImage.src=src;lightboxImage.alt=title;resetZoom();
+=======
+  const img=lightbox.querySelector('figure img');
+  img.src=src;img.alt=title;zoomScale=1;img.style.transform='scale(1)';img.style.cursor='zoom-in';
+>>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
   lightbox.querySelector('figcaption').textContent=description?`${title} · ${description}`:title;
   document.querySelector('#lightboxCount').textContent=`${activePhotoIndex+1} / ${list.length}`;
   lightbox.classList.add('open');lightbox.setAttribute('aria-hidden','false');document.body.classList.add('lightbox-open');
 }
+<<<<<<< HEAD
 function hidePhoto(){resetZoom();lightbox.classList.remove('open');lightbox.setAttribute('aria-hidden','true');document.body.classList.remove('lightbox-open')}
 lightbox.querySelector('.lightbox-close').onclick=hidePhoto;
 lightbox.querySelector('.lightbox-prev').onclick=()=>showPhoto(activePhotoIndex-1,galleryPhotosForDrawer);
@@ -272,6 +293,16 @@ lightboxImage.addEventListener('touchend',event=>{
   if(dt<320 && Math.hypot(dx,dy)<28){setZoom(zoomScale===1?2:1);lastTapAt=0;return}
   lastTapAt=now;lastTapX=touch.clientX;lastTapY=touch.clientY;
 },{passive:false});
+=======
+function hidePhoto(){lightbox.classList.remove('open');lightbox.setAttribute('aria-hidden','true');document.body.classList.remove('lightbox-open')}
+lightbox.querySelector('.lightbox-close').onclick=hidePhoto;
+lightbox.querySelector('.lightbox-prev').onclick=()=>showPhoto(activePhotoIndex-1,galleryPhotosForDrawer);
+lightbox.querySelector('.lightbox-next').onclick=()=>showPhoto(activePhotoIndex+1,galleryPhotosForDrawer);
+lightbox.querySelector('figure img').onclick=e=>setZoom(zoomScale===1?1.6:1);
+lightbox.addEventListener('click',e=>{if(e.target===lightbox)hidePhoto()});
+lightbox.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>setZoom(zoomScale+(b.dataset.zoom==='in'?.35:-.35)));
+function setZoom(value){zoomScale=Math.max(1,Math.min(2.7,value));const image=lightbox.querySelector('figure img');image.style.transform=`scale(${zoomScale})`;image.style.cursor=zoomScale===1?'zoom-in':'zoom-out'}
+>>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
 function closeDrawer(){if(!drawer.classList.contains('open'))return;drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');unlockPageScroll();if(modalSlideshowTimer){clearInterval(modalSlideshowTimer);modalSlideshowTimer=null}if(location.hash)history.back();if(priorFocus?.focus)priorFocus.focus()}
 back.addEventListener('click',closeDrawer);
 homeCards.addEventListener('click',event=>{const card=event.target.closest('.card[data-page]');if(card){priorFocus=card;openPage(card.dataset.page)}});
@@ -284,6 +315,7 @@ function observeReveals(){const revealItems=document.querySelectorAll('.reveal:n
 function initFooterVideo(){
   const video=document.querySelector('#footerVideo');
   const toggle=document.querySelector('#footerVideoToggle');
+<<<<<<< HEAD
   if(!video)return;
   let userPaused=false;
   video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;
@@ -310,6 +342,24 @@ function initFooterVideo(){
   });
   video.load();tryPlay();
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)tryPlay()});
+=======
+  if(!video||!toggle)return;
+  let userChosePlayback=false;
+  video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;
+  const update=()=>{
+    const playing=!video.paused&&!video.ended;
+    toggle.classList.toggle('is-playing',playing);
+    toggle.classList.remove('play-required');
+    toggle.setAttribute('aria-pressed',String(playing));
+    toggle.setAttribute('aria-label',playing?'Pausar vídeo':'Reproduzir vídeo');
+  };
+  const tryPlay=()=>{if(userChosePlayback)return;video.play().then(update).catch(()=>toggle.classList.add('play-required'))};
+  video.addEventListener('play',update);video.addEventListener('pause',update);video.addEventListener('ended',update);
+  video.addEventListener('error',()=>toggle.classList.add('play-required'));
+  video.addEventListener('canplay',tryPlay,{once:true});
+  toggle.addEventListener('click',async()=>{userChosePlayback=true;if(video.paused){video.muted=true;try{await video.play()}catch{toggle.classList.add('play-required')}}else video.pause();update()});
+  tryPlay();
+>>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
 }
 
 observeReveals();renderHomeCards();loadEditableCopy();initializeCarousels();initFooterVideo();document.querySelector('#year').textContent=new Date().getFullYear();
