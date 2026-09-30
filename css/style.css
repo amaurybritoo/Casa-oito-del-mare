@@ -127,3 +127,57 @@ body.photo-open .whatsapp-float{opacity:0;visibility:hidden;pointer-events:none}
   .lightbox figure img{max-width:100%;max-height:calc(100% - 30px);user-select:none;-webkit-user-select:none}
   .lightbox-tools{bottom:16px}
 }
+
+/* Final media interaction polish */
+.lightbox figure{touch-action:none;overscroll-behavior:contain}
+.lightbox figure img{touch-action:none;transform-origin:center center;will-change:transform;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.lightbox figure img{transition:none}
+.video-player-shell{position:relative;width:100%;overflow:hidden;border-radius:7px;background:#0b2b2d}
+.video-player-shell video{display:block}
+.video-play-prompt{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border:1px solid #ffffff55;border-radius:999px;padding:12px 17px;background:#062f32d9;color:#fff;backdrop-filter:blur(8px);font:600 11px var(--sans);display:flex;align-items:center;gap:8px;cursor:pointer;transition:opacity .2s,transform .2s}
+.video-play-prompt:hover{transform:translate(-50%,-50%) scale(1.03)}
+.video-card.is-playing .video-play-prompt{opacity:0;pointer-events:none}
+.video-load-error{font-size:11px;color:#b85d4c;padding:8px 2px}
+.video-load-error a{color:inherit}
+body.photo-open .site-nav{visibility:hidden;pointer-events:none}
+@media(max-width:560px){.lightbox figure img{max-width:100%;max-height:calc(100svh - 145px)}}
+
+
+/* FINAL MOBILE-FIRST PASS */
+html{overflow-x:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{min-width:0;overflow-x:hidden;overscroll-behavior-x:none}
+@media(max-width:700px){
+  .site-nav{z-index:30;padding-top:env(safe-area-inset-top);height:calc(64px + env(safe-area-inset-top));padding-left:14px;padding-right:14px}
+  .brand-name{font-size:11px}.brand-name small{font-size:7px}.brand-mark{width:31px;height:31px}
+  .nav-links{display:none}.nav-cta{padding:10px 12px;font-size:9px;white-space:nowrap}
+  .hero{min-height:100svh;min-height:100dvh}.hero-content{padding-left:18px;padding-right:18px}.hero-content h1{font-size:clamp(52px,16vw,76px)}
+  .drawer{z-index:100;inset:0;width:100vw;max-width:100vw;height:100svh;height:100dvh;overflow-y:auto;overflow-x:hidden;padding-bottom:env(safe-area-inset-bottom)}
+  .drawer-top{position:sticky;top:0;z-index:5;min-height:64px;padding-top:env(safe-area-inset-top);box-sizing:content-box}
+  .drawer .inside{padding-left:16px;padding-right:16px}
+  .drawer .contact-panel{grid-template-columns:1fr!important}
+  .drawer .buzios-media{grid-template-columns:1fr!important;gap:20px}
+  .drawer .video-card{width:100%;min-width:0}
+  .drawer .video-player-shell{width:100%;min-width:0;overflow:hidden;border-radius:8px}
+  .drawer .video-player-shell video{display:block;width:100%;height:auto;min-height:0;max-height:none;object-fit:contain;background:#0b2b2d}
+  .video-play-prompt{min-height:44px}
+  .lightbox{z-index:200;padding:calc(54px + env(safe-area-inset-top)) 8px calc(74px + env(safe-area-inset-bottom));touch-action:none}
+  .lightbox figure{width:100%;height:100%;max-width:100%;min-width:0;display:grid;place-items:center;overflow:hidden;touch-action:none}
+  .lightbox figure img{max-width:100%;max-height:calc(100svh - 150px);max-height:calc(100dvh - 150px);touch-action:none;transition:none!important;will-change:transform;transform-origin:center center}
+  .lightbox .lightbox-close{top:calc(8px + env(safe-area-inset-top));right:10px;z-index:3;width:46px;height:46px;line-height:40px;font-size:38px}
+  .lightbox .lightbox-prev,.lightbox .lightbox-next{min-width:46px;min-height:46px;padding:8px;font-size:10px}
+  .lightbox-tools{bottom:calc(10px + env(safe-area-inset-bottom));gap:8px}
+  .lightbox-tools button{width:46px;height:46px}
+  body.photo-open{overflow:hidden!important}
+  .whatsapp-float{z-index:80}
+  .footer-main{padding-left:0;padding-right:0}
+  .footer-showcase{width:100%;min-height:340px}
+  .footer-showcase video{width:100%;height:100%;object-fit:cover;object-position:center center}
+  .footer-video-toggle{width:46px;height:46px;right:12px;top:12px}
+  .quick-contact input,.quick-contact select,.quick-contact textarea{font-size:16px!important}
+}
+@media(max-width:390px){
+  .site-nav{padding-left:10px;padding-right:10px}.nav-cta{padding:9px 10px;font-size:8px}.brand-name{font-size:10px}
+  .drawer .inside{padding-left:12px;padding-right:12px}
+  .lightbox figure img{max-height:calc(100svh - 135px);max-height:calc(100dvh - 135px)}
+}
+@media(prefers-reduced-motion:reduce){.lightbox figure img{transition:none!important}}
