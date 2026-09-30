@@ -112,31 +112,3 @@ body.drawer-open{position:fixed;overflow:hidden!important;overscroll-behavior:no
 @media(max-width:560px){.video-card .video-player-shell{width:100%;border-radius:7px}.video-card .video-player-shell video{width:100%;max-width:100%;max-height:none;min-height:0;aspect-ratio:auto;object-fit:contain}.video-play-prompt{font-size:11px;padding:11px 15px}}
 .hero-media{transition:opacity .35s ease}
 .hero-media.is-carousel-loading{opacity:0}
-<<<<<<< HEAD
-
-/* Ajustes mobile-first seguros: não alteram a estrutura dos cards nem o carregamento do Supabase. */
-.drawer{z-index:70!important;}
-.lightbox.open ~ .whatsapp-float{display:none!important;}
-.lightbox figure img{transform-origin:center center;will-change:transform;transition:none!important;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;}
-@media(max-width:560px){
-  html,body{max-width:100%;overflow-x:hidden;}
-  .site-nav{width:calc(100% - 24px);}
-  .site-nav.scrolled{padding-inline:12px;}
-  .hero-content,.hero-bottom{width:calc(100% - 28px);}
-  .cards{gap:8px;}
-  .card,.card-featured{min-width:0;}
-  .drawer{z-index:70!important;}
-  .drawer-top{position:sticky;top:0;z-index:5;}
-  .lightbox{padding:54px 8px 76px;touch-action:none;}
-  .lightbox figure{width:100%;max-width:100%;max-height:calc(100svh - 125px);overflow:visible;}
-  .lightbox figure img{max-width:100%;max-height:calc(100svh - 165px);}
-  .lightbox-prev,.lightbox-next{z-index:4;}
-}
-@media(max-width:380px){
-  .site-nav{width:calc(100% - 16px);}
-  .brand-name{font-size:8px;}
-  .hero-content,.hero-bottom{width:calc(100% - 24px);}
-  .card-featured .card-caption strong{font-size:48px;}
-}
-=======
->>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
