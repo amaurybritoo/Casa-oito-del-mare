@@ -20,8 +20,18 @@ function message(text,error=false){$('#loginMsg').textContent=text||'';$('#login
 function configured(){return SUPABASE_URL.startsWith('https://')&&SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')}
 function showLogin(){$('#app').hidden=true;$('#login').hidden=false}
 function showApp(){$('#login').hidden=true;$('#app').hidden=false;render(current)}
-async function boot(){if(!configured())return message('Configure o Supabase em js/config.js.',true);supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});const {data,error}=await supabase.auth.getSession();if(error)return message(error.message,true);data.session?showApp():showLogin();supabase.auth.onAuthStateChange((_event,session)=>session?showApp():showLogin())}
-$('#loginForm').addEventListener('submit',async event=>{event.preventDefault();event.stopPropagation();const button=event.currentTarget.querySelector('button');if(!supabase){message('Conectando ao servidor… tente novamente em alguns segundos.',true);return}button.disabled=true;button.textContent='Entrando...';message('');try{const {error}=await supabase.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#password').value});if(error)message(error.message,true)}catch(error){message(error?.message||'Não foi possível conectar ao painel.',true)}finally{button.disabled=false;button.textContent='Entrar no painel'}});
+async function boot(){
+  if(!configured()){showLogin();return message('Configure o Supabase em js/config.js.',true)}
+  try{
+    supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}})
+  }catch(error){showLogin();return message(error?.message||'Não foi possível inicializar o serviço de autenticação.',true)}
+  try{
+    const {data,error}=await supabase.auth.getSession()
+    if(!error&&data?.session)showApp();else showLogin()
+  }catch(error){showLogin()}
+  supabase.auth.onAuthStateChange((_event,session)=>session?showApp():showLogin())
+}
+$('#loginForm').addEventListener('submit',async event=>{event.preventDefault();event.stopPropagation();const form=event.currentTarget;const button=form.querySelector('button');if(!supabase){message('O serviço de autenticação ainda não foi inicializado. Atualize a página e tente novamente.',true);return}button.disabled=true;button.textContent='Entrando...';message('');try{const {error}=await supabase.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#password').value});if(error)message(error.message,true);else message('Login realizado. Carregando painel...')}catch(error){message(error?.message||'Não foi possível conectar ao painel.',true)}finally{button.disabled=false;button.textContent='Entrar no painel'}});
 $('#logout').onclick=()=>supabase?.auth.signOut();$('#menu').onclick=()=>document.querySelector('aside').classList.toggle('open');
 document.querySelectorAll('nav button').forEach(button=>button.onclick=()=>{current=button.dataset.view;document.querySelectorAll('nav button').forEach(item=>item.classList.toggle('active',item===button));document.querySelector('aside').classList.remove('open');render(current)});
 async function rows(table){const result=await supabase.from(table).select('*');if(result.error)throw result.error;return result.data||[]}
