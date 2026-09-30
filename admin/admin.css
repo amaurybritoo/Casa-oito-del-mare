@@ -66,3 +66,102 @@ html,body{max-width:100%;overflow-x:hidden}
 .login h1{max-width:100%;font-size:clamp(36px,10vw,56px);overflow-wrap:anywhere;word-break:normal}
 .login p,.login form,.login input,.login button,.login small{min-width:0;max-width:100%}
 @media(max-width:380px){.login h1{font-size:clamp(34px,9.5vw,42px);line-height:.98}.login-card{padding:22px}}
+
+/* Mobile recovery pass — painel administrativo */
+@media (max-width: 700px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden}
+  body{font-size:14px}
+  #app{width:100%;min-width:0;display:block;overflow-x:hidden}
+  main{width:100%;min-width:0;overflow-x:hidden}
+  .mobile-head{width:100%;min-width:0;position:sticky;top:0;z-index:100;padding:0 14px;gap:10px}
+  .mobile-head b{min-width:0;flex:1;text-align:center;font-size:11px;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mobile-head button{flex:0 0 38px;width:38px;height:38px;padding:0}
+  .mobile-head a{flex:0 0 auto;white-space:nowrap;font-size:10px}
+  aside{z-index:120;top:65px;width:min(280px,86vw);max-width:86vw;padding:22px 14px;overflow-y:auto;overflow-x:hidden}
+  .admin-brand{padding:3px 6px 24px}
+  .site-link{margin:0 4px 18px}
+  aside nav{width:100%;min-width:0}
+  aside nav button{width:100%;min-height:44px}
+  .view{width:100%;max-width:none;min-width:0;padding:26px 14px 40px;overflow:visible}
+  .view-head{width:100%;min-width:0;margin-bottom:20px}
+  .view-head h1{font-size:clamp(40px,13vw,58px);line-height:.9;overflow-wrap:anywhere}
+  .view-head p{max-width:100%;overflow-wrap:anywhere}
+  .view-head .primary{width:100%;max-width:100%;margin-top:14px}
+
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .stat{min-width:0;padding:15px}
+  .stat strong{font-size:36px}
+  .quick-grid{grid-template-columns:1fr;gap:9px}
+  .quick{min-width:0;padding:17px}
+
+  .upload-box,.video-upload,.form-card{width:100%;min-width:0;padding:14px;border-radius:13px}
+  .upload-box label{min-height:120px;padding:16px}
+  .preview-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .preview-grid img{height:110px}
+
+  .media-grid{grid-template-columns:1fr;gap:10px}
+  .media-image img{height:auto;aspect-ratio:4/3}
+  .media-body{padding:12px}
+  .media h3{font-size:25px}
+  .actions{flex-wrap:wrap}
+  .actions button{min-height:36px}
+
+  .video-upload{grid-template-columns:1fr;gap:10px;margin:14px 0 18px}
+  .video-upload>label{justify-self:stretch;width:100%;text-align:center}
+  .video-preview-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .video-preview-grid video{max-height:150px}
+  .video-upload>#sendVideos{width:100%}
+  .video-admin-grid{grid-template-columns:1fr;gap:10px}
+  .video-admin-card>video{max-height:none;width:100%;aspect-ratio:16/10}
+  .video-admin-info{padding:12px}
+  .video-admin-heading{align-items:flex-start}
+  .video-admin-heading h2{font-size:24px;overflow-wrap:anywhere}
+
+  .form-grid{grid-template-columns:1fr;gap:11px}
+  .form-grid .full,.form-actions{grid-column:auto}
+  .form-grid input,.form-grid textarea,.form-grid select{width:100%;min-width:0;max-width:100%}
+  .form-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .form-actions button{width:100%;min-width:0}
+
+  .table{width:100%;min-width:0;overflow:hidden}
+  .row{grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:13px 12px;min-width:0}
+  .row>*{min-width:0;overflow-wrap:anywhere}
+  .row>*:nth-child(2){display:none}
+  .row>*:nth-child(3){grid-column:2;grid-row:1;align-self:center}
+  .row .actions{justify-content:flex-end;max-width:130px}
+  .row .actions button{font-size:9px;padding:7px 8px}
+  .row.head{display:none}
+
+  .photo-upload .photo-queue-card{grid-template-columns:1fr;gap:14px;padding:12px}
+  .photo-upload .photo-crop-column{width:100%;min-width:0}
+  .photo-upload .crop-window{width:100%;max-width:100%;min-height:0;aspect-ratio:4/3}
+  .photo-upload .photo-queue-fields{grid-template-columns:1fr;gap:10px}
+  .photo-queue-title,.photo-title-field,.photo-description-field,.crop-controls{grid-column:auto}
+  .photo-queue-title{grid-template-columns:1fr;align-items:start}
+  .photo-queue-title .text-danger{justify-self:start}
+  .photo-queue-row{grid-template-columns:1fr}
+  .crop-controls{grid-template-columns:1fr;gap:8px}
+  .stay-dates{grid-template-columns:1fr 1fr}
+
+  .video-queue-card{grid-template-columns:1fr;gap:10px;padding:10px}
+  .video-queue-card>video{max-height:none;width:100%}
+  .video-queue-fields{min-width:0}
+
+  .admin-dialog{width:calc(100vw - 24px);max-width:none;max-height:calc(100vh - 24px);padding:20px;border-radius:17px}
+  .admin-dialog h2{font-size:31px}
+  .admin-dialog-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .admin-dialog-actions button{width:100%;min-width:0}
+}
+
+@media (max-width: 430px){
+  .view{padding-left:11px;padding-right:11px}
+  .mobile-head{padding:0 10px}
+  .mobile-head a{font-size:9px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat{padding:13px}
+  .stat strong{font-size:31px}
+  .stat span{font-size:9px}
+  .preview-grid,.video-preview-grid{grid-template-columns:1fr 1fr}
+  .form-actions,.admin-dialog-actions{grid-template-columns:1fr}
+  .stay-dates{grid-template-columns:1fr}
+}
