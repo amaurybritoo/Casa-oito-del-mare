@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '../js/config.js';
 
 const $=selector=>document.querySelector(selector);
@@ -20,8 +20,36 @@ function message(text,error=false){$('#loginMsg').textContent=text||'';$('#login
 function configured(){return SUPABASE_URL.startsWith('https://')&&SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')}
 function showLogin(){$('#app').hidden=true;$('#login').hidden=false}
 function showApp(){$('#login').hidden=true;$('#app').hidden=false;render(current)}
-async function boot(){if(!configured())return message('Configure o Supabase em js/config.js.',true);supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const {data,error}=await supabase.auth.getSession();if(error)return message(error.message,true);data.session?showApp():showLogin();supabase.auth.onAuthStateChange((_event,session)=>session?showApp():showLogin())}
-$('#loginForm').addEventListener('submit',async event=>{event.preventDefault();const button=event.currentTarget.querySelector('button');button.disabled=true;button.textContent='Entrando...';message('');const {error}=await supabase.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#password').value});button.disabled=false;button.textContent='Entrar no painel';if(error)message(error.message,true)});
+async function boot(){
+  try{
+    if(!configured())return message('Configure o Supabase em js/config.js.',true);
+    supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+    const {data,error}=await supabase.auth.getSession();
+    if(error)throw error;
+    if(data?.session)showApp();else showLogin();
+    supabase.auth.onAuthStateChange((_event,session)=>{if(session)showApp();else showLogin()});
+    window.__adminReady=true;
+  }catch(error){
+    window.__adminReady=false;
+    message(`Não foi possível iniciar o painel: ${error?.message||error}`,true);
+  }
+}
+$('#loginForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  event.stopPropagation();
+  if(!supabase){message('O painel ainda está carregando. Aguarde alguns segundos e tente novamente.',true);return false;}
+  const button=event.currentTarget.querySelector('button');
+  button.disabled=true;button.textContent='Entrando...';message('');
+  try{
+    const email=$('#email').value.trim(),password=$('#password').value;
+    const {data,error}=await supabase.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    if(data?.session)showApp();
+  }catch(error){
+    message(error?.message||'Não foi possível entrar. Confira e-mail e senha.',true);
+  }finally{button.disabled=false;button.textContent='Entrar no painel'}
+  return false;
+});
 $('#logout').onclick=()=>supabase?.auth.signOut();$('#menu').onclick=()=>document.querySelector('aside').classList.toggle('open');
 document.querySelectorAll('nav button').forEach(button=>button.onclick=()=>{current=button.dataset.view;document.querySelectorAll('nav button').forEach(item=>item.classList.toggle('active',item===button));document.querySelector('aside').classList.remove('open');render(current)});
 async function rows(table){const result=await supabase.from(table).select('*');if(result.error)throw result.error;return result.data||[]}

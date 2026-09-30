@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "./config.js";
 
 const drawer = document.querySelector('#drawer');
@@ -84,12 +84,17 @@ if (SUPABASE_URL.startsWith('https://') && SUPABASE_PUBLISHABLE_KEY.startsWith('
   supabase = createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 }
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let editableCopy={}; async function loadEditableCopy(){if(!supabase)return;const {data,error}=await supabase.from('site_content').select('key,value').eq('active',true);if(!error){editableCopy=Object.fromEntries((data||[]).map(row=>[row.key,row.value]));applyCopy(document)}}
+let editableCopy={}; async function loadEditableCopy(){if(!supabase)return;try{const request=supabase.from('site_content').select('key,value').eq('active',true);const {data,error}=await Promise.race([request,new Promise(resolve=>setTimeout(()=>resolve({data:[],error:{timeout:true}}),3500))]);if(!error){editableCopy=Object.fromEntries((data||[]).map(row=>[row.key,row.value]));applyCopy(document)}}catch{}}
 function applyCopy(root){root.querySelectorAll('[data-copy]').forEach(el=>{if(editableCopy[el.dataset.copy])el.textContent=editableCopy[el.dataset.copy]})}
 async function getRows(table) {
   if (!supabase) return [];
-  const {data,error} = await supabase.from(table).select('*').eq('active',true);
-  return error ? [] : (data || []);
+  try {
+    const request = supabase.from(table).select('*').eq('active',true);
+    const result = await Promise.race([request, new Promise(resolve=>setTimeout(()=>resolve({data:[],error:{timeout:true}}),4500))]);
+    return result?.error ? [] : (result?.data || []);
+  } catch {
+    return [];
+  }
 }
 function orderOf(row){return Number(row.position??row.sort_order)||0}
 function renderCard(card,index) {
@@ -100,12 +105,17 @@ function renderCard(card,index) {
   const image = card.image_url || featureCards[index % featureCards.length].image_url;
   return `<button class="card reveal${large}" data-page="${esc(pageName)}" aria-label="${esc(card.title || 'Conheça a casa')}"><img src="${esc(image)}" alt="" loading="lazy"><span class="card-symbol" aria-hidden="true">${icon}</span><span class="card-caption"><small>CASA OITO DEL MARE · BÚZIOS</small><strong>${esc(card.title || 'Conheça a casa')}</strong><span class="card-deck">${esc(card.subtitle||card.description || 'Dias tranquilos à beira-mar.')}</span><span class="card-link">${['casa','estrutura'].includes(pageName)?'Descubra mais':pageName==='reserva'?'Consulte disponibilidade':'Explore Búzios'} </span></span></button>`;
 }
+function paintHomeCards(cards=featureCards){
+  if(!homeCards)return;
+  homeCards.innerHTML = cards.map(renderCard).join('');
+  observeReveals();
+}
 async function renderHomeCards() {
+  // Render the local fallback immediately. The site must never wait for Supabase to show its main cards.
+  paintHomeCards(featureCards);
   const rows = await getRows('links');
   const pageRows = rows.filter(r=>['casa','estrutura','buzios','reserva'].includes(r.target_section||r.url));
-  const ordered = (pageRows.length ? pageRows : featureCards).slice().sort((a,b)=>orderOf(a)-orderOf(b));
-  homeCards.innerHTML = ordered.map(renderCard).join('');
-  observeReveals();
+  if(pageRows.length) paintHomeCards(pageRows.slice().sort((a,b)=>orderOf(a)-orderOf(b)));
 }
 function featureMarkup(item) {
   const [key,title,description] = Array.isArray(item) ? item : [item.category,item.title,item.description];
@@ -346,7 +356,38 @@ document.querySelector('[data-open-page]')?.addEventListener('click',e=>{e.preve
 window.addEventListener('popstate',()=>{stopDrawerVideos();drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');unlockPageScroll();if(modalSlideshowTimer){clearInterval(modalSlideshowTimer);modalSlideshowTimer=null}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(lightbox.classList.contains('open'))hidePhoto();else if(drawer.classList.contains('open'))closeDrawer()}if(lightbox.classList.contains('open')&&e.key==='ArrowRight')showPhoto(activePhotoIndex+1,galleryPhotosForDrawer);if(lightbox.classList.contains('open')&&e.key==='ArrowLeft')showPhoto(activePhotoIndex-1,galleryPhotosForDrawer)});
 function runSlideshow(el,images,modal=false){const layers=[...el.querySelectorAll('.ambient-photo')];if(!layers.length||!images.length)return;let current=0,next=1;layers[0].src=images[0];layers[0].classList.add('is-visible');if(images.length===1){layers[1]?.classList.remove('is-visible');return}if(layers.length<2)return;layers[1].src=images[1];if(modal&&modalSlideshowTimer)clearInterval(modalSlideshowTimer);const timer=setInterval(()=>{next=(current+1)%2;current=(current+1)%images.length;layers[next].src=images[current];layers[next].classList.add('is-visible');layers[1-next].classList.remove('is-visible')},6500);if(modal)modalSlideshowTimer=timer;else el.dataset.timer=String(timer)}
-async function initializeCarousels(){const media=document.querySelector('.hero-media');media.classList.add('is-carousel-loading');let chosen=slidePhotos.slice(),selectionLoaded=false;if(supabase){try{const result=await supabase.from('gallery').select('image_url').eq('active',true).eq('in_carousel',true).order('position');if(!result.error){chosen=(result.data||[]).map(row=>row.image_url).filter(Boolean);selectionLoaded=true}}catch{}}if(selectionLoaded){slidePhotos.splice(0,slidePhotos.length,...chosen);media.replaceChildren(...chosen.map((src,index)=>{const image=document.createElement('img');image.className=`hero-image${index===0?' is-current':''}`;image.src=src;image.alt='';return image}))}const heroImages=[...media.querySelectorAll('.hero-image')];if(heroImages.length){try{await heroImages[0].decode()}catch{}}media.classList.remove('is-carousel-loading');if(heroImages.length>1){let heroIndex=0;setInterval(()=>{heroImages[heroIndex].classList.remove('is-current');heroIndex=(heroIndex+1)%heroImages.length;heroImages[heroIndex].classList.add('is-current')},7300)}const intro=document.querySelector('.intro');const layers=[...intro.querySelectorAll('.ambient-photo')];if(selectionLoaded&&!chosen.length)layers.forEach(image=>{image.removeAttribute('src');image.classList.remove('is-visible')});else runSlideshow(intro.querySelector('.intro-photo'),slidePhotos)}
+async function initializeCarousels(){
+  const media=document.querySelector('.hero-media');
+  const intro=document.querySelector('.intro');
+  if(!media)return;
+  media.classList.remove('is-carousel-loading');
+  // Keep the four local hero images visible while remote data is loading.
+  let heroImages=[...media.querySelectorAll('.hero-image')];
+  let chosen=slidePhotos.slice();
+  if(supabase){
+    try{
+      const request=supabase.from('gallery').select('image_url').eq('active',true).eq('in_carousel',true).order('position');
+      const result=await Promise.race([request,new Promise(resolve=>setTimeout(()=>resolve({data:[],error:{timeout:true}}),4500))]);
+      const remote=(result?.data||[]).map(row=>row.image_url).filter(Boolean);
+      if(remote.length){
+        chosen=remote;
+        slidePhotos.splice(0,slidePhotos.length,...chosen);
+        media.replaceChildren(...chosen.map((src,index)=>{const image=document.createElement('img');image.className=`hero-image${index===0?' is-current':''}`;image.src=src;image.alt='';return image;}));
+        heroImages=[...media.querySelectorAll('.hero-image')];
+      }
+    }catch{}
+  }
+  media.classList.remove('is-carousel-loading');
+  if(heroImages.length>1){
+    let heroIndex=heroImages.findIndex(image=>image.classList.contains('is-current'));
+    if(heroIndex<0)heroIndex=0;
+    setInterval(()=>{heroImages[heroIndex]?.classList.remove('is-current');heroIndex=(heroIndex+1)%heroImages.length;heroImages[heroIndex]?.classList.add('is-current')},7300);
+  }
+  if(intro){
+    const layers=[...intro.querySelectorAll('.ambient-photo')];
+    if(layers.length)runSlideshow(intro.querySelector('.intro-photo'),chosen,false);
+  }
+}
 function observeReveals(){const revealItems=document.querySelectorAll('.reveal:not(.visible)');if(!('IntersectionObserver' in window)){revealItems.forEach(el=>el.classList.add('visible'));return}const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{threshold:.1});revealItems.forEach(el=>observer.observe(el))}
 function initFooterVideo(){
   const video=document.querySelector('#footerVideo');
