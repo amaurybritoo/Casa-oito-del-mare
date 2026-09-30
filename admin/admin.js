@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '../js/config.js';
 
 const $=selector=>document.querySelector(selector);
@@ -21,17 +21,30 @@ function configured(){return SUPABASE_URL.startsWith('https://')&&SUPABASE_PUBLI
 function showLogin(){$('#app').hidden=true;$('#login').hidden=false}
 function showApp(){$('#login').hidden=true;$('#app').hidden=false;render(current)}
 async function boot(){
-  if(!configured()){showLogin();return message('Configure o Supabase em js/config.js.',true)}
   try{
-    supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}})
-  }catch(error){showLogin();return message(error?.message||'Não foi possível inicializar o serviço de autenticação.',true)}
-  try{
-    const {data,error}=await supabase.auth.getSession()
-    if(!error&&data?.session)showApp();else showLogin()
-  }catch(error){showLogin()}
-  supabase.auth.onAuthStateChange((_event,session)=>session?showApp():showLogin())
+    if(!configured()){
+      showLogin();
+      window.__adminReady=true;
+      return message('Configure o Supabase em js/config.js.',true);
+    }
+    supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+    window.__adminReady=true;
+    showLogin();
+    try{
+      const {data,error}=await supabase.auth.getSession();
+      if(!error && data?.session) showApp();
+      else if(error) message(`Sessão não pôde ser recuperada: ${error.message||error}`,true);
+    }catch(error){
+      message(`Não foi possível recuperar a sessão. Você ainda pode tentar entrar: ${error?.message||error}`,true);
+    }
+    supabase.auth.onAuthStateChange((_event,session)=>session?showApp():showLogin());
+  }catch(error){
+    window.__adminReady=true;
+    showLogin();
+    message(`Não foi possível iniciar o painel: ${error?.message||error}`,true);
+  }
 }
-$('#loginForm').addEventListener('submit',async event=>{event.preventDefault();event.stopPropagation();const form=event.currentTarget;const button=form.querySelector('button');if(!supabase){message('O serviço de autenticação ainda não foi inicializado. Atualize a página e tente novamente.',true);return}button.disabled=true;button.textContent='Entrando...';message('');try{const {error}=await supabase.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#password').value});if(error)message(error.message,true);else message('Login realizado. Carregando painel...')}catch(error){message(error?.message||'Não foi possível conectar ao painel.',true)}finally{button.disabled=false;button.textContent='Entrar no painel'}});
+$('#loginForm').addEventListener('submit',async event=>{event.preventDefault();event.stopPropagation();const button=event.currentTarget.querySelector('button');if(!supabase){message('O serviço de autenticação ainda está inicializando. Aguarde um instante e tente novamente.',true);return}button.disabled=true;button.textContent='Entrando...';message('');try{const {error}=await supabase.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#password').value});if(error)message(error.message,true)}catch(error){message(error?.message||'Não foi possível conectar ao painel.',true)}finally{button.disabled=false;button.textContent='Entrar no painel'}});
 $('#logout').onclick=()=>supabase?.auth.signOut();$('#menu').onclick=()=>document.querySelector('aside').classList.toggle('open');
 document.querySelectorAll('nav button').forEach(button=>button.onclick=()=>{current=button.dataset.view;document.querySelectorAll('nav button').forEach(item=>item.classList.toggle('active',item===button));document.querySelector('aside').classList.remove('open');render(current)});
 async function rows(table){const result=await supabase.from(table).select('*');if(result.error)throw result.error;return result.data||[]}
