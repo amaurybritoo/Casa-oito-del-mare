@@ -24,3 +24,8 @@ No painel, **Cards da página inicial** permite alterar títulos, descrições, 
 
 
 O vídeo original `DawGcs6vp1d` aparece em loop e sem som ao lado do formulário. Os vídeos da galeria mantêm o formato original e se ajustam à largura da tela. O formulário no rodapé prepara uma mensagem e abre o WhatsApp da Camila ou da Mônica para a pessoa revisar e enviar. Ele não envia automaticamente. A navegação acompanha a rolagem; o layout prioriza telas pequenas.
+
+## Página de links
+
+A página links.html foi criada como uma página de links para bio do Instagram, com identidade da Casa Oito Del Mare, contatos de Camila e Mônica, link do Instagram, acesso ao site e mapa da região de Búzios. Depois de publicar, use https://SEU-DOMINIO/links.html no perfil. O endereço completo da casa não é exibido; ele é informado durante a consulta de reserva.
+

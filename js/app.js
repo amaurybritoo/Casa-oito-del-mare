@@ -6,6 +6,33 @@ const page = document.querySelector('#page');
 const back = document.querySelector('#back');
 const homeCards = document.querySelector('#homeCards');
 const lightbox = document.querySelector('#lightbox');
+let pageScrollY = 0;
+let pageScrollLocked = false;
+function lockPageScroll(){
+  if(pageScrollLocked)return;
+  pageScrollY=window.scrollY||document.documentElement.scrollTop||0;
+  pageScrollLocked=true;
+  document.documentElement.classList.add('drawer-scroll-locked');
+  document.body.classList.add('drawer-open');
+  document.body.style.position='fixed';
+  document.body.style.top=`-${pageScrollY}px`;
+  document.body.style.left='0';
+  document.body.style.right='0';
+  document.body.style.width='100%';
+}
+function unlockPageScroll(){
+  document.documentElement.classList.remove('drawer-scroll-locked');
+  document.body.classList.remove('drawer-open');
+  if(!pageScrollLocked)return;
+  pageScrollLocked=false;
+  document.body.style.position='';
+  document.body.style.top='';
+  document.body.style.left='';
+  document.body.style.right='';
+  document.body.style.width='';
+  const restoreY=pageScrollY;
+  requestAnimationFrame(()=>window.scrollTo(0,restoreY));
+}
 const featureCards = [
   {title:'Por dentro da Casa',description:'Uma casa feita para receber bem, com espaços acolhedores e um jeitinho de casa de família.',image_url:'./assets/gallery/casa-04.jpg',url:'casa',sort_order:1},
   {title:'A vida à beira-mar',description:'Praia calma em frente, jardim, piscina e uma rotina sem pressa.',image_url:'./assets/gallery/detalhe-03.jpg',url:'estrutura',sort_order:2},
@@ -89,9 +116,18 @@ function carouselMarkup() {
   const layers=slidePhotos.length?`<img class="ambient-photo is-visible" src="${esc(slidePhotos[0])}" alt="">${slidePhotos.length>1?`<img class="ambient-photo" src="${esc(slidePhotos[1])}" alt="">`:''}`:'';
   return `<div class="info-carousel" data-slideshow><div class="slideshow-layer" aria-hidden="true">${layers}</div><div class="info-carousel-copy"><blockquote>“A manhã pede uma caminhada na praia em frente — mar calmo, quase sem ondas, perfeito para começar o dia.”</blockquote><small>O RITMO DA CASA OITO</small></div></div>`;
 }
-function videoMarkup(item,index) { const row=typeof item==='string'?{url:item,title:`Búzios ${index+1}`} : item; const url=row.url||row.video_url||''; const title=row.title||`Vídeo ${index+1}`; const isFile=/\.(mp4|webm|ogg)(?:[?#]|$)/i.test(url); const media=isFile?`<video controls playsinline preload="metadata" aria-label="${esc(title)}"><source src="${esc(url)}"></video>`:`<iframe src="${esc(url)}" title="${esc(title)}" loading="lazy" allowfullscreen></iframe>`; return `<figure class="video-card ${isFile?'is-pending-orientation':'is-landscape'}"><figcaption><strong>${esc(title)}</strong>${row.description?`<small>${esc(row.description)}</small>`:''}</figcaption>${media}</figure>`; }
-function arrangeVideos(root){root.querySelectorAll('.video-card video').forEach(video=>{const setLayout=()=>{const card=video.closest('.video-card');card.classList.remove('is-pending-orientation');card.classList.toggle('is-portrait',video.videoHeight>video.videoWidth);card.classList.toggle('is-landscape',video.videoWidth>=video.videoHeight)};if(video.readyState>=1)setLayout();else video.addEventListener('loadedmetadata',setLayout,{once:true})})}
+function videoMarkup(item,index) {
+  const row=typeof item==='string'?{url:item,title:`Búzios ${index+1}`} : item;
+  const url=row.video_url||row.url||row.file_url||row.src||'';
+  const title=row.title||`Vídeo ${index+1}`;
+  const isFile=/\.(mp4|m4v|webm|ogg|mov|m3u8)(?:[?#]|$)/i.test(url);
+  const type=/\.webm(?:[?#]|$)/i.test(url)?'video/webm':/\.ogg(?:[?#]|$)/i.test(url)?'video/ogg':/\.m3u8(?:[?#]|$)/i.test(url)?'application/vnd.apple.mpegurl':'video/mp4';
+  const media=isFile?`<div class="video-player-shell"><video src="${esc(url)}" controls playsinline webkit-playsinline preload="metadata" aria-label="${esc(title)}"><source src="${esc(url)}" type="${type}">Seu navegador não conseguiu abrir este vídeo.</video><button class="video-play-prompt" type="button" aria-label="Reproduzir ${esc(title)}"><span aria-hidden="true">▶</span><b>Toque para assistir</b></button></div>`:`<iframe src="${esc(url)}" title="${esc(title)}" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+  return `<figure class="video-card ${isFile?'is-pending-orientation':'is-landscape'}"><figcaption><strong>${esc(title)}</strong>${row.description?`<small>${esc(row.description)}</small>`:''}</figcaption>${media}</figure>`;
+}
+function arrangeVideos(root){root.querySelectorAll('.video-card video').forEach(video=>{const card=video.closest('.video-card');const prompt=card.querySelector('.video-play-prompt');const setLayout=()=>{card.classList.remove('is-pending-orientation');card.classList.toggle('is-portrait',video.videoHeight>video.videoWidth);card.classList.toggle('is-landscape',video.videoWidth>=video.videoHeight)};if(video.readyState>=1)setLayout();else video.addEventListener('loadedmetadata',setLayout,{once:true});prompt?.addEventListener('click',()=>{video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');video.play().then(()=>card.classList.add('is-playing')).catch(()=>{prompt.querySelector('b').textContent='Toque no vídeo para tentar novamente'})});video.addEventListener('playing',()=>card.classList.add('is-playing'));video.addEventListener('pause',()=>card.classList.remove('is-playing'));video.addEventListener('ended',()=>card.classList.remove('is-playing'));video.addEventListener('error',()=>{card.classList.remove('is-pending-orientation');const note=document.createElement('p');note.className='video-load-error';note.textContent='Este vídeo não carregou. Você pode tentar abri-lo diretamente.';const link=document.createElement('a');link.href=video.currentSrc||video.querySelector('source')?.src||video.src;link.target='_blank';link.rel='noopener';link.textContent='Abrir vídeo';note.append(' ',link);card.append(note)},{once:true});video.load()})}
 async function openPage(type) {
+  lockPageScroll();
   let html = '';
   if (type === 'casa') {
     const rows = await getRows('gallery');
@@ -105,7 +141,8 @@ async function openPage(type) {
     html = `<section class="inside"><span class="eyebrow">UM JEITO MAIS LEVE DE FICAR</span><h2 data-copy="drawer_structure_title">Conforto de casa, pé na areia.</h2><p data-copy="drawer_structure_body">A Casa Oito recebe famílias com comodidade e simplicidade. A praia em frente e as áreas do condomínio completam os dias de descanso.</p><div class="feature-layout"><aside class="feature-aside"><p data-copy="drawer_structure_note">Quinze anos de histórias de família, cuidados e manhãs que começam com o som do mar.</p><span class="mini" aria-hidden="true">☼</span></aside><div class="feature-list">${amenityRows.map(featureMarkup).join('')}</div></div>${carouselMarkup()}</section>`;
   } else if (type === 'buzios') {
     const rows = await getRows('videos');
-    const clips = rows.length ? rows.slice().sort((a,b)=>orderOf(a)-orderOf(b)).filter(row=>row.url||row.video_url) : videoFiles;
+    const storedClips = rows.slice().sort((a,b)=>orderOf(a)-orderOf(b)).filter(row=>row.url||row.video_url||row.file_url||row.src);
+    const clips = storedClips.length ? storedClips : videoFiles;
     html = `<section class="inside"><span class="eyebrow">SOL, SAL E HORIZONTE</span><h2 data-copy="drawer_buzios_title">Búzios em movimento.</h2><p data-copy="drawer_buzios_body">Armação dos Búzios, Rio de Janeiro. A Casa Oito fica à beira-mar, num condomínio familiar e tranquilo. A praia em frente é praticamente exclusiva dos condomínios, com poucas entradas.</p><div class="buzios-note"><span aria-hidden="true">☼</span><div>Para preservar a privacidade da casa, o endereço completo é compartilhado quando a reserva é combinada. Veja Búzios no mapa ou assista aos vídeos da casa e do mar.</div></div><div class="contact-panel"><a class="contact-card" href="https://www.google.com/maps/search/?api=1&query=Arma%C3%A7%C3%A3o+dos+B%C3%BAzios+RJ" target="_blank" rel="noopener"><span aria-hidden="true">⌖</span><small>DESTINO</small><strong>Armação dos Búzios</strong></a><div class="contact-card"><span aria-hidden="true">〰</span><small>EM FRENTE À CASA</small><strong>Praia calma e sem ondas</strong></div><a class="contact-card" href="${contactLinks.instagram}" target="_blank" rel="noopener"><span aria-hidden="true">◎</span><small>ACOMPANHE A CASA</small><strong>@casaoitodelmare</strong></a></div><div class="buzios-media">${clips.map((clip,i)=>videoMarkup(clip,i)).join('')}</div></section>`;
   } else {
     html = `<section class="inside"><span class="eyebrow">RESERVAS E INFORMAÇÕES</span><h2 data-copy="drawer_reserve_title">Venha viver essa experiência.</h2><p data-copy="drawer_reserve_body">Consulte datas, tire dúvidas e combine sua estadia diretamente com as proprietárias.</p><div class="contact-panel reserve-panel"><a class="contact-card" href="${contactLinks.camila}" target="_blank" rel="noopener"><span aria-hidden="true">✳</span><small>WHATSAPP · CAMILA</small><strong>(21) 98635-7913</strong></a><a class="contact-card" href="${contactLinks.monica}" target="_blank" rel="noopener"><span aria-hidden="true">✳</span><small>WHATSAPP · MÔNICA</small><strong>(21) 98636-2770</strong></a><a class="contact-card" href="${contactLinks.instagram}" target="_blank" rel="noopener"><span aria-hidden="true">◎</span><small>INSTAGRAM</small><strong>@casaoitodelmare</strong></a></div><p class="privacy-note" data-copy="drawer_privacy">O condomínio é familiar e tranquilo. Para preservar a privacidade, o endereço completo é informado no momento da reserva. Check-in e check-out são combinados com as proprietárias.</p>${carouselMarkup()}</section>`;
@@ -142,16 +179,36 @@ lightbox.querySelector('figure img').onclick=e=>setZoom(zoomScale===1?1.6:1);
 lightbox.addEventListener('click',e=>{if(e.target===lightbox)hidePhoto()});
 lightbox.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>setZoom(zoomScale+(b.dataset.zoom==='in'?.35:-.35)));
 function setZoom(value){zoomScale=Math.max(1,Math.min(2.7,value));const image=lightbox.querySelector('figure img');image.style.transform=`scale(${zoomScale})`;image.style.cursor=zoomScale===1?'zoom-in':'zoom-out'}
-function closeDrawer(){drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');document.body.classList.remove('drawer-open');if(modalSlideshowTimer){clearInterval(modalSlideshowTimer);modalSlideshowTimer=null}if(location.hash)history.back();if(priorFocus?.focus)priorFocus.focus()}
+function closeDrawer(){if(!drawer.classList.contains('open'))return;drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');unlockPageScroll();if(modalSlideshowTimer){clearInterval(modalSlideshowTimer);modalSlideshowTimer=null}if(location.hash)history.back();if(priorFocus?.focus)priorFocus.focus()}
 back.addEventListener('click',closeDrawer);
 homeCards.addEventListener('click',event=>{const card=event.target.closest('.card[data-page]');if(card){priorFocus=card;openPage(card.dataset.page)}});
 document.querySelector('[data-open-page]')?.addEventListener('click',e=>{e.preventDefault();openPage(e.currentTarget.dataset.openPage)});
-window.addEventListener('popstate',()=>{drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');document.body.classList.remove('drawer-open');if(modalSlideshowTimer){clearInterval(modalSlideshowTimer);modalSlideshowTimer=null}});
+window.addEventListener('popstate',()=>{drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');unlockPageScroll();if(modalSlideshowTimer){clearInterval(modalSlideshowTimer);modalSlideshowTimer=null}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(lightbox.classList.contains('open'))hidePhoto();else if(drawer.classList.contains('open'))closeDrawer()}if(lightbox.classList.contains('open')&&e.key==='ArrowRight')showPhoto(activePhotoIndex+1,galleryPhotosForDrawer);if(lightbox.classList.contains('open')&&e.key==='ArrowLeft')showPhoto(activePhotoIndex-1,galleryPhotosForDrawer)});
 function runSlideshow(el,images,modal=false){const layers=[...el.querySelectorAll('.ambient-photo')];if(!layers.length||!images.length)return;let current=0,next=1;layers[0].src=images[0];layers[0].classList.add('is-visible');if(images.length===1){layers[1]?.classList.remove('is-visible');return}if(layers.length<2)return;layers[1].src=images[1];if(modal&&modalSlideshowTimer)clearInterval(modalSlideshowTimer);const timer=setInterval(()=>{next=(current+1)%2;current=(current+1)%images.length;layers[next].src=images[current];layers[next].classList.add('is-visible');layers[1-next].classList.remove('is-visible')},6500);if(modal)modalSlideshowTimer=timer;else el.dataset.timer=String(timer)}
-async function initializeCarousels(){let chosen=slidePhotos.slice(),selectionLoaded=false;if(supabase){const result=await supabase.from('gallery').select('image_url').eq('active',true).eq('in_carousel',true).order('position');if(!result.error){chosen=(result.data||[]).map(row=>row.image_url).filter(Boolean);selectionLoaded=true}}if(selectionLoaded)slidePhotos.splice(0,slidePhotos.length,...chosen);const media=document.querySelector('.hero-media');if(selectionLoaded){media.replaceChildren(...chosen.map((src,index)=>{const image=document.createElement('img');image.className=`hero-image${index===0?' is-current':''}`;image.src=src;image.alt='';return image}))}const heroImages=[...media.querySelectorAll('.hero-image')];if(heroImages.length>1){let heroIndex=0;setInterval(()=>{heroImages[heroIndex].classList.remove('is-current');heroIndex=(heroIndex+1)%heroImages.length;heroImages[heroIndex].classList.add('is-current')},7300)}const intro=document.querySelector('.intro');const layers=[...intro.querySelectorAll('.ambient-photo')];if(selectionLoaded&&!chosen.length)layers.forEach(image=>{image.removeAttribute('src');image.classList.remove('is-visible')});else runSlideshow(intro.querySelector('.intro-photo'),slidePhotos)}
+async function initializeCarousels(){const media=document.querySelector('.hero-media');media.classList.add('is-carousel-loading');let chosen=slidePhotos.slice(),selectionLoaded=false;if(supabase){try{const result=await supabase.from('gallery').select('image_url').eq('active',true).eq('in_carousel',true).order('position');if(!result.error){chosen=(result.data||[]).map(row=>row.image_url).filter(Boolean);selectionLoaded=true}}catch{}}if(selectionLoaded){slidePhotos.splice(0,slidePhotos.length,...chosen);media.replaceChildren(...chosen.map((src,index)=>{const image=document.createElement('img');image.className=`hero-image${index===0?' is-current':''}`;image.src=src;image.alt='';return image}))}const heroImages=[...media.querySelectorAll('.hero-image')];if(heroImages.length){try{await heroImages[0].decode()}catch{}}media.classList.remove('is-carousel-loading');if(heroImages.length>1){let heroIndex=0;setInterval(()=>{heroImages[heroIndex].classList.remove('is-current');heroIndex=(heroIndex+1)%heroImages.length;heroImages[heroIndex].classList.add('is-current')},7300)}const intro=document.querySelector('.intro');const layers=[...intro.querySelectorAll('.ambient-photo')];if(selectionLoaded&&!chosen.length)layers.forEach(image=>{image.removeAttribute('src');image.classList.remove('is-visible')});else runSlideshow(intro.querySelector('.intro-photo'),slidePhotos)}
 function observeReveals(){const revealItems=document.querySelectorAll('.reveal:not(.visible)');if(!('IntersectionObserver' in window)){revealItems.forEach(el=>el.classList.add('visible'));return}const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{threshold:.1});revealItems.forEach(el=>observer.observe(el))}
-observeReveals();renderHomeCards();loadEditableCopy();initializeCarousels();document.querySelector('#year').textContent=new Date().getFullYear();
+function initFooterVideo(){
+  const video=document.querySelector('#footerVideo');
+  const toggle=document.querySelector('#footerVideoToggle');
+  if(!video||!toggle)return;
+  let userChosePlayback=false;
+  video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;
+  const update=()=>{
+    const playing=!video.paused&&!video.ended;
+    toggle.classList.toggle('is-playing',playing);
+    toggle.classList.remove('play-required');
+    toggle.setAttribute('aria-pressed',String(playing));
+    toggle.setAttribute('aria-label',playing?'Pausar vídeo':'Reproduzir vídeo');
+  };
+  const tryPlay=()=>{if(userChosePlayback)return;video.play().then(update).catch(()=>toggle.classList.add('play-required'))};
+  video.addEventListener('play',update);video.addEventListener('pause',update);video.addEventListener('ended',update);
+  video.addEventListener('error',()=>toggle.classList.add('play-required'));
+  video.addEventListener('canplay',tryPlay,{once:true});
+  toggle.addEventListener('click',async()=>{userChosePlayback=true;if(video.paused){video.muted=true;try{await video.play()}catch{toggle.classList.add('play-required')}}else video.pause();update()});
+  tryPlay();
+}
+observeReveals();renderHomeCards();loadEditableCopy();initializeCarousels();initFooterVideo();document.querySelector('#year').textContent=new Date().getFullYear();
 const nav=document.querySelector('.site-nav');const syncNav=()=>nav.classList.toggle('scrolled',window.scrollY>36);window.addEventListener('scroll',syncNav,{passive:true});syncNav();
 const quickContact=document.querySelector('#quickContact');
 const checkin=quickContact.elements.checkin,checkout=quickContact.elements.checkout;
