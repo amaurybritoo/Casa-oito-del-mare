@@ -141,3 +141,11 @@ body.drawer-open{position:fixed;overflow:hidden!important;overscroll-behavior:no
 /* Robust first paint: home cards must never depend on Supabase/JS to become visible. */
 #homeCards > .card{opacity:1;transform:none;}
 #homeCards > .card.reveal{opacity:1;transform:none;}
+
+/* Mobile: o rodapé usa GIF real para comportamento de autoplay/loop sem depender do motor de vídeo do Safari. */
+.footer-showcase-gif{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 48%;opacity:.9}
+@media(max-width:700px){
+  .footer-showcase video{display:none}
+  .footer-showcase-gif{display:block}
+  .footer-video-toggle{display:none}
+}

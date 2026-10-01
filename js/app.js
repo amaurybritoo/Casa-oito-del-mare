@@ -1,13 +1,11 @@
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "./config.js";
 
-// Supabase é opcional para a renderização inicial. Se o CDN falhar, a home
-// continua funcionando com o conteúdo local e tenta o banco depois.
+// Supabase carrega em segundo plano. A home local é renderizada primeiro,
+// sem ficar esperando o CDN/banco para mostrar cards, fotos e carrossel.
 let createClient = null;
-try {
-  ({ createClient } = await import("https://esm.sh/@supabase/supabase-js@2"));
-} catch (error) {
-  console.warn("Supabase CDN indisponível; usando conteúdo local.", error);
-}
+let supabaseModulePromise = import("https://esm.sh/@supabase/supabase-js@2")
+  .then(mod => { createClient = mod.createClient; return createClient; })
+  .catch(error => { console.warn("Supabase CDN indisponível; usando conteúdo local.", error); return null; });
 
 const drawer = document.querySelector('#drawer');
 const page = document.querySelector('#page');
@@ -87,13 +85,17 @@ let supabase = null;
 let activePhotoIndex = 0;
 let zoomScale = 1;
 let modalSlideshowTimer=null;
+let heroCarouselTimer=null;
 let priorFocus = null;
-if (createClient && SUPABASE_URL.startsWith('https://') && SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')) {
+function initializeSupabaseClient(){
+  if (supabase || !createClient || !SUPABASE_URL.startsWith('https://') || !SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')) return false;
   try {
     supabase = createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+    return true;
   } catch (error) {
     console.warn('Supabase não pôde ser inicializado; usando conteúdo local.', error);
     supabase = null;
+    return false;
   }
 }
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -292,27 +294,41 @@ document.querySelector('[data-open-page]')?.addEventListener('click',e=>{e.preve
 window.addEventListener('popstate',()=>{drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');unlockPageScroll();if(modalSlideshowTimer){clearInterval(modalSlideshowTimer);modalSlideshowTimer=null}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(lightbox.classList.contains('open'))hidePhoto();else if(drawer.classList.contains('open'))closeDrawer()}if(lightbox.classList.contains('open')&&e.key==='ArrowRight')showPhoto(activePhotoIndex+1,galleryPhotosForDrawer);if(lightbox.classList.contains('open')&&e.key==='ArrowLeft')showPhoto(activePhotoIndex-1,galleryPhotosForDrawer)});
 function runSlideshow(el,images,modal=false){const layers=[...el.querySelectorAll('.ambient-photo')];if(!layers.length||!images.length)return;let current=0,next=1;layers[0].src=images[0];layers[0].classList.add('is-visible');if(images.length===1){layers[1]?.classList.remove('is-visible');return}if(layers.length<2)return;layers[1].src=images[1];if(modal&&modalSlideshowTimer)clearInterval(modalSlideshowTimer);const timer=setInterval(()=>{next=(current+1)%2;current=(current+1)%images.length;layers[next].src=images[current];layers[next].classList.add('is-visible');layers[1-next].classList.remove('is-visible')},6500);if(modal)modalSlideshowTimer=timer;else el.dataset.timer=String(timer)}
-async function initializeCarousels(){const media=document.querySelector('.hero-media');media.classList.add('is-carousel-loading');let chosen=slidePhotos.slice(),selectionLoaded=false;if(supabase){try{const result=await supabase.from('gallery').select('image_url').eq('active',true).eq('in_carousel',true).order('position');if(!result.error){chosen=(result.data||[]).map(row=>row.image_url).filter(Boolean);selectionLoaded=true}}catch{}}if(selectionLoaded && chosen.length){slidePhotos.splice(0,slidePhotos.length,...chosen);media.replaceChildren(...chosen.map((src,index)=>{const image=document.createElement('img');image.className=`hero-image${index===0?' is-current':''}`;image.src=src;image.alt='';return image}))}const heroImages=[...media.querySelectorAll('.hero-image')];if(heroImages.length){try{await heroImages[0].decode()}catch{}}media.classList.remove('is-carousel-loading');if(heroImages.length>1){let heroIndex=0;setInterval(()=>{heroImages[heroIndex].classList.remove('is-current');heroIndex=(heroIndex+1)%heroImages.length;heroImages[heroIndex].classList.add('is-current')},7300)}const intro=document.querySelector('.intro');const layers=[...intro.querySelectorAll('.ambient-photo')];if(selectionLoaded && chosen.length)runSlideshow(intro.querySelector('.intro-photo'),slidePhotos);else runSlideshow(intro.querySelector('.intro-photo'),slidePhotos)}
+async function initializeCarousels(){const media=document.querySelector('.hero-media');media.classList.add('is-carousel-loading');let chosen=slidePhotos.slice(),selectionLoaded=false;if(supabase){try{const result=await supabase.from('gallery').select('image_url').eq('active',true).eq('in_carousel',true).order('position');if(!result.error){chosen=(result.data||[]).map(row=>row.image_url).filter(Boolean);selectionLoaded=true}}catch{}}if(selectionLoaded && chosen.length){slidePhotos.splice(0,slidePhotos.length,...chosen);media.replaceChildren(...chosen.map((src,index)=>{const image=document.createElement('img');image.className=`hero-image${index===0?' is-current':''}`;image.src=src;image.alt='';return image}))}const heroImages=[...media.querySelectorAll('.hero-image')];if(heroImages.length){try{await heroImages[0].decode()}catch{}}media.classList.remove('is-carousel-loading');if(heroCarouselTimer){clearInterval(heroCarouselTimer);heroCarouselTimer=null}if(heroImages.length>1){let heroIndex=0;heroCarouselTimer=setInterval(()=>{heroImages[heroIndex].classList.remove('is-current');heroIndex=(heroIndex+1)%heroImages.length;heroImages[heroIndex].classList.add('is-current')},7300)}const intro=document.querySelector('.intro');const layers=[...intro.querySelectorAll('.ambient-photo')];if(selectionLoaded && chosen.length)runSlideshow(intro.querySelector('.intro-photo'),slidePhotos);else runSlideshow(intro.querySelector('.intro-photo'),slidePhotos)}
 function observeReveals(){const revealItems=document.querySelectorAll('.reveal:not(.visible)');if(!('IntersectionObserver' in window)){revealItems.forEach(el=>el.classList.add('visible'));return}const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{threshold:.1});revealItems.forEach(el=>observer.observe(el))}
 function initFooterVideo(){
   const video=document.querySelector('#footerVideo');
+  const gif=document.querySelector('#footerVideoGif');
   const toggle=document.querySelector('#footerVideoToggle');
   if(!video)return;
+
+  const isMobile=window.matchMedia?.('(max-width: 700px)').matches;
+  if(isMobile){
+    // No mobile usamos um GIF real: ele inicia e repete sozinho, inclusive no Safari/iPhone,
+    // sem depender das políticas de autoplay do elemento <video>.
+    video.pause();
+    video.removeAttribute('src');
+    video.querySelector('source')?.removeAttribute('src');
+    toggle?.setAttribute('hidden','');
+    gif?.removeAttribute('aria-hidden');
+    return;
+  }
+
+  const source=video.querySelector('source[data-src]');
+  if(source && !source.src){source.src=source.dataset.src||'';video.load()}
   let userPaused=false;
   video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;
   video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');video.setAttribute('autoplay','');
   const update=()=>{
     const playing=!video.paused&&!video.ended;
     toggle?.classList.toggle('is-playing',playing);
-    toggle?.classList.remove('play-required');
     toggle?.setAttribute('aria-pressed',String(playing));
     toggle?.setAttribute('aria-label',playing?'Pausar vídeo':'Reproduzir vídeo');
   };
   const tryPlay=()=>{
     if(userPaused||!video.paused)return;
     video.muted=true;
-    const promise=video.play();
-    if(promise?.then)promise.then(update).catch(()=>{});
+    video.play().then(update).catch(()=>{});
   };
   video.addEventListener('play',update);video.addEventListener('pause',update);video.addEventListener('ended',update);
   video.addEventListener('loadedmetadata',tryPlay);video.addEventListener('loadeddata',tryPlay);video.addEventListener('canplay',tryPlay);
@@ -321,11 +337,26 @@ function initFooterVideo(){
     }else{userPaused=true;video.pause()}
     update();
   });
-  video.load();tryPlay();
+  video.load();
+  requestAnimationFrame(tryPlay);
+  setTimeout(tryPlay,150);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)tryPlay()});
 }
 
-observeReveals();renderHomeCards();loadEditableCopy();initializeCarousels();initFooterVideo();document.querySelector('#year').textContent=new Date().getFullYear();
+// Renderização local imediata: nada de esperar Supabase para pintar a home.
+observeReveals();
+renderHomeCards();
+initializeCarousels();
+initFooterVideo();
+document.querySelector('#year').textContent=new Date().getFullYear();
+
+// Quando o Supabase terminar de carregar, atualiza os dados sem bloquear a primeira pintura.
+supabaseModulePromise.then(async()=>{
+  if(!initializeSupabaseClient()) return;
+  await loadEditableCopy();
+  await renderHomeCards();
+  await initializeCarousels();
+});
 const nav=document.querySelector('.site-nav');const syncNav=()=>nav.classList.toggle('scrolled',window.scrollY>36);window.addEventListener('scroll',syncNav,{passive:true});syncNav();
 const quickContact=document.querySelector('#quickContact');
 const checkin=quickContact.elements.checkin,checkout=quickContact.elements.checkout;
