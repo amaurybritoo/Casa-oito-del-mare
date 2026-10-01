@@ -1,0 +1,2 @@
+admin.js: patched login flow and timeout
+links.js: patched calendar conflict reset
