@@ -161,7 +161,9 @@ function renderLinks() {
   root.innerHTML = visible.map(item => {
     const rawTitle = String(item.title || '');
     const type = item.type || (/instagram/i.test(rawTitle) ? 'instagram' : /contato|fale com/i.test(rawTitle) ? 'contact' : /turíst|búzios/i.test(rawTitle) ? 'tourism' : /consult|disponib/i.test(rawTitle) ? 'whatsapp' : 'home');
-    const icon = cardIcon(type);
+    const titleForIcon = rawTitle.toLowerCase();
+    const iconType = /consult|disponib/.test(titleForIcon) ? 'calendar' : /contato|fale com/.test(titleForIcon) ? 'whatsapp' : type;
+    const icon = cardIcon(iconType);
     const content = `<span class="link-icon" aria-hidden="true">${icon}</span><span class="link-copy"><strong>${escapeHtml(rawTitle)}</strong><small>${escapeHtml(item.subtitle||'')}</small></span>`;
     if (type === 'contact') return `<button class="link-card" type="button" data-open-contact>${content}</button>`;
     if (type === 'tourism') return `<button class="link-card" type="button" data-open-tourism>${content}</button>`;

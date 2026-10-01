@@ -53,8 +53,9 @@ const adminMenuBackdrop=document.createElement('div');
 adminMenuBackdrop.id='adminMenuBackdrop';
 adminMenuBackdrop.setAttribute('aria-hidden','true');
 document.body.append(adminMenuBackdrop);
-const closeAdminMenu=()=>{adminAside?.classList.remove('open');adminMenuBackdrop.classList.remove('show');document.body.classList.remove('admin-menu-open');};
-adminMenuButton.onclick=()=>{const open=!adminAside.classList.contains('open');if(open){adminAside.classList.add('open');adminMenuBackdrop.classList.add('show');document.body.classList.add('admin-menu-open')}else closeAdminMenu();};
+let adminPageScrollY=0;
+const closeAdminMenu=()=>{if(!adminAside?.classList.contains('open'))return;adminAside.classList.remove('open');adminMenuBackdrop.classList.remove('show');document.documentElement.classList.remove('admin-menu-open');document.body.classList.remove('admin-menu-open');document.body.style.position='';document.body.style.top='';document.body.style.left='';document.body.style.right='';document.body.style.width='';window.scrollTo({top:adminPageScrollY,left:0,behavior:'auto'});};
+adminMenuButton.onclick=()=>{const open=!adminAside.classList.contains('open');if(open){adminPageScrollY=window.scrollY||document.documentElement.scrollTop||0;document.body.style.position='fixed';document.body.style.top=`-${adminPageScrollY}px`;document.body.style.left='0';document.body.style.right='0';document.body.style.width='100%';document.documentElement.classList.add('admin-menu-open');document.body.classList.add('admin-menu-open');adminAside.classList.add('open');adminMenuBackdrop.classList.add('show')}else closeAdminMenu();};
 adminMenuBackdrop.onclick=closeAdminMenu;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAdminMenu();});
 document.querySelectorAll('nav button').forEach(button=>button.onclick=()=>{current=button.dataset.view;document.querySelectorAll('nav button').forEach(item=>item.classList.toggle('active',item===button));closeAdminMenu();render(current)});
@@ -177,6 +178,18 @@ function reservationRecords(availability){
 function reservationAt(records,key){return records.find(r=>key>=r.check_in&&key<=r.check_out)||null}
 function rangeConflict(records,start,end,ignoreId=''){
   return records.find(r=>r.id!==ignoreId&&r.status&&r.status!=='available'&&r.check_in<=end&&r.check_out>=start)||null;
+}
+function showReservationConflict(){
+  const dialog=document.createElement('dialog');
+  dialog.className='reservation-dialog reservation-conflict-dialog';
+  dialog.innerHTML='<div class="reservation-conflict-content"><p>Há outra reserva ou bloqueio dentro deste período. Escolha outras datas.</p><button type="button" class="primary" data-ok>OK</button></div>';
+  document.body.append(dialog);
+  const close=()=>{if(dialog.open)dialog.close();dialog.remove()};
+  dialog.querySelector('[data-ok]').onclick=close;
+  dialog.addEventListener('cancel',event=>{event.preventDefault();close()});
+  dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+  dialog.showModal();
+  dialog.querySelector('[data-ok]').focus();
 }
 async function reservationsView(){
   const record=await linkPageRecord();
@@ -346,7 +359,7 @@ async function reservationsView(){
         let nextIn=seedCheckIn,nextOut=seedCheckOut;
         if(target==='check_in'){nextIn=picked;if(nextOut&&nextIn>nextOut)nextOut=picked}else{nextOut=picked;if(nextIn&&nextOut<nextIn)nextIn=picked}
         const conflict=rangeConflict(records,nextIn,nextOut,current?.id||'');
-        if(conflict){alert('Há outra reserva ou bloqueio dentro deste período. Escolha outras datas.');return}
+        if(conflict){showReservationConflict();return}
         close();
         draftStart=null;draftEnd=null;editingId='';
         openReservationEditor(current?.id||null,fromSelection,{checkIn:nextIn,checkOut:nextOut,...preserved});
@@ -389,7 +402,7 @@ async function reservationsView(){
         const item={id:current?.id||`res-${Date.now()}`,check_in:checkIn,check_out:checkOut,status,name,phone,note};
         if(current){const idx=records.findIndex(r=>r.id===current.id);if(idx>=0)records[idx]=item;else records.push(item)}else records.push(item);
         await persist();draftStart=null;draftEnd=null;editingId='';dialog.close();renderReservationCalendar();
-      }catch(error){button.disabled=false;button.textContent='Salvar data';alert(error.message)}
+      }catch(error){button.disabled=false;button.textContent='Salvar data';if(error.message==='Há outra reserva ou bloqueio dentro deste período. Escolha outras datas.')showReservationConflict();else alert(error.message)}
     };
     dialog.querySelector('[data-delete]')?.addEventListener('click',async()=>{const button=dialog.querySelector('[data-delete]');if(!confirm('Excluir esta reserva e liberar o período?'))return;button.disabled=true;button.textContent='Excluindo…';try{const idx=records.findIndex(r=>r.id===id);if(idx>=0)records.splice(idx,1);await persist();draftStart=null;draftEnd=null;dialog.close();renderReservationCalendar()}catch(error){button.disabled=false;button.textContent='Excluir reserva';alert(error.message)}});
     lockReservationScroll();dialog.showModal();
