@@ -442,3 +442,13 @@ body.reservation-modal-open{position:fixed;left:0;right:0;width:100%}
 .reservation-day.is-past,.reservation-day.is-date-disabled{opacity:.45;cursor:not-allowed!important}
 .reservation-day.is-past:disabled,.reservation-day.is-date-disabled:disabled{pointer-events:none}
 .reservation-toolbar button:disabled{opacity:.35;cursor:not-allowed;transform:none!important}
+
+/* Cabeçalho acompanha a rolagem nas telas móveis. */
+@media(max-width:850px){
+  .mobile-head{position:fixed!important;top:0!important;left:0;right:0;width:100%;z-index:140!important}
+  main{padding-top:65px}
+}
+@media(max-width:700px){
+  .mobile-head{height:calc(58px + env(safe-area-inset-top))!important}
+  main{padding-top:calc(58px + env(safe-area-inset-top))}
+}
