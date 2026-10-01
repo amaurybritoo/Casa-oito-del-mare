@@ -18,8 +18,13 @@ async function insertAtPosition(table,payload,position,data){const list=orderedR
 function askDelete(title,detail){return new Promise(resolve=>{const dialog=document.createElement('dialog');dialog.className='admin-dialog';dialog.innerHTML=`<div class="admin-dialog-mark">8</div><p class="eyebrow">CASA OITO DEL MARE</p><h2>${esc(title)}</h2><p>${esc(detail)}</p><div class="admin-dialog-actions"><button type="button" class="secondary" data-cancel>Cancelar</button><button type="button" class="danger-confirm" data-confirm>Excluir</button></div>`;let settled=false;const finish=value=>{if(settled)return;settled=true;dialog.close();dialog.remove();resolve(value)};dialog.querySelector('[data-cancel]').onclick=()=>finish(false);dialog.querySelector('[data-confirm]').onclick=()=>finish(true);dialog.addEventListener('cancel',event=>{event.preventDefault();finish(false)});document.body.append(dialog);dialog.showModal()})}
 function message(text,error=false){$('#loginMsg').textContent=text||'';$('#loginMsg').style.color=error?'#ffb5aa':''}
 function configured(){return SUPABASE_URL.startsWith('https://')&&SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')}
+<<<<<<< HEAD
 function showLogin(){const login=$('#login'),app=$('#app');app.hidden=true;app.style.display='none';login.hidden=false;login.style.removeProperty('display');login.setAttribute('aria-hidden','false');app.setAttribute('aria-hidden','true')}
 function showApp(){const login=$('#login'),app=$('#app');login.hidden=true;login.style.display='none';login.setAttribute('aria-hidden','true');app.hidden=false;app.style.removeProperty('display');app.setAttribute('aria-hidden','false');render(current)}
+=======
+function showLogin(){$('#app').hidden=true;$('#login').hidden=false}
+function showApp(){$('#login').hidden=true;$('#app').hidden=false;render(current)}
+>>>>>>> ab058c4374c6d3f8845c9dda2b53fe6e3d6ce20e
 async function boot(){
   try{
     if(!configured()){
