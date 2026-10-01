@@ -112,7 +112,6 @@ body.drawer-open{position:fixed;overflow:hidden!important;overscroll-behavior:no
 @media(max-width:560px){.video-card .video-player-shell{width:100%;border-radius:7px}.video-card .video-player-shell video{width:100%;max-width:100%;max-height:none;min-height:0;aspect-ratio:auto;object-fit:contain}.video-play-prompt{font-size:11px;padding:11px 15px}}
 .hero-media{transition:opacity .35s ease}
 .hero-media.is-carousel-loading{opacity:0}
-<<<<<<< HEAD
 
 /* Ajustes mobile-first seguros: não alteram a estrutura dos cards nem o carregamento do Supabase. */
 .drawer{z-index:70!important;}
@@ -138,5 +137,15 @@ body.drawer-open{position:fixed;overflow:hidden!important;overscroll-behavior:no
   .hero-content,.hero-bottom{width:calc(100% - 24px);}
   .card-featured .card-caption strong{font-size:48px;}
 }
-=======
->>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
+
+/* Robust first paint: home cards must never depend on Supabase/JS to become visible. */
+#homeCards > .card{opacity:1;transform:none;}
+#homeCards > .card.reveal{opacity:1;transform:none;}
+
+/* Mobile: o rodapé usa GIF real para comportamento de autoplay/loop sem depender do motor de vídeo do Safari. */
+.footer-showcase-gif{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 48%;opacity:.9}
+@media(max-width:700px){
+  .footer-showcase video{display:none}
+  .footer-showcase-gif{display:block}
+  .footer-video-toggle{display:none}
+}

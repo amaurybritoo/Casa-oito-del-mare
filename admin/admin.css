@@ -66,3 +66,209 @@ html,body{max-width:100%;overflow-x:hidden}
 .login h1{max-width:100%;font-size:clamp(36px,10vw,56px);overflow-wrap:anywhere;word-break:normal}
 .login p,.login form,.login input,.login button,.login small{min-width:0;max-width:100%}
 @media(max-width:380px){.login h1{font-size:clamp(34px,9.5vw,42px);line-height:.98}.login-card{padding:22px}}
+
+/* Mobile recovery pass — painel administrativo */
+@media (max-width: 700px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden}
+  body{font-size:14px}
+  #app{width:100%;min-width:0;display:block;overflow-x:hidden}
+  main{width:100%;min-width:0;overflow-x:hidden}
+  .mobile-head{width:100%;min-width:0;position:sticky;top:0;z-index:100;padding:0 14px;gap:10px}
+  .mobile-head b{min-width:0;flex:1;text-align:center;font-size:11px;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mobile-head button{flex:0 0 38px;width:38px;height:38px;padding:0}
+  .mobile-head a{flex:0 0 auto;white-space:nowrap;font-size:10px}
+  aside{z-index:120;top:65px;width:min(280px,86vw);max-width:86vw;padding:22px 14px;overflow-y:auto;overflow-x:hidden}
+  .admin-brand{padding:3px 6px 24px}
+  .site-link{margin:0 4px 18px}
+  aside nav{width:100%;min-width:0}
+  aside nav button{width:100%;min-height:44px}
+  .view{width:100%;max-width:none;min-width:0;padding:26px 14px 40px;overflow:visible}
+  .view-head{width:100%;min-width:0;margin-bottom:20px}
+  .view-head h1{font-size:clamp(40px,13vw,58px);line-height:.9;overflow-wrap:anywhere}
+  .view-head p{max-width:100%;overflow-wrap:anywhere}
+  .view-head .primary{width:100%;max-width:100%;margin-top:14px}
+
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .stat{min-width:0;padding:15px}
+  .stat strong{font-size:36px}
+  .quick-grid{grid-template-columns:1fr;gap:9px}
+  .quick{min-width:0;padding:17px}
+
+  .upload-box,.video-upload,.form-card{width:100%;min-width:0;padding:14px;border-radius:13px}
+  .upload-box label{min-height:120px;padding:16px}
+  .preview-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .preview-grid img{height:110px}
+
+  .media-grid{grid-template-columns:1fr;gap:10px}
+  .media-image img{height:auto;aspect-ratio:4/3}
+  .media-body{padding:12px}
+  .media h3{font-size:25px}
+  .actions{flex-wrap:wrap}
+  .actions button{min-height:36px}
+
+  .video-upload{grid-template-columns:1fr;gap:10px;margin:14px 0 18px}
+  .video-upload>label{justify-self:stretch;width:100%;text-align:center}
+  .video-preview-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .video-preview-grid video{max-height:150px}
+  .video-upload>#sendVideos{width:100%}
+  .video-admin-grid{grid-template-columns:1fr;gap:10px}
+  .video-admin-card>video{max-height:none;width:100%;aspect-ratio:16/10}
+  .video-admin-info{padding:12px}
+  .video-admin-heading{align-items:flex-start}
+  .video-admin-heading h2{font-size:24px;overflow-wrap:anywhere}
+
+  .form-grid{grid-template-columns:1fr;gap:11px}
+  .form-grid .full,.form-actions{grid-column:auto}
+  .form-grid input,.form-grid textarea,.form-grid select{width:100%;min-width:0;max-width:100%}
+  .form-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .form-actions button{width:100%;min-width:0}
+
+  .table{width:100%;min-width:0;overflow:hidden}
+  .row{grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:13px 12px;min-width:0}
+  .row>*{min-width:0;overflow-wrap:anywhere}
+  .row>*:nth-child(2){display:none}
+  .row>*:nth-child(3){grid-column:2;grid-row:1;align-self:center}
+  .row .actions{justify-content:flex-end;max-width:130px}
+  .row .actions button{font-size:9px;padding:7px 8px}
+  .row.head{display:none}
+
+  .photo-upload .photo-queue-card{grid-template-columns:1fr;gap:14px;padding:12px}
+  .photo-upload .photo-crop-column{width:100%;min-width:0}
+  .photo-upload .crop-window{width:100%;max-width:100%;min-height:0;aspect-ratio:4/3}
+  .photo-upload .photo-queue-fields{grid-template-columns:1fr;gap:10px}
+  .photo-queue-title,.photo-title-field,.photo-description-field,.crop-controls{grid-column:auto}
+  .photo-queue-title{grid-template-columns:1fr;align-items:start}
+  .photo-queue-title .text-danger{justify-self:start}
+  .photo-queue-row{grid-template-columns:1fr}
+  .crop-controls{grid-template-columns:1fr;gap:8px}
+  .stay-dates{grid-template-columns:1fr 1fr}
+
+  .video-queue-card{grid-template-columns:1fr;gap:10px;padding:10px}
+  .video-queue-card>video{max-height:none;width:100%}
+  .video-queue-fields{min-width:0}
+
+  .admin-dialog{width:calc(100vw - 24px);max-width:none;max-height:calc(100vh - 24px);padding:20px;border-radius:17px}
+  .admin-dialog h2{font-size:31px}
+  .admin-dialog-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .admin-dialog-actions button{width:100%;min-width:0}
+}
+
+@media (max-width: 430px){
+  .view{padding-left:11px;padding-right:11px}
+  .mobile-head{padding:0 10px}
+  .mobile-head a{font-size:9px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat{padding:13px}
+  .stat strong{font-size:31px}
+  .stat span{font-size:9px}
+  .preview-grid,.video-preview-grid{grid-template-columns:1fr 1fr}
+  .form-actions,.admin-dialog-actions{grid-template-columns:1fr}
+  .stay-dates{grid-template-columns:1fr}
+}
+
+/* MOBILE-FIRST FINAL PASS */
+html{min-width:0;overflow-x:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{min-width:0;overflow-x:hidden;overscroll-behavior-x:none}
+button,input,select,textarea{font:inherit;max-width:100%}
+button,a,input,select,textarea{touch-action:manipulation}
+@media (max-width:700px){
+  .login{min-height:100svh;min-height:100dvh;width:100%;padding:max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom));place-items:center;overflow:auto}
+  .login-card{width:100%;max-width:420px;padding:30px 18px;border-radius:22px}
+  .login-mark{font-size:68px;line-height:.8}
+  .login h1{font-size:clamp(38px,12vw,52px);line-height:.9;margin:14px 0 12px}
+  .login p:not(.eyebrow){font-size:12px;line-height:1.6;margin-left:auto;margin-right:auto;max-width:330px}
+  .login form{grid-template-columns:1fr!important;gap:10px;margin-top:20px}
+  .login input,.login button{width:100%!important;height:50px;min-height:50px;font-size:16px!important;padding:12px 14px}
+  .login input{background:#ffffff14;color:#fff}
+  .login button{font-size:15px!important}
+  #app{min-height:100svh;min-height:100dvh;width:100%;display:block;overflow-x:clip}
+  main{width:100%;min-width:0;overflow-x:clip}
+  .mobile-head{height:calc(58px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0;box-sizing:border-box;position:sticky;top:0}
+  .mobile-head button{width:44px;height:44px;min-width:44px;font-size:24px}
+  .mobile-head a{min-height:44px;display:flex;align-items:center;font-size:10px;padding:0 2px}
+  .view{width:100%;padding:24px 12px calc(36px + env(safe-area-inset-bottom));overflow:visible}
+  .view h1{font-size:clamp(38px,12vw,56px);line-height:.9;max-width:100%;overflow-wrap:anywhere}
+  .view-head p{font-size:12px;line-height:1.6}
+  .primary,.actions button,.form-actions button,.admin-dialog-actions button,.upload-box label,.video-upload>label{min-height:46px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .stat{padding:13px;min-width:0}
+  .stat strong{font-size:32px}
+  .stat span{font-size:9px;line-height:1.3}
+  .quick{padding:16px;min-height:86px}
+  .upload-box,.video-upload,.form-card,.table{border-radius:13px}
+  .upload-box label{min-height:116px}
+  .preview-grid,.video-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .preview-grid img{height:100px}
+  .media-grid,.video-admin-grid{grid-template-columns:1fr;gap:10px}
+  .media-image img{aspect-ratio:4/3;height:auto}
+  .media h3{font-size:25px}
+  .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .actions button{width:100%;font-size:10px}
+  .form-grid{grid-template-columns:1fr!important;gap:10px}
+  .form-grid input,.form-grid textarea,.form-grid select,.admin-edit-form input,.admin-edit-form textarea,.admin-edit-form select{font-size:16px!important;min-height:46px}
+  .form-grid textarea,.admin-edit-form textarea{min-height:120px}
+  .form-actions,.admin-dialog-actions{display:grid;grid-template-columns:1fr;gap:8px}
+  .row{grid-template-columns:minmax(0,1fr);gap:7px;padding:13px 11px}
+  .row>*:nth-child(3){grid-column:auto;grid-row:auto}
+  .row .actions{display:flex;max-width:none}
+  .photo-upload .photo-queue-card,.video-queue-card{grid-template-columns:1fr!important;padding:11px;gap:11px}
+  .photo-upload .crop-window{width:100%;aspect-ratio:4/3;max-height:none}
+  .photo-upload .photo-queue-fields{grid-template-columns:1fr!important}
+  .photo-queue-row{grid-template-columns:1fr!important}
+  .crop-controls{grid-template-columns:1fr!important}
+  .video-upload{grid-template-columns:1fr!important}
+  .video-upload>label{width:100%;justify-self:stretch;text-align:center;display:grid;place-items:center}
+  .video-preview-grid video,.video-admin-card>video,.video-queue-card>video{width:100%;height:auto;max-height:none;aspect-ratio:16/10}
+  .video-admin-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start}
+  .video-admin-heading h2{font-size:23px;overflow-wrap:anywhere}
+  .admin-dialog{width:calc(100vw - 20px);max-width:none;max-height:calc(100dvh - 20px);padding:20px 16px;border-radius:18px;margin:auto}
+  .admin-dialog h2{font-size:31px}
+}
+@media(max-width:390px){
+  .login{padding-left:12px;padding-right:12px}
+  .login-card{padding:24px 15px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat strong{font-size:29px}
+  .preview-grid,.video-preview-grid{grid-template-columns:1fr 1fr}
+  .view{padding-left:10px;padding-right:10px}
+}
+@media(prefers-reduced-motion:reduce){aside{transition:none!important}.secondary:hover{transform:none!important}}
+
+/* Página de links + guia turístico */
+.view-head-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.link-admin-grid,.tourist-admin-grid{display:grid;gap:10px}.link-admin-card,.tourist-admin-card{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px;border:1px solid #173b3d14;border-radius:14px;background:#fffdf8;box-shadow:0 4px 14px #173b3d08}.link-admin-thumb{width:72px;height:72px;border-radius:12px;overflow:hidden;display:grid;place-items:center;background:#e8efe8;color:#39756e;font:28px 'Cormorant Garamond'}.link-admin-thumb img,.tourist-admin-card>img{width:100%;height:100%;object-fit:cover}.link-admin-copy{min-width:0}.link-admin-copy h3,.tourist-admin-card h3{margin:5px 0 4px;color:#173b3d;font:500 24px/1 'Cormorant Garamond'}.link-admin-copy p,.tourist-admin-card p{margin:0 0 4px;color:#6f7d77;font-size:10px;line-height:1.45}.link-admin-copy small,.tourist-admin-card small{display:block;overflow:hidden;color:#8a928d;font-size:9px;text-overflow:ellipsis;white-space:nowrap}.link-admin-top{display:flex;gap:5px;flex-wrap:wrap}.content-pill{display:inline-flex;padding:4px 7px;border-radius:999px;background:#e9efea;color:#52766f;font-size:7px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.content-pill.featured{background:#f4e3d0;color:#9a6e4e}.content-pill.hidden{background:#eee8e1;color:#8b8178}.tourist-admin-card{grid-template-columns:105px minmax(0,1fr) auto}.tourist-admin-card>img{width:105px;height:105px;border-radius:12px}.admin-dialog input[type=file]{padding:10px;background:#f7f4ed}.admin-dialog .edit-inline{display:grid;grid-template-columns:1fr 1fr;gap:10px}.admin-dialog .edit-inline>label{min-width:0}@media(max-width:700px){.view-head-actions{width:100%;justify-content:stretch}.view-head-actions button{flex:1;min-width:0}.link-admin-card,.tourist-admin-card{grid-template-columns:64px minmax(0,1fr);gap:11px}.link-admin-thumb{width:64px;height:64px}.tourist-admin-card{grid-template-columns:82px minmax(0,1fr)}.tourist-admin-card>img{width:82px;height:82px}.link-admin-card .actions,.tourist-admin-card .actions{grid-column:1/-1;justify-content:flex-end}.link-admin-copy h3,.tourist-admin-card h3{font-size:21px}.admin-dialog .edit-inline{grid-template-columns:1fr}}
+
+/* Calendário de reservas — experiência tipo calendário mobile */
+.reservations-view .view-head{align-items:flex-end}
+.reservation-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.7fr);gap:18px;align-items:start}
+.reservation-panel,.reservation-settings{background:#fffdf8;border:0;border-radius:24px;box-shadow:0 14px 40px rgba(23,59,61,.08);padding:22px}
+.reservation-toolbar{display:grid;grid-template-columns:42px 1fr 42px;align-items:center;gap:10px;margin-bottom:16px}
+.reservation-toolbar button{width:42px;height:42px;border:0;border-radius:50%;background:#edf2ec;color:#173b3d;font-size:28px;line-height:1;cursor:pointer}
+.reservation-toolbar button:hover{background:#dfeae4}
+.reservation-toolbar strong{text-align:center;color:#173b3d;font:600 24px/1 'Cormorant Garamond';text-transform:capitalize}
+.reservation-week,.reservation-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.reservation-week{margin-bottom:7px}.reservation-week span{text-align:center;color:#8b958f;font-size:9px;font-weight:800;letter-spacing:.13em}
+.reservation-day{position:relative;aspect-ratio:1;border:0;border-radius:14px;background:#f5f6f1;color:#294b49;font:600 15px/1 system-ui;cursor:pointer;display:grid;place-items:center;transition:transform .18s,background .18s,box-shadow .18s}
+.reservation-day:hover{transform:translateY(-2px);background:#e9efea;box-shadow:0 8px 18px rgba(23,59,61,.08)}
+.reservation-day.empty{background:transparent;cursor:default;box-shadow:none;transform:none}
+.reservation-day.is-reserved{background:#a85f54;color:#fff;box-shadow:0 7px 16px rgba(168,95,84,.18)}
+.reservation-day.is-reserved i{position:absolute;right:7px;top:7px;width:5px;height:5px;border-radius:50%;background:#f8e8df}
+.reservation-day.has-guest:after{content:'';position:absolute;bottom:7px;width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.9)}
+.reservation-summary{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:17px;padding-top:14px;border-top:1px solid #173b3d12;color:#7a8781;font-size:11px}.reservation-summary span{display:flex;align-items:center;gap:7px}.reservation-summary i{width:9px;height:9px;border-radius:50%;background:#a85f54}.reservation-summary b{color:#173b3d}
+.reservation-settings{display:grid;gap:13px}.reservation-settings label{display:grid;gap:6px;color:#53645e;font-size:10px;font-weight:700;letter-spacing:.04em}.reservation-settings input,.reservation-settings textarea{width:100%;border:1px solid #173b3d16;background:#fbfaf5;border-radius:12px;padding:11px 12px;color:#173b3d;font:inherit;outline:none}.reservation-settings input:focus,.reservation-settings textarea:focus{border-color:#39756e;box-shadow:0 0 0 3px rgba(57,117,110,.1)}
+.reservation-tip{padding:13px 14px;border-radius:15px;background:#edf3ed;color:#60716b;font-size:10px;line-height:1.5}.reservation-tip b{display:block;color:#173b3d;margin-bottom:4px}
+.reservation-dialog{border:0;padding:0;width:min(440px,calc(100vw - 28px));border-radius:26px;background:#fbfaf5;color:#173b3d;box-shadow:0 30px 90px rgba(0,0,0,.28)}.reservation-dialog::backdrop{background:rgba(17,35,34,.48);backdrop-filter:blur(5px)}
+.reservation-form{padding:24px}.reservation-dialog-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.reservation-dialog-top h2{margin:2px 0 5px;font:500 34px/1 'Cormorant Garamond';color:#173b3d}.reservation-dialog-top p:not(.eyebrow){margin:0;color:#78857f;font-size:11px;line-height:1.5}.reservation-close{width:38px;height:38px;border:0;border-radius:50%;background:#edf1ec;color:#173b3d;font-size:24px;cursor:pointer}.reservation-toggle{display:flex!important;align-items:center;gap:12px;margin:22px 0 16px;padding:14px;border-radius:16px;background:#edf3ed;color:#173b3d;cursor:pointer}.reservation-toggle input{position:absolute;opacity:0;pointer-events:none}.reservation-toggle .toggle-ui{width:40px;height:24px;border-radius:99px;background:#cbd4ce;position:relative;flex:none}.reservation-toggle .toggle-ui:after{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 2px 5px #0002;transition:.2s}.reservation-toggle input:checked+.toggle-ui{background:#a85f54}.reservation-toggle input:checked+.toggle-ui:after{transform:translateX(16px)}.reservation-toggle b,.reservation-toggle small{display:block}.reservation-toggle small{margin-top:3px;color:#75827d;font-size:9px;font-weight:500;letter-spacing:0}.reservation-fields{display:grid;gap:12px}.reservation-fields label{display:grid;gap:6px;color:#53645e;font-size:10px;font-weight:700}.reservation-fields input{border:1px solid #173b3d18;background:#fff;border-radius:13px;padding:13px;color:#173b3d;font:inherit;outline:none}.reservation-fields input:focus{border-color:#39756e;box-shadow:0 0 0 3px rgba(57,117,110,.1)}.reservation-dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:20px}
+@media(max-width:700px){.reservation-layout{grid-template-columns:1fr}.reservation-panel,.reservation-settings{padding:16px;border-radius:20px}.reservation-day{border-radius:11px;font-size:14px}.reservation-week,.reservation-grid{gap:4px}.reservation-dialog{width:calc(100vw - 18px);border-radius:24px}.reservation-form{padding:20px}.reservation-dialog-actions{grid-template-columns:1fr}.reservation-toolbar strong{font-size:22px}}
+
+/* Reservas — ações e salvamento automático */
+.reservation-save-all{display:block;width:100%;margin-top:16px;min-height:48px}
+.reservation-dialog-actions{display:grid;grid-template-columns:auto 1fr 1fr;gap:10px;margin-top:22px;align-items:stretch}
+.reservation-dialog-actions .reservation-delete{min-height:48px}
+.reservation-dialog-actions .reservation-cancel,
+.reservation-dialog-actions .primary{min-height:48px}
+.reservation-delete{border:1px solid rgba(168,95,84,.28);background:#fff5f2;color:#9d5147;border-radius:14px;padding:0 16px;font:600 12px/1 system-ui;cursor:pointer;transition:.18s}
+.reservation-delete:hover{background:#f7e5e0;transform:translateY(-1px)}
+.reservation-cancel{background:#eef1ec!important;color:#425650!important;border:1px solid transparent!important;font-weight:700!important}
+.reservation-cancel:hover{background:#e2e8e2!important;transform:translateY(-1px)}
+.reservation-close:hover{background:#e2e9e3;transform:rotate(4deg)}
+@media(max-width:700px){.reservation-dialog-actions{grid-template-columns:1fr 1fr}.reservation-dialog-actions .reservation-delete{grid-column:1 / -1}.reservation-save-all{min-height:50px}.reservation-dialog-actions .reservation-cancel,.reservation-dialog-actions .primary{min-height:50px}}

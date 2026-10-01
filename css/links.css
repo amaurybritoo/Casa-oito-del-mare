@@ -76,3 +76,354 @@ a{color:inherit}
 @media(min-width:700px){body{padding-top:35px;padding-bottom:45px}.links-shell{border-radius:28px}.cover-photo{height:200px}.quick-links{padding-inline:24px}.location-card{padding:27px 24px}.map-frame{height:185px}}
 @media(max-width:380px){body{padding:0}.links-shell{border:0;border-radius:0;box-shadow:none}.cover-photo{height:157px}.profile-content{padding-inline:19px  }.quick-links{padding-inline:15px}.link-card{grid-template-columns:38px minmax(0,1fr);gap:10px;padding:10px}.link-note{display:none}.location-card{padding-inline:17px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* Links page · premium zen + tourism */
+.links-tabs{display:flex;gap:7px;padding:11px 20px 0;background:#f2eddf}
+.links-tabs button{flex:1;border:1px solid #17474418;border-radius:999px;padding:10px 12px;background:#fffaf0;color:#6f7c74;font-size:9px;font-weight:700;letter-spacing:.12em;cursor:pointer;transition:.2s}
+.links-tabs button.active{background:var(--sea);border-color:var(--sea);color:#fff}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.link-card{position:relative;overflow:hidden}
+.link-card-image{width:40px;height:40px;border-radius:12px;object-fit:cover;display:block}
+.link-card:has(.link-card-image){grid-template-columns:42px 40px minmax(0,1fr) auto}
+.tourism-panel{padding:25px 20px 30px;background:linear-gradient(180deg,#f7f2e7,#eef0e8)}
+.tourism-panel .section-heading p{margin:8px 0 0;color:#74817b;font-size:10px;line-height:1.65}
+.tourism-grid{display:grid;gap:13px}
+.tourism-card{overflow:hidden;border:1px solid #17474414;border-radius:17px;background:#fffdf8;box-shadow:0 6px 18px #173b3d0b}
+.tourism-card.is-featured{border-color:#c7a78055}
+.tourism-image-wrap{height:180px;position:relative;background:#dfe8e3;overflow:hidden}
+.tourism-image-wrap img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .45s ease}
+.tourism-card:hover .tourism-image-wrap img{transform:scale(1.025)}
+.tourism-image-wrap span{position:absolute;left:11px;bottom:11px;padding:6px 9px;border:1px solid #ffffff55;border-radius:999px;background:#123f40d9;color:#fff;font-size:7px;font-weight:700;letter-spacing:.12em}
+.tourism-body{padding:15px 15px 16px}
+.tourism-body>small{color:#9a7958;font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.tourism-body h3{margin:5px 0 7px;color:var(--sea);font:400 24px/1 var(--serif)}
+.tourism-body p{margin:0;color:#66756e;font-size:10px;line-height:1.65}
+.tourism-recommendation{display:grid;gap:3px;margin-top:11px;padding:9px 10px;border-left:2px solid #d9b487;background:#f6f0e5;color:#68766f;font-size:9px;line-height:1.5}
+.tourism-recommendation b{color:#8a6b4e;font-size:8px;letter-spacing:.1em;text-transform:uppercase}
+.tourism-body>a{display:inline-flex;margin-top:11px;color:#28645e;font-size:9px;font-weight:700;text-decoration:none}
+.contact-dialog{width:min(92vw,390px);padding:0;border:0;border-radius:22px;background:#f8f3e8;color:var(--ink);box-shadow:0 25px 80px #082f3270}
+.contact-dialog::backdrop{background:#082f3275;backdrop-filter:blur(4px)}
+.contact-dialog-inner{position:relative;padding:28px 22px 23px}
+.dialog-close{position:absolute;right:12px;top:10px;width:34px;height:34px;border:1px solid #173b3d18;border-radius:50%;background:#fffaf0;color:var(--sea);font-size:23px;line-height:1;cursor:pointer}
+.contact-dialog h2{margin:8px 0 7px;font:400 31px/1 var(--serif);color:var(--sea)}
+.contact-dialog p{margin:0;color:#6d7b74;font-size:10px;line-height:1.65}
+.contact-actions{display:grid;gap:8px;margin-top:17px}
+.contact-action{display:flex;align-items:center;gap:11px;padding:12px;border:1px solid #17474414;border-radius:13px;background:#fffdf8;color:var(--ink);text-decoration:none}
+.contact-action>span{width:35px;height:35px;display:grid;place-items:center;border-radius:11px;background:#e8efe8;color:#39756e;font-size:17px}
+.contact-action div{display:grid;gap:3px}.contact-action small{font-size:8px;color:#8a918c}.contact-action b{font-size:11px;font-weight:600}
+.tourism-icon{background:#e9efe9;color:#47766e}.map-icon{background:#e9ece8;color:#54766e}
+@media(max-width:380px){.links-tabs{padding-inline:15px}.tourism-panel{padding-inline:15px}.tourism-image-wrap{height:155px}.link-card:has(.link-card-image){grid-template-columns:38px 38px minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){.tourism-image-wrap img{transition:none}}
+
+/* v3 · capa em carrossel + cards premium + turismo */
+.profile-cover-carousel{touch-action:pan-y;user-select:none}
+.cover-track{position:absolute;inset:0;display:flex;transition:transform .55s cubic-bezier(.22,.61,.36,1)}
+.cover-slide{min-width:100%;height:100%;position:relative;overflow:hidden}
+.cover-slide img{width:100%;height:100%;display:block;object-fit:cover;object-position:center 55%;filter:saturate(.92) contrast(.98);transform:scale(1.01);transition:transform 6s ease}
+.cover-slide.is-active img{transform:scale(1.06)}
+.cover-arrow{position:absolute;z-index:3;top:50%;width:34px;height:34px;display:grid;place-items:center;transform:translateY(-50%);border:1px solid #ffffff55;border-radius:50%;background:#082f3270;color:#fff;font:28px/1 var(--serif);cursor:pointer;backdrop-filter:blur(8px);transition:.2s}
+.cover-arrow:hover{background:#123f40dd;transform:translateY(-50%) scale(1.05)}
+.cover-prev{left:12px}.cover-next{right:12px}
+.cover-dots{position:absolute;z-index:3;left:50%;bottom:13px;display:flex;gap:5px;transform:translateX(-50%);padding:5px 7px;border:1px solid #ffffff30;border-radius:999px;background:#082f3260;backdrop-filter:blur(6px)}
+.cover-dot{width:5px;height:5px;padding:0;border:0;border-radius:50%;background:#ffffff65;cursor:pointer;transition:.2s}
+.cover-dot.active{width:17px;border-radius:99px;background:#f2c99f}
+.cover-caption{bottom:17px;left:21px;right:90px}
+.link-list{gap:11px}
+.link-card{min-height:78px;grid-template-columns:46px minmax(0,1fr) auto;padding:12px 13px;border-radius:17px;background:linear-gradient(145deg,#fffefa,#f8f5ec);box-shadow:0 7px 20px #173b3d0a;position:relative}
+.link-card:before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:#d7b58b;opacity:.55}
+.link-card:hover{transform:translateY(-3px);box-shadow:0 13px 28px #173b3d16}
+.link-card:active{transform:translateY(-1px) scale(.995)}
+.link-primary{background:linear-gradient(135deg,#123f40,#1a514e);box-shadow:0 10px 25px #123f4030}
+.link-primary:before{background:#e9bd8d;opacity:1}
+.link-icon{width:44px;height:44px;border-radius:14px;box-shadow:inset 0 0 0 1px #1747440d}
+.link-copy{gap:5px}.link-copy strong{font-size:12px;letter-spacing:-.01em}.link-copy small{font-size:9.5px;line-height:1.45}
+.link-note{font-size:7.5px;letter-spacing:.12em}
+.link-card-image{width:44px;height:44px;border-radius:14px;box-shadow:0 4px 10px #173b3d12}
+.link-card:has(.link-card-image){grid-template-columns:46px 44px minmax(0,1fr) auto}
+.tourism-panel{scroll-margin-top:14px;padding-top:30px}
+.tourism-grid{gap:16px}
+.tourism-card{border-radius:20px;box-shadow:0 10px 28px #173b3d0f;transition:transform .25s,box-shadow .25s}
+.tourism-card:hover{transform:translateY(-3px);box-shadow:0 17px 35px #173b3d17}
+.tourism-image-wrap{height:205px}
+.tourism-body{padding:17px 16px 17px}
+.tourism-body h3{font-size:26px}
+.tourism-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}
+.tourism-action{display:flex!important;align-items:center;justify-content:center;gap:7px;margin-top:0!important;padding:11px 10px;border:1px solid #17474418;border-radius:999px;text-decoration:none!important;font-size:8.5px!important;font-weight:700!important;letter-spacing:.04em;transition:.2s}
+.tourism-action span{font-size:13px}.map-action{background:var(--sea);color:#fff!important;border-color:var(--sea)}.trip-action{background:#fffaf0;color:#805f43!important;border-color:#c9ad8b}
+.tourism-action:hover{transform:translateY(-1px)}
+@media(max-width:380px){.cover-arrow{width:31px;height:31px}.tourism-image-wrap{height:170px}.tourism-actions{grid-template-columns:1fr}.link-card{min-height:74px}}
+
+
+/* V4 · direção premium / clean / sem molduras */
+.links-shell{border:0;border-radius:32px;background:rgba(249,246,238,.96);box-shadow:0 30px 90px rgba(24,61,60,.16)}
+.page-top{border:0;background:linear-gradient(180deg,#0a3537,#0c3032);height:62px;padding:0 21px}
+.share-button{border:0;background:rgba(255,255,255,.08);box-shadow:none}
+.profile-card{border:0;background:transparent}
+.cover-photo{height:220px;border:0;border-radius:0;box-shadow:none}
+.cover-photo:after{background:linear-gradient(180deg,rgba(8,47,50,.02) 30%,rgba(8,47,50,.72) 100%)}
+.cover-slide{position:absolute;inset:0;opacity:0;transform:scale(1.025);transition:opacity 1s ease,transform 6s ease;pointer-events:none}
+.cover-slide.is-active{opacity:1;transform:scale(1);z-index:1}
+.cover-slide img{animation:none}
+.profile-content{padding:0 27px 30px}
+.brand-seal{box-shadow:0 12px 32px rgba(8,47,50,.18);border-width:3px}
+.quick-links,.tourism-panel,.location-card{border:0}
+.section-heading{padding:0 4px}
+.link-list{gap:12px}
+.link-card{position:relative;border:0!important;border-radius:20px;background:rgba(255,255,255,.72);box-shadow:0 10px 28px rgba(24,61,60,.07);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:transform .25s ease,box-shadow .25s ease,background .25s ease}
+.link-card:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(24,61,60,.11);background:#fff}
+.link-card:active{transform:scale(.985)}
+.link-primary{background:linear-gradient(135deg,#123f40,#1c5757)!important;color:#fff;box-shadow:0 15px 34px rgba(18,63,64,.18)}
+.link-primary:hover{box-shadow:0 20px 40px rgba(18,63,64,.22)}
+.link-icon{border:0!important;box-shadow:inset 0 0 0 1px rgba(18,63,64,.08);background:#f2eee5}
+.link-primary .link-icon{background:rgba(255,255,255,.12);box-shadow:none}
+.link-note{font-size:8px;letter-spacing:.16em;opacity:.65}
+.tourism-panel{padding-top:14px}
+.tourism-grid{gap:18px}
+.tourism-card{border:0!important;border-radius:24px;background:#fff;box-shadow:0 16px 38px rgba(24,61,60,.09);overflow:hidden}
+.tourism-card.is-featured{box-shadow:0 20px 45px rgba(24,61,60,.13)}
+.tourism-image-wrap{height:190px}
+.tourism-body{padding:20px 20px 21px}
+.tourism-actions{gap:9px}
+.tourism-action{border:0!important;border-radius:12px;box-shadow:none}
+.map-action{background:#edf3ef}.trip-action{background:#f4eee4}
+.location-card{background:linear-gradient(145deg,#f4eee2,#e9f0eb);border-radius:24px}
+.map-frame{border:0!important;box-shadow:0 12px 30px rgba(24,61,60,.08)}
+.page-footer{border:0}
+@media (max-width:600px){
+ .links-shell{width:100%;border-radius:0;box-shadow:none}
+ body{padding:0;background:var(--sand)}
+ .page-top{height:58px}
+ .cover-photo{height:230px}
+ .profile-content{padding-bottom:28px}
+ .link-card{border-radius:18px;min-height:76px}
+ .tourism-card{border-radius:22px}
+ .tourism-image-wrap{height:205px}
+}
+
+/* Refinamento premium v5 */
+.links-shell{position:relative;border:0!important;border-radius:0;background:var(--sand);box-shadow:none}
+.page-top{position:absolute;z-index:8;inset:0 0 auto 0;height:72px;padding:0 20px;background:linear-gradient(180deg,rgba(5,34,35,.58),rgba(5,34,35,0));color:#fff;pointer-events:none}
+.page-top .welcome{pointer-events:none;color:#fff;font-size:8px;letter-spacing:.24em;text-shadow:0 1px 10px rgba(0,0,0,.25)}
+.page-top .welcome:before{content:'8';font:21px/1 var(--serif);color:#f1d5ad;margin-right:6px}
+.page-top .share-button{pointer-events:auto;border:0;background:rgba(255,255,255,.14);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.cover-photo{height:270px}
+.cover-photo:after{background:linear-gradient(180deg,rgba(0,0,0,.05) 25%,rgba(0,0,0,.48) 100%)}
+.cover-caption{left:22px;bottom:20px;font-size:8px;text-shadow:0 1px 8px rgba(0,0,0,.25)}
+.profile-content{padding:0 24px 30px;background:var(--sand)}
+.profile-description{max-width:330px;margin:12px auto 15px}
+.quick-facts{display:none}
+.quick-links{padding:32px 20px 34px;background:linear-gradient(180deg,#f5f0e5 0,#f8f4ea 100%)}
+.section-heading{margin:0 2px 18px}
+.section-heading h2{font-size:30px;letter-spacing:-.03em}
+.link-list{gap:10px}
+.link-card,.link-card:has(.link-card-image){grid-template-columns:minmax(0,1fr) auto!important;min-height:72px;padding:15px 16px;border:0!important;border-radius:17px;background:rgba(255,255,255,.84);box-shadow:0 8px 25px rgba(24,61,60,.06);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.link-card:before{display:none}
+.link-card:hover{transform:translateY(-2px);background:#fff;box-shadow:0 14px 32px rgba(24,61,60,.09)}
+.link-card .link-icon,.link-card .link-card-image,.link-card .link-note{display:none}
+.link-copy{min-width:0;display:grid;gap:4px}
+.link-copy strong{font-size:13px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link-copy small{font-size:10px;line-height:1.45;color:#7b8780;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link-arrow{font-size:17px;color:#9b7656;transition:transform .2s}
+.link-card:hover .link-arrow{transform:translate(2px,-2px)}
+.link-primary{background:#173f3e!important;color:#fff;box-shadow:0 14px 32px rgba(16,57,56,.17)}
+.link-primary .link-copy small{color:rgba(255,255,255,.62)}
+.link-primary .link-arrow{color:#efd0a5}
+.tourism-panel{padding:32px 20px 38px;background:#f1eee4}
+.tourism-panel .section-heading h2{font-size:31px}
+.tourism-card{border:0!important;border-radius:22px;background:#fff;box-shadow:0 14px 36px rgba(24,61,60,.07)}
+.tourism-card.is-featured{box-shadow:0 18px 42px rgba(24,61,60,.1)}
+.tourism-image-wrap{height:210px}
+.tourism-image-wrap span{border:0;background:rgba(12,45,45,.72);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.tourism-body{padding:19px 18px 18px}
+.tourism-body h3{font-size:25px;margin-bottom:8px}
+.tourism-recommendation{border-left:0;border-radius:12px;background:#f5f0e6;padding:10px 11px}
+.tourism-actions{margin-top:14px}
+.tourism-action{border:0!important;border-radius:11px;min-height:42px}
+.location-card{background:#f7f3e9}
+.stay-dialog,.contact-dialog{width:min(92vw,430px);max-width:430px;padding:0;border:0;border-radius:28px;background:#f8f4ea;color:var(--ink);box-shadow:0 28px 90px rgba(0,0,0,.25)}
+.stay-dialog::backdrop,.contact-dialog::backdrop{background:rgba(7,35,36,.55);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.stay-dialog-inner{position:relative;padding:26px 22px 22px}
+.stay-dialog h2{margin:8px 0 7px;font:400 31px/1.05 var(--serif);color:var(--sea)}
+.stay-dialog p{margin:0 0 18px;color:#718079;font-size:11px;line-height:1.55}
+.calendar-head{display:grid;grid-template-columns:38px 1fr 38px;align-items:center;gap:6px;margin-bottom:10px}
+.calendar-head strong{text-align:center;font:500 18px var(--serif);color:var(--sea);text-transform:capitalize}
+.calendar-head button{width:36px;height:36px;border:0;border-radius:50%;background:#e8e2d4;color:var(--sea);font-size:22px;cursor:pointer}
+.calendar-week,.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.calendar-week{margin-bottom:6px}.calendar-week span{text-align:center;font-size:7px;font-weight:700;letter-spacing:.08em;color:#9a8b79}
+.calendar-grid{min-height:220px}
+.calendar-day{min-width:0;aspect-ratio:1;border:0;border-radius:11px;background:transparent;color:var(--ink);font-size:11px;cursor:pointer}
+.calendar-day.empty{cursor:default}.calendar-day:not(.empty):hover{background:#ebe4d5}.calendar-day.is-reserved{background:#b85e58;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}.calendar-day.is-today{}.calendar-day.is-selected{background:#164442;color:#fff}
+.calendar-legend{display:flex;justify-content:center;gap:17px;margin:14px 0 15px;color:#7a827d;font-size:8px}.calendar-legend span{display:flex;align-items:center;gap:5px}.calendar-legend i{width:8px;height:8px;border-radius:50%;display:inline-block}.available-dot{background:#ded7c8}.reserved-dot{background:#b85e58}
+.calendar-whatsapp{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;border-radius:13px;background:#173f3e;color:#fff;text-decoration:none;font-size:10px;font-weight:700}.calendar-whatsapp span{color:#f0d1a5;font-size:15px}
+@media(max-width:600px){body{padding:0}.links-shell{width:100%;max-width:none}.cover-photo{height:255px}.profile-content{padding-inline:20px}.quick-links,.tourism-panel{padding-inline:17px}.link-card{min-height:70px;padding:14px 15px}.link-copy strong{font-size:12px}.link-copy small{font-size:9.5px}.tourism-image-wrap{height:205px}.stay-dialog{width:calc(100vw - 24px);max-height:90vh}}
+
+/* v7 · experiência premium, sem cards destacados e guia de Búzios em modal */
+.link-list{gap:11px}
+.link-card,
+.link-card.link-primary,
+.link-card:hover,
+.link-card:active{color:var(--ink);background:rgba(255,255,255,.72)!important;box-shadow:0 12px 30px rgba(24,61,60,.055)!important}
+.link-card{grid-template-columns:48px minmax(0,1fr) 18px!important;min-height:78px;padding:13px 15px!important;border:0!important;border-radius:18px!important;text-decoration:none!important}
+.link-card:hover{transform:translateY(-2px);background:rgba(255,255,255,.94)!important}
+.link-card:active{transform:scale(.985)}
+.link-icon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:#edf2ec;color:#184746;box-shadow:inset 0 0 0 1px rgba(24,71,70,.05)}
+.link-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+.link-copy strong{font-size:13px;color:#173f3e}
+.link-copy small{color:#7c847e}
+.link-arrow{font-size:15px;color:#9b7656;opacity:.72}
+.link-card-image{width:42px;height:42px;border-radius:14px;object-fit:cover;box-shadow:none}
+.link-card:has(.link-card-image){grid-template-columns:48px minmax(0,1fr) 18px!important}
+
+/* O guia abre sobre a página; a página de links não rola por baixo dele. */
+.tourism-dialog{width:min(94vw,520px);max-width:520px;height:min(88vh,760px);padding:0;border:0;border-radius:28px;background:#f7f3e9;color:var(--ink);box-shadow:0 30px 100px rgba(0,0,0,.3);overflow:hidden}
+.tourism-dialog::backdrop{background:rgba(8,35,35,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.tourism-dialog-inner{height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:26px 18px 28px}
+.tourism-dialog .dialog-close{position:sticky;top:0;z-index:5;float:right;width:38px;height:38px;border:0;border-radius:50%;background:rgba(255,255,255,.88);color:#173f3e;font-size:24px;line-height:1;box-shadow:0 8px 20px rgba(24,61,60,.08);cursor:pointer}
+.tourism-dialog-heading{clear:both;padding:20px 4px 14px}
+.tourism-dialog-heading h2{font-size:32px;margin:7px 0}
+.tourism-dialog-heading p{font-size:11px;line-height:1.55;color:#7a837d;max-width:390px}
+.tourism-dialog .tourism-grid{display:grid;gap:16px}
+.tourism-dialog .tourism-card{box-shadow:0 12px 30px rgba(24,61,60,.07)!important;border-radius:20px!important;background:#fff}
+.tourism-dialog .tourism-image-wrap{height:190px}
+.tourism-dialog .tourism-body{padding:18px}
+.tourism-dialog .tourism-body h3{font-size:24px}
+.tourism-dialog .tourism-actions{grid-template-columns:1fr 1fr}
+
+@media(max-width:600px){
+  .tourism-dialog{width:calc(100vw - 18px);height:calc(100svh - 24px);max-height:none;border-radius:24px}
+  .tourism-dialog-inner{padding:20px 13px 22px}
+  .tourism-dialog-heading{padding:17px 7px 13px}
+  .tourism-dialog-heading h2{font-size:29px}
+  .tourism-dialog .tourism-image-wrap{height:185px}
+  .tourism-dialog .tourism-actions{grid-template-columns:1fr 1fr}
+}
+
+/* Dialogs always own the scroll area. */
+html:has(dialog[open]),body:has(dialog[open]){overflow:hidden!important}
+dialog[open]{overscroll-behavior:contain}
+
+/* Admin · calendário de reservas */
+.reservation-layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:18px;align-items:start}
+.reservation-panel,.reservation-settings{background:#fffdf8;border:1px solid rgba(23,63,62,.08);border-radius:20px;padding:18px;box-shadow:0 12px 28px rgba(24,61,60,.055)}
+.reservation-toolbar{display:grid;grid-template-columns:42px 1fr 42px;align-items:center;gap:8px;margin-bottom:14px}
+.reservation-toolbar button{width:40px;height:40px;border:0;border-radius:50%;background:#edf1ea;color:#173f3e;font-size:22px;cursor:pointer}
+.reservation-toolbar strong{text-align:center;font:500 23px var(--serif);color:#173f3e;text-transform:capitalize}
+.reservation-week,.reservation-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.reservation-week{margin-bottom:7px}.reservation-week span{text-align:center;font-size:8px;font-weight:700;letter-spacing:.12em;color:#9a8b79}
+.reservation-day{min-width:0;aspect-ratio:1;border:0;border-radius:12px;background:#f5f2ea;color:#264947;font-size:12px;cursor:pointer;transition:.15s}
+.reservation-day:hover{transform:translateY(-1px);background:#ebe6da}.reservation-day.empty{background:transparent;cursor:default}.reservation-day.is-reserved{background:#b85e58;color:#fff;box-shadow:0 7px 15px rgba(184,94,88,.18)}
+.reservation-summary{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:15px;padding-top:13px;border-top:1px solid rgba(23,63,62,.08);font-size:10px;color:#78827d}.reservation-summary span{display:flex;align-items:center;gap:6px}.reservation-summary i{width:9px;height:9px;border-radius:50%;background:#b85e58}.reservation-summary b{font-weight:700;color:#173f3e}
+.reservation-settings{display:grid;gap:12px}.reservation-settings label{display:grid;gap:6px;font-size:10px;font-weight:700;color:#46635f}.reservation-settings input,.reservation-settings textarea{width:100%;border:1px solid rgba(23,63,62,.1);border-radius:10px;background:#fff;padding:11px 12px;font:inherit;color:#173f3e;resize:vertical}.reservation-help{margin:3px 0 0;padding:12px;border-radius:12px;background:#f0f4ef;color:#6d7c76;font-size:10px;line-height:1.55}
+@media(max-width:700px){.reservation-layout{grid-template-columns:1fr}.reservation-panel{padding:13px}.reservation-day{border-radius:10px}.reservation-settings{padding:14px}.reservation-toolbar strong{font-size:20px}}
+
+/* v8 · contraste e sobreposição refinados */
+.tourism-action.map-action{
+  background:#173f3e!important;
+  color:#fff!important;
+  border:0!important;
+  box-shadow:0 8px 18px rgba(23,63,62,.14)!important;
+}
+.tourism-action.map-action:hover{background:#215a57!important;color:#fff!important}
+.tourism-action.trip-action{
+  background:#eee7da!important;
+  color:#5f4837!important;
+  border:0!important;
+}
+.tourism-action.trip-action:hover{background:#e6dccb!important;color:#4f3b2e!important}
+
+/* O selo da marca ocupa a área inferior da foto; a localização fica acima dele. */
+.cover-caption{
+  top:94px;
+  bottom:auto!important;
+  z-index:6!important;
+  color:#fff!important;
+  text-shadow:0 2px 12px rgba(0,0,0,.48);
+}
+.cover-caption .sun-icon{color:#f1c393!important}
+
+/* Seção de localização: contraste alto e leitura limpa. */
+.location-card{
+  color:#183d3c!important;
+  background:linear-gradient(145deg,#f7f3e9,#e8f0eb)!important;
+}
+.location-copy .eyebrow{color:#9a7656!important}
+.location-copy h2{color:#183d3c!important}
+.location-copy h2 em{color:#b87858!important}
+.location-copy p{color:#5f706a!important}
+.map-frame{
+  background:#dce7e1!important;
+  box-shadow:0 12px 30px rgba(24,61,60,.10)!important;
+}
+.map-frame>a{
+  background:#173f3e!important;
+  color:#fff!important;
+  border:0!important;
+  box-shadow:0 7px 16px rgba(8,47,50,.18)!important;
+}
+.map-frame>a:hover{background:#215a57!important}
+
+@media(max-width:600px){
+  .cover-caption{top:88px;left:20px;right:20px;bottom:auto!important}
+}
+
+/* v9 · cards editoriais + ícones visíveis + cabeçalho limpo */
+.header-brand{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.header-location{display:block;color:rgba(255,255,255,.88);font-size:7px;font-weight:600;letter-spacing:.18em;line-height:1.2;text-shadow:0 1px 10px rgba(0,0,0,.3)}
+.page-top .welcome{margin:0}
+
+.link-list{gap:10px}
+.link-card,
+.link-card.link-primary,
+.link-card:hover,
+.link-card:active{
+  grid-template-columns:48px minmax(0,1fr)!important;
+  min-height:76px!important;
+  padding:13px 16px!important;
+  border:0!important;
+  border-radius:18px!important;
+  background:rgba(255,253,248,.82)!important;
+  color:var(--ink)!important;
+  box-shadow:0 9px 26px rgba(24,61,60,.055)!important;
+  position:relative;
+  overflow:hidden;
+  text-align:left;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .28s cubic-bezier(.2,.8,.2,1),box-shadow .28s ease,background .28s ease;
+}
+.link-card:before{display:none!important}
+.link-card:hover{transform:translateY(-2px)!important;background:rgba(255,255,255,.96)!important}
+.link-card:active{transform:scale(.985)!important}
+.link-card:after{
+  content:"";position:absolute;width:18px;height:18px;border-radius:50%;
+  left:31px;top:50%;transform:translate(-50%,-50%) scale(.2);opacity:0;
+  background:rgba(194,137,91,.25);pointer-events:none;
+}
+.link-card.is-pressing:after{animation:cardRipple .52s ease-out}
+@keyframes cardRipple{0%{opacity:.65;transform:translate(-50%,-50%) scale(.2)}100%{opacity:0;transform:translate(-50%,-50%) scale(8)}}
+.link-icon,
+.link-card .link-icon,
+.link-card .link-card-image{
+  display:grid!important;width:42px;height:42px;min-width:42px;place-items:center;
+  border-radius:14px;background:#e9efe9;color:#174746;box-shadow:none;
+  margin:0;position:relative;z-index:1;
+}
+.link-card .link-icon svg{display:block;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.link-copy{min-width:0;position:relative;z-index:1}
+.link-copy strong{display:block;font-size:13px!important;line-height:1.25;color:#173f3e!important;font-weight:700;letter-spacing:-.01em}
+.link-copy small{display:block;margin-top:4px;font-size:9.5px!important;line-height:1.4;color:#7a837d!important;white-space:normal;overflow:visible;text-overflow:clip}
+.link-arrow{display:none!important}
+.link-card:nth-child(1) .link-icon{background:#e6eee8;color:#174746}
+.link-card:nth-child(2) .link-icon{background:#f0e9dc;color:#9a6c4d}
+.link-card:nth-child(3) .link-icon{background:#e8eeea;color:#315f5a}
+.link-card:nth-child(4) .link-icon{background:#f1e9e1;color:#9a6249}
+.link-card:nth-child(5) .link-icon{background:#e9ece7;color:#48645f}
+
+@media(max-width:600px){
+  .page-top{padding:0 18px!important}
+  .header-location{font-size:6.5px;letter-spacing:.16em}
+  .link-card{min-height:74px!important;padding:13px 15px!important;grid-template-columns:46px minmax(0,1fr)!important}
+  .link-card .link-icon{width:40px;height:40px;min-width:40px}
+  .link-copy strong{font-size:12.5px!important}
+  .link-copy small{font-size:9.2px!important}
+}

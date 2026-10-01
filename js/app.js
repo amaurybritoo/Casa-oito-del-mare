@@ -1,5 +1,11 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "./config.js";
+
+// Supabase carrega em segundo plano. A home local é renderizada primeiro,
+// sem ficar esperando o CDN/banco para mostrar cards, fotos e carrossel.
+let createClient = null;
+let supabaseModulePromise = import("https://esm.sh/@supabase/supabase-js@2")
+  .then(mod => { createClient = mod.createClient; return createClient; })
+  .catch(error => { console.warn("Supabase CDN indisponível; usando conteúdo local.", error); return null; });
 
 const drawer = document.querySelector('#drawer');
 const page = document.querySelector('#page');
@@ -79,26 +85,30 @@ let supabase = null;
 let activePhotoIndex = 0;
 let zoomScale = 1;
 let modalSlideshowTimer=null;
+let heroCarouselTimer=null;
 let priorFocus = null;
-if (SUPABASE_URL.startsWith('https://') && SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')) {
-  supabase = createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+function initializeSupabaseClient(){
+  if (supabase || !createClient || !SUPABASE_URL.startsWith('https://') || !SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')) return false;
+  try {
+    supabase = createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+    return true;
+  } catch (error) {
+    console.warn('Supabase não pôde ser inicializado; usando conteúdo local.', error);
+    supabase = null;
+    return false;
+  }
 }
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let editableCopy={}; async function loadEditableCopy(){if(!supabase)return;const {data,error}=await supabase.from('site_content').select('key,value').eq('active',true);if(!error){editableCopy=Object.fromEntries((data||[]).map(row=>[row.key,row.value]));applyCopy(document)}}
 function applyCopy(root){root.querySelectorAll('[data-copy]').forEach(el=>{if(editableCopy[el.dataset.copy])el.textContent=editableCopy[el.dataset.copy]})}
 async function getRows(table) {
   if (!supabase) return [];
-<<<<<<< HEAD
   try {
     const query=supabase.from(table).select('*').eq('active',true);
     const timeout=new Promise(resolve=>setTimeout(()=>resolve({data:null,error:{message:'timeout'}}),4000));
     const {data,error}=await Promise.race([query,timeout]);
     return error ? [] : (data || []);
   } catch { return []; }
-=======
-  const {data,error} = await supabase.from(table).select('*').eq('active',true);
-  return error ? [] : (data || []);
->>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
 }
 function orderOf(row){return Number(row.position??row.sort_order)||0}
 function renderCard(card,index) {
@@ -110,7 +120,6 @@ function renderCard(card,index) {
   return `<button class="card reveal${large}" data-page="${esc(pageName)}" aria-label="${esc(card.title || 'Conheça a casa')}"><img src="${esc(image)}" alt="" loading="lazy"><span class="card-symbol" aria-hidden="true">${icon}</span><span class="card-caption"><small>CASA OITO DEL MARE · BÚZIOS</small><strong>${esc(card.title || 'Conheça a casa')}</strong><span class="card-deck">${esc(card.subtitle||card.description || 'Dias tranquilos à beira-mar.')}</span><span class="card-link">${['casa','estrutura'].includes(pageName)?'Descubra mais':pageName==='reserva'?'Consulte disponibilidade':'Explore Búzios'} </span></span></button>`;
 }
 async function renderHomeCards() {
-<<<<<<< HEAD
   // Renderiza o conteúdo-base imediatamente. O Supabase só substitui depois
   // se devolver cards válidos; a home nunca fica vazia esperando a rede.
   homeCards.innerHTML = featureCards.map(renderCard).join('');
@@ -119,11 +128,6 @@ async function renderHomeCards() {
   const pageRows = rows.filter(r=>['casa','estrutura','buzios','reserva'].includes(r.target_section||r.url) && (r.image_url || featureCards.some(card=>card.url===(r.target_section||r.url))));
   if (!pageRows.length) return;
   const ordered = pageRows.slice().sort((a,b)=>orderOf(a)-orderOf(b));
-=======
-  const rows = await getRows('links');
-  const pageRows = rows.filter(r=>['casa','estrutura','buzios','reserva'].includes(r.target_section||r.url));
-  const ordered = (pageRows.length ? pageRows : featureCards).slice().sort((a,b)=>orderOf(a)-orderOf(b));
->>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
   homeCards.innerHTML = ordered.map(renderCard).join('');
   observeReveals();
 }
@@ -145,7 +149,6 @@ function videoMarkup(item,index) {
   const media=isFile?`<div class="video-player-shell"><video src="${esc(url)}" controls playsinline webkit-playsinline preload="metadata" aria-label="${esc(title)}"><source src="${esc(url)}" type="${type}">Seu navegador não conseguiu abrir este vídeo.</video><button class="video-play-prompt" type="button" aria-label="Reproduzir ${esc(title)}"><span aria-hidden="true">▶</span><b>Toque para assistir</b></button></div>`:`<iframe src="${esc(url)}" title="${esc(title)}" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
   return `<figure class="video-card ${isFile?'is-pending-orientation':'is-landscape'}"><figcaption><strong>${esc(title)}</strong>${row.description?`<small>${esc(row.description)}</small>`:''}</figcaption>${media}</figure>`;
 }
-<<<<<<< HEAD
 function arrangeVideos(root){
   root.querySelectorAll('.video-card video').forEach((video,index)=>{
     const card=video.closest('.video-card');
@@ -186,9 +189,6 @@ function arrangeVideos(root){
     video.load();
   });
 }
-=======
-function arrangeVideos(root){root.querySelectorAll('.video-card video').forEach(video=>{const card=video.closest('.video-card');const prompt=card.querySelector('.video-play-prompt');const setLayout=()=>{card.classList.remove('is-pending-orientation');card.classList.toggle('is-portrait',video.videoHeight>video.videoWidth);card.classList.toggle('is-landscape',video.videoWidth>=video.videoHeight)};if(video.readyState>=1)setLayout();else video.addEventListener('loadedmetadata',setLayout,{once:true});prompt?.addEventListener('click',()=>{video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');video.play().then(()=>card.classList.add('is-playing')).catch(()=>{prompt.querySelector('b').textContent='Toque no vídeo para tentar novamente'})});video.addEventListener('playing',()=>card.classList.add('is-playing'));video.addEventListener('pause',()=>card.classList.remove('is-playing'));video.addEventListener('ended',()=>card.classList.remove('is-playing'));video.addEventListener('error',()=>{card.classList.remove('is-pending-orientation');const note=document.createElement('p');note.className='video-load-error';note.textContent='Este vídeo não carregou. Você pode tentar abri-lo diretamente.';const link=document.createElement('a');link.href=video.currentSrc||video.querySelector('source')?.src||video.src;link.target='_blank';link.rel='noopener';link.textContent='Abrir vídeo';note.append(' ',link);card.append(note)},{once:true});video.load()})}
->>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
 async function openPage(type) {
   lockPageScroll();
   let html = '';
@@ -245,17 +245,11 @@ function showPhoto(index,list=photos) {
   galleryPhotosForDrawer=list;
   activePhotoIndex=(index+list.length)%list.length;
   const [title,src,description='']=list[activePhotoIndex];
-<<<<<<< HEAD
   lightboxImage.src=src;lightboxImage.alt=title;resetZoom();
-=======
-  const img=lightbox.querySelector('figure img');
-  img.src=src;img.alt=title;zoomScale=1;img.style.transform='scale(1)';img.style.cursor='zoom-in';
->>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
   lightbox.querySelector('figcaption').textContent=description?`${title} · ${description}`:title;
   document.querySelector('#lightboxCount').textContent=`${activePhotoIndex+1} / ${list.length}`;
   lightbox.classList.add('open');lightbox.setAttribute('aria-hidden','false');document.body.classList.add('lightbox-open');
 }
-<<<<<<< HEAD
 function hidePhoto(){resetZoom();lightbox.classList.remove('open');lightbox.setAttribute('aria-hidden','true');document.body.classList.remove('lightbox-open')}
 lightbox.querySelector('.lightbox-close').onclick=hidePhoto;
 lightbox.querySelector('.lightbox-prev').onclick=()=>showPhoto(activePhotoIndex-1,galleryPhotosForDrawer);
@@ -293,16 +287,6 @@ lightboxImage.addEventListener('touchend',event=>{
   if(dt<320 && Math.hypot(dx,dy)<28){setZoom(zoomScale===1?2:1);lastTapAt=0;return}
   lastTapAt=now;lastTapX=touch.clientX;lastTapY=touch.clientY;
 },{passive:false});
-=======
-function hidePhoto(){lightbox.classList.remove('open');lightbox.setAttribute('aria-hidden','true');document.body.classList.remove('lightbox-open')}
-lightbox.querySelector('.lightbox-close').onclick=hidePhoto;
-lightbox.querySelector('.lightbox-prev').onclick=()=>showPhoto(activePhotoIndex-1,galleryPhotosForDrawer);
-lightbox.querySelector('.lightbox-next').onclick=()=>showPhoto(activePhotoIndex+1,galleryPhotosForDrawer);
-lightbox.querySelector('figure img').onclick=e=>setZoom(zoomScale===1?1.6:1);
-lightbox.addEventListener('click',e=>{if(e.target===lightbox)hidePhoto()});
-lightbox.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>setZoom(zoomScale+(b.dataset.zoom==='in'?.35:-.35)));
-function setZoom(value){zoomScale=Math.max(1,Math.min(2.7,value));const image=lightbox.querySelector('figure img');image.style.transform=`scale(${zoomScale})`;image.style.cursor=zoomScale===1?'zoom-in':'zoom-out'}
->>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
 function closeDrawer(){if(!drawer.classList.contains('open'))return;drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');unlockPageScroll();if(modalSlideshowTimer){clearInterval(modalSlideshowTimer);modalSlideshowTimer=null}if(location.hash)history.back();if(priorFocus?.focus)priorFocus.focus()}
 back.addEventListener('click',closeDrawer);
 homeCards.addEventListener('click',event=>{const card=event.target.closest('.card[data-page]');if(card){priorFocus=card;openPage(card.dataset.page)}});
@@ -310,28 +294,41 @@ document.querySelector('[data-open-page]')?.addEventListener('click',e=>{e.preve
 window.addEventListener('popstate',()=>{drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');unlockPageScroll();if(modalSlideshowTimer){clearInterval(modalSlideshowTimer);modalSlideshowTimer=null}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(lightbox.classList.contains('open'))hidePhoto();else if(drawer.classList.contains('open'))closeDrawer()}if(lightbox.classList.contains('open')&&e.key==='ArrowRight')showPhoto(activePhotoIndex+1,galleryPhotosForDrawer);if(lightbox.classList.contains('open')&&e.key==='ArrowLeft')showPhoto(activePhotoIndex-1,galleryPhotosForDrawer)});
 function runSlideshow(el,images,modal=false){const layers=[...el.querySelectorAll('.ambient-photo')];if(!layers.length||!images.length)return;let current=0,next=1;layers[0].src=images[0];layers[0].classList.add('is-visible');if(images.length===1){layers[1]?.classList.remove('is-visible');return}if(layers.length<2)return;layers[1].src=images[1];if(modal&&modalSlideshowTimer)clearInterval(modalSlideshowTimer);const timer=setInterval(()=>{next=(current+1)%2;current=(current+1)%images.length;layers[next].src=images[current];layers[next].classList.add('is-visible');layers[1-next].classList.remove('is-visible')},6500);if(modal)modalSlideshowTimer=timer;else el.dataset.timer=String(timer)}
-async function initializeCarousels(){const media=document.querySelector('.hero-media');media.classList.add('is-carousel-loading');let chosen=slidePhotos.slice(),selectionLoaded=false;if(supabase){try{const result=await supabase.from('gallery').select('image_url').eq('active',true).eq('in_carousel',true).order('position');if(!result.error){chosen=(result.data||[]).map(row=>row.image_url).filter(Boolean);selectionLoaded=true}}catch{}}if(selectionLoaded){slidePhotos.splice(0,slidePhotos.length,...chosen);media.replaceChildren(...chosen.map((src,index)=>{const image=document.createElement('img');image.className=`hero-image${index===0?' is-current':''}`;image.src=src;image.alt='';return image}))}const heroImages=[...media.querySelectorAll('.hero-image')];if(heroImages.length){try{await heroImages[0].decode()}catch{}}media.classList.remove('is-carousel-loading');if(heroImages.length>1){let heroIndex=0;setInterval(()=>{heroImages[heroIndex].classList.remove('is-current');heroIndex=(heroIndex+1)%heroImages.length;heroImages[heroIndex].classList.add('is-current')},7300)}const intro=document.querySelector('.intro');const layers=[...intro.querySelectorAll('.ambient-photo')];if(selectionLoaded&&!chosen.length)layers.forEach(image=>{image.removeAttribute('src');image.classList.remove('is-visible')});else runSlideshow(intro.querySelector('.intro-photo'),slidePhotos)}
+async function initializeCarousels(){const media=document.querySelector('.hero-media');media.classList.add('is-carousel-loading');let chosen=slidePhotos.slice(),selectionLoaded=false;if(supabase){try{const result=await supabase.from('gallery').select('image_url').eq('active',true).eq('in_carousel',true).order('position');if(!result.error){chosen=(result.data||[]).map(row=>row.image_url).filter(Boolean);selectionLoaded=true}}catch{}}if(selectionLoaded && chosen.length){slidePhotos.splice(0,slidePhotos.length,...chosen);media.replaceChildren(...chosen.map((src,index)=>{const image=document.createElement('img');image.className=`hero-image${index===0?' is-current':''}`;image.src=src;image.alt='';return image}))}const heroImages=[...media.querySelectorAll('.hero-image')];if(heroImages.length){try{await heroImages[0].decode()}catch{}}media.classList.remove('is-carousel-loading');if(heroCarouselTimer){clearInterval(heroCarouselTimer);heroCarouselTimer=null}if(heroImages.length>1){let heroIndex=0;heroCarouselTimer=setInterval(()=>{heroImages[heroIndex].classList.remove('is-current');heroIndex=(heroIndex+1)%heroImages.length;heroImages[heroIndex].classList.add('is-current')},7300)}const intro=document.querySelector('.intro');const layers=[...intro.querySelectorAll('.ambient-photo')];if(selectionLoaded && chosen.length)runSlideshow(intro.querySelector('.intro-photo'),slidePhotos);else runSlideshow(intro.querySelector('.intro-photo'),slidePhotos)}
 function observeReveals(){const revealItems=document.querySelectorAll('.reveal:not(.visible)');if(!('IntersectionObserver' in window)){revealItems.forEach(el=>el.classList.add('visible'));return}const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{threshold:.1});revealItems.forEach(el=>observer.observe(el))}
 function initFooterVideo(){
   const video=document.querySelector('#footerVideo');
+  const gif=document.querySelector('#footerVideoGif');
   const toggle=document.querySelector('#footerVideoToggle');
-<<<<<<< HEAD
   if(!video)return;
+
+  const isMobile=window.matchMedia?.('(max-width: 700px)').matches;
+  if(isMobile){
+    // No mobile usamos um GIF real: ele inicia e repete sozinho, inclusive no Safari/iPhone,
+    // sem depender das políticas de autoplay do elemento <video>.
+    video.pause();
+    video.removeAttribute('src');
+    video.querySelector('source')?.removeAttribute('src');
+    toggle?.setAttribute('hidden','');
+    gif?.removeAttribute('aria-hidden');
+    return;
+  }
+
+  const source=video.querySelector('source[data-src]');
+  if(source && !source.src){source.src=source.dataset.src||'';video.load()}
   let userPaused=false;
   video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;
   video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');video.setAttribute('autoplay','');
   const update=()=>{
     const playing=!video.paused&&!video.ended;
     toggle?.classList.toggle('is-playing',playing);
-    toggle?.classList.remove('play-required');
     toggle?.setAttribute('aria-pressed',String(playing));
     toggle?.setAttribute('aria-label',playing?'Pausar vídeo':'Reproduzir vídeo');
   };
   const tryPlay=()=>{
     if(userPaused||!video.paused)return;
     video.muted=true;
-    const promise=video.play();
-    if(promise?.then)promise.then(update).catch(()=>{});
+    video.play().then(update).catch(()=>{});
   };
   video.addEventListener('play',update);video.addEventListener('pause',update);video.addEventListener('ended',update);
   video.addEventListener('loadedmetadata',tryPlay);video.addEventListener('loadeddata',tryPlay);video.addEventListener('canplay',tryPlay);
@@ -340,29 +337,26 @@ function initFooterVideo(){
     }else{userPaused=true;video.pause()}
     update();
   });
-  video.load();tryPlay();
+  video.load();
+  requestAnimationFrame(tryPlay);
+  setTimeout(tryPlay,150);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)tryPlay()});
-=======
-  if(!video||!toggle)return;
-  let userChosePlayback=false;
-  video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;
-  const update=()=>{
-    const playing=!video.paused&&!video.ended;
-    toggle.classList.toggle('is-playing',playing);
-    toggle.classList.remove('play-required');
-    toggle.setAttribute('aria-pressed',String(playing));
-    toggle.setAttribute('aria-label',playing?'Pausar vídeo':'Reproduzir vídeo');
-  };
-  const tryPlay=()=>{if(userChosePlayback)return;video.play().then(update).catch(()=>toggle.classList.add('play-required'))};
-  video.addEventListener('play',update);video.addEventListener('pause',update);video.addEventListener('ended',update);
-  video.addEventListener('error',()=>toggle.classList.add('play-required'));
-  video.addEventListener('canplay',tryPlay,{once:true});
-  toggle.addEventListener('click',async()=>{userChosePlayback=true;if(video.paused){video.muted=true;try{await video.play()}catch{toggle.classList.add('play-required')}}else video.pause();update()});
-  tryPlay();
->>>>>>> 47d22d1330058ed4d3d8f04684c33549ac912fcc
 }
 
-observeReveals();renderHomeCards();loadEditableCopy();initializeCarousels();initFooterVideo();document.querySelector('#year').textContent=new Date().getFullYear();
+// Renderização local imediata: nada de esperar Supabase para pintar a home.
+observeReveals();
+renderHomeCards();
+initializeCarousels();
+initFooterVideo();
+document.querySelector('#year').textContent=new Date().getFullYear();
+
+// Quando o Supabase terminar de carregar, atualiza os dados sem bloquear a primeira pintura.
+supabaseModulePromise.then(async()=>{
+  if(!initializeSupabaseClient()) return;
+  await loadEditableCopy();
+  await renderHomeCards();
+  await initializeCarousels();
+});
 const nav=document.querySelector('.site-nav');const syncNav=()=>nav.classList.toggle('scrolled',window.scrollY>36);window.addEventListener('scroll',syncNav,{passive:true});syncNav();
 const quickContact=document.querySelector('#quickContact');
 const checkin=quickContact.elements.checkin,checkout=quickContact.elements.checkout;
