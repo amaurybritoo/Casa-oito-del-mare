@@ -191,6 +191,26 @@ function showReservationConflict(){
   dialog.showModal();
   dialog.querySelector('[data-ok]').focus();
 }
+function confirmReservationRemoval(checkIn,checkOut){
+  const period=checkIn===checkOut?brDateFromKey(checkIn):`${brDateFromKey(checkIn)} a ${brDateFromKey(checkOut)}`;
+  const message=checkIn===checkOut?`Excluir a reserva de ${period} e liberar esse dia?`:`Excluir a reserva de ${period} e liberar esse período?`;
+  const dialog=document.createElement('dialog');
+  dialog.className='reservation-dialog reservation-confirm-dialog';
+  dialog.setAttribute('aria-label','Confirmar exclusão da reserva');
+  dialog.innerHTML=`<div class="reservation-confirm-content"><p>${message}</p><div class="reservation-confirm-actions"><button type="button" class="secondary" data-cancel>Cancelar</button><button type="button" class="danger" data-confirm>Sim</button></div></div>`;
+  document.body.append(dialog);
+  return new Promise(resolve=>{
+    let settled=false;
+    const finish=value=>{if(settled)return;settled=true;if(dialog.open)dialog.close();dialog.remove();resolve(value)};
+    dialog.querySelector('[data-cancel]').onclick=()=>finish(false);
+    dialog.querySelector('[data-confirm]').onclick=()=>finish(true);
+    dialog.addEventListener('cancel',event=>{event.preventDefault();finish(false)});
+    dialog.addEventListener('click',event=>{if(event.target===dialog)finish(false)});
+    dialog.addEventListener('close',()=>{if(!settled){settled=true;dialog.remove();resolve(false)}},{once:true});
+    dialog.showModal();
+    dialog.querySelector('[data-cancel]').focus();
+  });
+}
 async function reservationsView(){
   const record=await linkPageRecord();
   const availability=record.availability||linkPageDefaults().availability;
@@ -404,7 +424,7 @@ async function reservationsView(){
         await persist();draftStart=null;draftEnd=null;editingId='';dialog.close();renderReservationCalendar();
       }catch(error){button.disabled=false;button.textContent='Salvar data';if(error.message==='Há outra reserva ou bloqueio dentro deste período. Escolha outras datas.')showReservationConflict();else alert(error.message)}
     };
-    dialog.querySelector('[data-delete]')?.addEventListener('click',async()=>{const button=dialog.querySelector('[data-delete]');if(!confirm('Excluir esta reserva e liberar o período?'))return;button.disabled=true;button.textContent='Excluindo…';try{const idx=records.findIndex(r=>r.id===id);if(idx>=0)records.splice(idx,1);await persist();draftStart=null;draftEnd=null;dialog.close();renderReservationCalendar()}catch(error){button.disabled=false;button.textContent='Excluir reserva';alert(error.message)}});
+    dialog.querySelector('[data-delete]')?.addEventListener('click',async()=>{const button=dialog.querySelector('[data-delete]');if(!await confirmReservationRemoval(checkIn,checkOut))return;button.disabled=true;button.textContent='Excluindo…';try{const idx=records.findIndex(r=>r.id===id);if(idx>=0)records.splice(idx,1);await persist();draftStart=null;draftEnd=null;dialog.close();renderReservationCalendar()}catch(error){button.disabled=false;button.textContent='Excluir reserva';alert(error.message)}});
     lockReservationScroll();dialog.showModal();
   };
   const persist=async()=>{
