@@ -53,12 +53,15 @@ const adminMenuBackdrop=document.createElement('div');
 adminMenuBackdrop.id='adminMenuBackdrop';
 adminMenuBackdrop.setAttribute('aria-hidden','true');
 document.body.append(adminMenuBackdrop);
+const adminSettingsToggle=$('#adminSettingsToggle');
+const adminSettingsNav=$('#adminSettingsNav');
+adminSettingsToggle?.addEventListener('click',()=>{const expanded=adminSettingsToggle.getAttribute('aria-expanded')==='true';adminSettingsToggle.setAttribute('aria-expanded',String(!expanded));adminSettingsToggle.setAttribute('aria-label',expanded?'Abrir configurações':'Fechar configurações');adminSettingsNav.hidden=expanded;});
 let adminPageScrollY=0;
 const closeAdminMenu=()=>{if(!adminAside?.classList.contains('open'))return;adminAside.classList.remove('open');adminMenuBackdrop.classList.remove('show');document.documentElement.classList.remove('admin-menu-open');document.body.classList.remove('admin-menu-open');document.body.style.position='';document.body.style.top='';document.body.style.left='';document.body.style.right='';document.body.style.width='';window.scrollTo({top:adminPageScrollY,left:0,behavior:'auto'});};
 adminMenuButton.onclick=()=>{const open=!adminAside.classList.contains('open');if(open){adminPageScrollY=window.scrollY||document.documentElement.scrollTop||0;document.body.style.position='fixed';document.body.style.top=`-${adminPageScrollY}px`;document.body.style.left='0';document.body.style.right='0';document.body.style.width='100%';document.documentElement.classList.add('admin-menu-open');document.body.classList.add('admin-menu-open');adminAside.classList.add('open');adminMenuBackdrop.classList.add('show')}else closeAdminMenu();};
 adminMenuBackdrop.onclick=closeAdminMenu;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAdminMenu();});
-document.querySelectorAll('nav button').forEach(button=>button.onclick=()=>{current=button.dataset.view;document.querySelectorAll('nav button').forEach(item=>item.classList.toggle('active',item===button));closeAdminMenu();render(current)});
+document.querySelectorAll('nav button[data-view]').forEach(button=>button.onclick=()=>{current=button.dataset.view;document.querySelectorAll('nav button[data-view]').forEach(item=>item.classList.toggle('active',item===button));const inSettings=!!adminSettingsNav?.contains(button);adminSettingsToggle?.classList.toggle('has-active',inSettings);if(adminSettingsNav&&!adminSettingsNav.hidden){adminSettingsNav.hidden=true;adminSettingsToggle.setAttribute('aria-expanded','false');adminSettingsToggle.setAttribute('aria-label','Abrir configurações')}closeAdminMenu();render(current)});
 async function rows(table){const result=await supabase.from(table).select('*');if(result.error)throw result.error;return result.data||[]}
 function reloadAfterMigration(){const button=$('#reloadView');if(button){button.disabled=true;button.textContent='Recarregando…';}sessionStorage.setItem('adminViewAfterReload',current);window.location.href='/admin/?refresh='+Date.now()}
 function migrationHelp(){return `<section class="migration-help"><h2>Carregar o conteúdo inicial</h2><p>As fotos e os vídeos estão incluídos nos arquivos do site. Para listá-los neste painel, é preciso cadastrar seus nomes, endereços e textos no Supabase uma vez.</p><ol><li>Abra o projeto Supabase usado pelo site e entre em <b>SQL Editor</b>.</li><li>Abra o arquivo <a href="../supabase/migrations/20261001_links_page_and_tourism.sql" target="_blank" rel="noopener">20261001_links_page_and_tourism.sql</a>, copie o conteúdo inteiro e cole numa consulta nova.</li><li>Pressione <b>Run</b> e aguarde a mensagem de sucesso. A migração usa os nomes das colunas do seu esquema: cards em <code>subtitle</code>/<code>target_section</code>/<code>position</code>, vídeos em <code>video_url</code>/<code>position</code> e ordem de fotos e comodidades em <code>position</code>.</li><li>Volte ao painel e escolha <b>Atualizei o banco · recarregar</b>. Esta migração pode ser executada novamente sem duplicar os conteúdos iniciais.</li></ol><p class="migration-small">Use o arquivo atualizado completo. Ele cria/atualiza as tabelas da página de links, pontos turísticos, calendário e também <code>public.site_content</code>, além de habilitar edição pelo painel para usuários autenticados.</p><button class="primary" id="reloadView">Atualizei o banco · recarregar</button></section>`}
@@ -75,9 +78,9 @@ async function gallery(){
   let data=orderedRows(await rows('gallery')).map((row,index)=>({...row,displayPosition:index+1}));
   const carouselSetupMissing=!data.length||!Object.prototype.hasOwnProperty.call(data[0],'in_carousel');
   const carouselHelp=carouselSetupMissing?`<div class="panel-tip carousel-setup-help"><b>Fotos do carrossel e galeria completa</b><p>As quatro fotos atuais já aparecem marcadas. Para salvar sua seleção e incluir as 9 fotos que faltam do arquivo original, execute uma vez esta atualização no SQL Editor do Supabase.</p><a href="../supabase/migrations/20260930_gallery_carousel_selection.sql" target="_blank" rel="noopener">Abrir SQL de atualização</a></div>`:'';
-  $('#view').innerHTML=`<div class="view"><div class="view-head"><div><p class="eyebrow">ACERVO</p><h1>Galeria.</h1><p>Adicione fotos com título e enquadramento; edite qualquer foto na própria lista.</p></div><button class="primary" id="choose">+ Adicionar fotos</button></div>${carouselHelp}<section class="upload-box photo-upload"><div class="upload-intro"><strong>Adicionar fotos</strong><span>Escolha as imagens, ajuste nome, posição e corte antes de enviar.</span></div><input id="files" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple><button class="primary" id="choosePhotos">Escolher fotos do dispositivo</button><div id="photoQueue" class="photo-queue"></div><div class="upload-actions"><button class="primary" id="send" disabled>Enviar fotos selecionadas</button><small id="status" class="upload-status" aria-live="polite"></small></div></section><div class="media-grid">${data.map(card).join('')||'<div class="empty">Nenhuma foto cadastrada ainda.</div>'}</div></div>`;
+  $('#view').innerHTML=`<div class="view"><div class="view-head"><div><p class="eyebrow">ACERVO</p><h1>Galeria.</h1><p>Adicione fotos com título e enquadramento; edite qualquer foto na própria lista.</p></div></div>${carouselHelp}<section class="upload-box photo-upload"><div class="upload-intro"><strong>Adicionar fotos</strong><span>Escolha as imagens, ajuste nome, posição e corte antes de enviar.</span></div><input id="files" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple><button class="primary" id="choosePhotos">Escolher fotos do dispositivo</button><div id="photoQueue" class="photo-queue"></div><div class="upload-actions"><button class="primary" id="send" disabled>Enviar fotos selecionadas</button><small id="status" class="upload-status" aria-live="polite"></small></div></section><div class="media-grid">${data.map(card).join('')||'<div class="empty">Nenhuma foto cadastrada ainda.</div>'}</div></div>`;
   const input=$('#files'),queue=$('#photoQueue'),send=$('#send'),status=$('#status');let files=[];
-  $('#choose').onclick=$('#choosePhotos').onclick=()=>input.click();
+  $('#choosePhotos').onclick=()=>input.click();
   input.onchange=()=>{for(const file of input.files){files.push({file,title:file.name.replace(/\.[^.]+$/,''),description:'',position:data.length+files.length+1,ratio:'original',zoom:1,x:50,y:50,preview:URL.createObjectURL(file)})}input.value='';renderPhotoQueue(queue,files);send.disabled=!files.length;status.textContent=files.length?`${files.length} foto(s) selecionada(s).`:''};
   queue.oninput=event=>{const item=files[Number(event.target.closest('[data-photo-index]')?.dataset.photoIndex)];if(!item)return;const field=event.target.dataset.field;if(field==='title'||field==='description'||field==='position')item[field]=event.target.value;if(field==='zoom'||field==='x'||field==='y'){item[field]=Number(event.target.value);const card=event.target.closest('[data-photo-index]');syncCropPreview(card,item,field)}};
   queue.onpointerdown=event=>{const frame=event.target.closest('.crop-window');if(!frame)return;const card=frame.closest('[data-photo-index]'),item=files[Number(card.dataset.photoIndex)];frame.setPointerCapture(event.pointerId);frame.dataset.dragX=event.clientX;frame.dataset.dragY=event.clientY;frame.dataset.originX=item.x;frame.dataset.originY=item.y;frame.classList.add('is-dragging')};
@@ -189,7 +192,6 @@ function showReservationConflict(){
   dialog.addEventListener('cancel',event=>{event.preventDefault();close()});
   dialog.addEventListener('close',()=>dialog.remove(),{once:true});
   dialog.showModal();
-  dialog.querySelector('[data-ok]').focus();
 }
 function confirmReservationRemoval(checkIn,checkOut){
   const period=checkIn===checkOut?brDateFromKey(checkIn):`${brDateFromKey(checkIn)} a ${brDateFromKey(checkOut)}`;
@@ -208,7 +210,6 @@ function confirmReservationRemoval(checkIn,checkOut){
     dialog.addEventListener('click',event=>{if(event.target===dialog)finish(false)});
     dialog.addEventListener('close',()=>{if(!settled){settled=true;dialog.remove();resolve(false)}},{once:true});
     dialog.showModal();
-    dialog.querySelector('[data-cancel]').focus();
   });
 }
 async function reservationsView(){
@@ -216,7 +217,7 @@ async function reservationsView(){
   const availability=record.availability||linkPageDefaults().availability;
   const records=reservationRecords(availability);
   let draftStart=null,draftEnd=null,editingId='';
-  const statusMeta={reserved:['Reservado','reserved'],pre:['Pré-reserva','pre'],blocked:['Bloqueado','blocked']};
+  const statusMeta={reserved:['Reservado','reserved'],pre:['Pré-reservado','pre'],blocked:['Bloqueado','blocked']};
   const showSelectionError=(message)=>{
     let box=$('#view').querySelector('#reservationRangeError');
     if(!box){box=document.createElement('div');box.id='reservationRangeError';box.className='reservation-range-error';box.setAttribute('role','alert');const panel=$('#view').querySelector('.reservation-panel');panel?.prepend(box)}
@@ -251,7 +252,7 @@ async function reservationsView(){
     cardsRoot.innerHTML=cards.length?cards.map(item=>{
       const meta=statusMeta[item.status]||['Reservado','reserved'];const phoneDigits=String(item.phone||'').replace(/\D/g,'');
       const period=item.check_in===item.check_out?brDateFromKey(item.check_in):`${brDateFromKey(item.check_in)} → ${brDateFromKey(item.check_out)}`;
-      return `<article class="reservation-card status-${meta[1]}"><div class="reservation-card-head"><time datetime="${item.check_in}">${period}</time><span class="reservation-status"><i class="status-dot" aria-hidden="true"></i>${meta[0]}</span></div><div class="reservation-card-body"><strong>${esc(item.name||'Hóspede não informado')}</strong>${phoneDigits?`<a href="tel:${phoneDigits}">${esc(item.phone)}</a>`:'<span class="reservation-card-muted">Telefone não informado</span>'}${item.note?`<p>${esc(item.note)}</p>`:''}</div><div class="reservation-card-footer"><button type="button" class="reservation-card-edit" data-res-id="${esc(item.id)}">Editar</button></div></article>`;
+      return `<article class="reservation-card status-${meta[1]}"><div class="reservation-card-head"><time datetime="${item.check_in}">${period}</time><span class="reservation-status"><i class="status-dot" aria-hidden="true"></i>${meta[0]}</span></div><div class="reservation-card-body"><strong>${esc(item.name||'Hóspede não informado')}</strong>${phoneDigits?`<span class="reservation-card-phone"><i aria-hidden="true">☎</i>${esc(item.phone)}</span>`:'<span class="reservation-card-muted">Telefone não informado</span>'}</div><div class="reservation-card-footer"><button type="button" class="reservation-card-edit" data-res-id="${esc(item.id)}">Editar</button></div></article>`;
     }).join(''):'<div class="reservation-cards-empty">Nenhuma reserva cadastrada ainda.</div>';
     // O botão Editar continua abrindo o editor. O restante do card abre apenas a visualização rápida.
     cardsRoot.querySelectorAll('.reservation-card').forEach(card=>{
@@ -318,6 +319,9 @@ async function reservationsView(){
     if(!item)return;
     const meta=statusMeta[item.status]||['Reservado','reserved'];
     const period=item.check_in===item.check_out?brDateFromKey(item.check_in):`${brDateFromKey(item.check_in)} → ${brDateFromKey(item.check_out)}`;
+    const phoneDigits=String(item.phone||'').replace(/\D/g,'');
+    const whatsappPhone=phoneDigits.length===10||phoneDigits.length===11?`55${phoneDigits}`:phoneDigits.startsWith('0')&&(phoneDigits.length===11||phoneDigits.length===12)?`55${phoneDigits.slice(1)}`:phoneDigits;
+    const whatsappMessage=encodeURIComponent(`Olá! Estou entrando em contato sobre a estadia de ${period} na Casa Oito Del Mare.`);
     const dialog=document.createElement('dialog');
     dialog.className='reservation-preview-dialog';
     dialog.innerHTML=`<div class="reservation-preview">
@@ -325,7 +329,7 @@ async function reservationsView(){
       <div class="reservation-preview-top"><p class="eyebrow">DETALHES DA RESERVA</p><h2>${period}</h2><div class="reservation-preview-status status-${meta[1]}"><i class="status-dot" aria-hidden="true"></i>${meta[0]}</div></div>
       <div class="reservation-preview-data">
         <div><span>HÓSPEDE</span><strong>${esc(item.name||'Hóspede não informado')}</strong></div>
-        <div><span>TELEFONE</span><strong>${esc(item.phone||'Não informado')}</strong></div>
+        <div class="reservation-preview-contact"><span>TELEFONE · WHATSAPP</span>${whatsappPhone?`<a class="reservation-preview-phone" href="https://wa.me/${whatsappPhone}?text=${whatsappMessage}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 3.5A11.9 11.9 0 0 0 12 .1C5.4.1.1 5.4.1 12c0 2.1.6 4.1 1.6 5.8L.1 24l6.4-1.7a12 12 0 0 0 5.5 1.4h.1c6.6 0 11.9-5.3 11.9-11.9 0-3.2-1.2-6.1-3.5-8.3ZM12 21.7c-1.8 0-3.5-.5-5-1.4l-.4-.2-3.8 1 1-3.7-.2-.4A9.8 9.8 0 0 1 2.1 12c0-5.5 4.4-9.9 9.9-9.9 2.6 0 5.1 1 7 2.9a9.8 9.8 0 0 1 2.9 7c0 5.4-4.4 9.8-9.9 9.8Zm5.4-7.4c-.3-.2-1.7-.9-2-.9-.3-.1-.5-.2-.7.2-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.2-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.4.1-.6l.5-.6c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.1c-.2-.5-.5-.4-.7-.4h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3s-.2-.3-.5-.5Z"/></svg><span>${esc(item.phone)}</span><i aria-hidden="true">↗</i></a>`:`<strong class="reservation-preview-no-phone">Telefone não informado</strong>`}</div>
         ${item.note?`<div class="reservation-preview-note"><span>OBSERVAÇÃO</span><p>${esc(item.note)}</p></div>`:''}
       </div>
     </div>`;

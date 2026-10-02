@@ -522,6 +522,17 @@ body.reservation-modal-open{position:fixed;left:0;right:0;width:100%}
   .reservation-preview-data .reservation-preview-note{grid-column:auto}
 }
 
+/* Mobile drawer: align it with the safe-area-aware header and keep logout visible. */
+@media(max-width:700px){
+  .mobile-head{height:calc(58px + env(safe-area-inset-top))!important}
+  aside{
+    top:calc(58px + env(safe-area-inset-top))!important;
+    height:calc(100dvh - 58px - env(safe-area-inset-top))!important;
+    padding-bottom:calc(22px + env(safe-area-inset-bottom))!important;
+    overscroll-behavior:contain;
+  }
+}
+
 /* Reservation cards: status top-right, edit action bottom-right. */
 .reservation-card{display:flex;flex-direction:column;min-width:0;padding:16px 17px 14px}
 .reservation-card-head{align-items:flex-start;gap:12px}
@@ -534,6 +545,13 @@ body.reservation-modal-open{position:fixed;left:0;right:0;width:100%}
 .reservation-card-footer{display:flex;justify-content:flex-end;margin-top:13px;padding-top:11px;border-top:1px solid rgba(23,59,61,.08)}
 .reservation-card-edit{min-height:34px;padding:7px 13px;background:#edf3ed;color:#285b55;border-color:rgba(57,117,110,.16);font-size:10px;letter-spacing:.02em;text-transform:none;box-shadow:none}
 .reservation-card-edit:hover{background:#dfeae2;border-color:rgba(57,117,110,.28);box-shadow:0 4px 12px rgba(23,59,61,.08)}
+
+/* Keep every editable admin control at the iOS no-auto-zoom size on mobile. */
+@media(max-width:768px){
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea{font-size:16px!important}
+}
 @media(max-width:700px){
   .reservation-card{padding:14px 14px 12px 16px}
   .reservation-card-head{align-items:flex-start}
@@ -543,3 +561,152 @@ body.reservation-modal-open{position:fixed;left:0;right:0;width:100%}
   .reservation-card-footer{margin-top:11px;padding-top:9px}
   .reservation-card-edit{min-height:34px;padding:7px 12px}
 }
+
+/* Reservation cards and their detail view: clearer hierarchy and direct WhatsApp contact. */
+.reservation-card{border-radius:19px;background:linear-gradient(145deg,#fff 0%,#fcfbf7 100%);border-color:rgba(23,59,61,.09);box-shadow:0 10px 28px rgba(23,59,61,.065)}
+.reservation-card:before{width:4px}
+.reservation-card-head{align-items:center}
+.reservation-card time{display:inline-flex;align-items:center;min-height:34px;padding:7px 10px;border-radius:10px;background:#f2f4ef;font-family:'DM Sans',Arial,sans-serif;font-size:12px;font-weight:700;line-height:1.3;white-space:normal}
+.reservation-card .reservation-status{padding:7px 9px;border-radius:999px;background:#f7e8e5;color:#9f4b4b;font-size:9px;font-weight:750}
+.reservation-card.status-pre .reservation-status{background:#f8eedf;color:#936326}
+.reservation-card.status-blocked .reservation-status{background:#e9ecea;color:#46504e}
+.reservation-card-body{gap:6px;margin-top:14px;padding:0 2px}
+.reservation-card-body strong{font-size:14px;line-height:1.35}
+.reservation-card-body a{display:inline-flex;align-items:center;gap:6px;width:max-content;max-width:100%;padding:5px 9px;border-radius:999px;background:#eaf4ed;color:#26734f;font-size:11px;font-weight:650}
+.reservation-card-body a:before{content:'◉';font-size:10px}
+.reservation-card-body p{margin-top:4px;padding-top:9px;border-top:1px solid rgba(23,59,61,.08);font-size:11px}
+.reservation-card-footer{margin-top:14px;padding-top:10px}
+.reservation-preview-dialog{border:1px solid rgba(23,59,61,.08);background:linear-gradient(155deg,#fff 0%,#f7f6ef 100%)}
+.reservation-preview{gap:20px}
+.reservation-preview-top h2{max-width:100%;padding-right:4px;font-size:clamp(30px,7vw,38px);letter-spacing:-.015em}
+.reservation-preview-status{margin-top:4px;padding:8px 12px;font-size:11px}
+.reservation-preview-data{gap:11px}
+.reservation-preview-data>div{padding:15px 16px;border-radius:16px;background:rgba(255,255,255,.88);box-shadow:0 5px 16px rgba(23,59,61,.035)}
+.reservation-preview-data span{font-size:9px;letter-spacing:.15em}
+.reservation-preview-data strong{font-size:14px;overflow-wrap:anywhere}
+.reservation-preview-contact{display:grid;gap:9px}
+.reservation-preview-phone{display:flex;align-items:center;gap:10px;min-height:50px;padding:10px 13px;border:1px solid rgba(37,129,87,.15);border-radius:13px;background:#eaf5ee;color:#176b43;text-decoration:none;font-size:16px;font-weight:750;transition:background .18s,transform .18s,box-shadow .18s}
+.reservation-preview-phone:hover{background:#dff0e5;transform:translateY(-1px);box-shadow:0 6px 16px rgba(37,129,87,.12)}
+.reservation-preview-phone svg{width:21px;height:21px;flex:none;fill:currentColor}
+.reservation-preview-phone span{margin:0;color:inherit;font-size:16px;font-weight:750;letter-spacing:0}
+.reservation-preview-phone i{margin-left:auto;font-size:17px;font-style:normal}
+.reservation-preview-no-phone{font-size:13px!important;color:#8a9690!important}
+.reservation-preview-note p{font-size:12px}
+@media(max-width:700px){
+  .reservation-card{padding:15px 14px 13px 17px;border-radius:18px}
+  .reservation-card time{font-size:12px}
+  .reservation-card .reservation-status{font-size:9px}
+  .reservation-preview{gap:16px;padding:25px 20px 20px}
+  .reservation-preview-top h2{font-size:30px}
+  .reservation-preview-data>div{padding:13px 14px}
+}
+
+/* Final reservation-card layout: just date, status, guest, phone and edit action. */
+.reservation-card{display:grid;grid-template-columns:minmax(0,1fr);gap:0;min-width:0;padding:16px 17px 14px 19px;border:1px solid rgba(23,59,61,.09);border-radius:18px;background:linear-gradient(145deg,#fff 0%,#fbfaf6 100%);box-shadow:0 8px 24px rgba(23,59,61,.055)}
+.reservation-card:before{width:3px}
+.reservation-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.reservation-card-head time{display:block;flex:1 1 auto;min-width:0;max-width:calc(100% - 108px);padding:0;background:none;color:#173b3d;font:650 15px/1.25 'Cormorant Garamond',Georgia,serif;letter-spacing:.01em;overflow-wrap:anywhere}
+.reservation-card .reservation-status{display:inline-flex;flex:none;align-items:center;gap:6px;min-height:29px;margin:0;padding:6px 10px;border:1px solid rgba(159,75,75,.1);border-radius:999px;background:#fbefed;color:#974b47;font-size:9px;font-weight:750}
+.reservation-card.status-pre .reservation-status{border-color:rgba(160,109,45,.12);background:#fbf3e6;color:#936326}
+.reservation-card.status-blocked .reservation-status{border-color:rgba(70,80,78,.1);background:#eef0ee;color:#46504e}
+.reservation-card-body{display:grid;gap:5px;min-width:0;margin:12px 0 0;padding:0 1px}
+.reservation-card-body strong{min-width:0;color:#213b39;font-size:14px;font-weight:650;line-height:1.4;overflow-wrap:anywhere}
+.reservation-card-phone,.reservation-card-muted{display:flex;align-items:flex-start;gap:8px;min-width:0;color:#75827b;font-size:12px;line-height:1.45;overflow-wrap:anywhere;word-break:break-word}
+.reservation-card-phone i{flex:none;color:#527a67;font-size:14px;font-style:normal;line-height:1.2}
+.reservation-card-footer{display:flex;justify-content:flex-end;margin:9px 0 0;padding:0;border:0}
+.reservation-card-edit{min-height:32px;padding:6px 13px;border:1px solid rgba(57,117,110,.15);border-radius:999px;background:#f1f5f0;color:#38675d;font:650 10px 'DM Sans',Arial,sans-serif;letter-spacing:.02em;text-transform:none;box-shadow:none}
+.reservation-card-edit:hover{transform:translateY(-1px);background:#e8f0e9;border-color:rgba(57,117,110,.25);box-shadow:0 4px 12px rgba(23,59,61,.07)}
+.reservation-preview-dialog{box-sizing:border-box;width:min(420px,calc(100vw - 28px));max-width:calc(100vw - 28px);max-height:calc(100dvh - 24px);overflow-x:hidden;overflow-y:auto;border:1px solid rgba(23,59,61,.09);border-radius:24px;background:linear-gradient(155deg,#fff 0%,#f8f7f1 100%);overscroll-behavior:contain}
+.reservation-preview{display:grid;grid-template-columns:minmax(0,1fr);gap:17px;min-width:0;padding:28px 24px 24px}
+.reservation-preview-top{display:grid;grid-template-columns:minmax(0,1fr);gap:7px;min-width:0;padding:0 38px 15px 0;border-bottom:1px solid rgba(23,59,61,.08)}
+.reservation-preview-top .eyebrow{margin:0;color:#87938c;font-size:9px;font-weight:750;letter-spacing:.19em}
+.reservation-preview-top h2{min-width:0;margin:0;color:#173b3d;font:500 clamp(27px,7vw,34px)/1.08 'Cormorant Garamond',Georgia,serif;letter-spacing:0;overflow-wrap:anywhere;word-break:normal}
+.reservation-preview-status{justify-self:start;width:max-content;max-width:100%;margin:3px 0 0;padding:7px 11px;border-radius:999px;font-size:10px}
+.reservation-preview-close{top:17px;right:17px}
+.reservation-preview-data{display:grid;grid-template-columns:minmax(0,1fr)!important;gap:10px;min-width:0;margin:0}
+.reservation-preview-data>div{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;min-width:0;padding:13px 15px;border:1px solid rgba(23,59,61,.07);border-radius:15px;background:rgba(255,255,255,.92);box-shadow:0 4px 14px rgba(23,59,61,.035)}
+.reservation-preview-data span{margin:0;color:#87938c;font-size:8px;font-weight:750;letter-spacing:.15em;line-height:1.4;overflow-wrap:anywhere}
+.reservation-preview-data strong{display:block;min-width:0;color:#213b39;font-size:14px;line-height:1.45;overflow-wrap:anywhere;word-break:break-word}
+.reservation-preview-contact{min-width:0}
+.reservation-preview-phone{display:flex;align-items:center;gap:9px;width:100%;min-width:0;min-height:48px;box-sizing:border-box;padding:10px 12px;border:1px solid rgba(37,129,87,.13);border-radius:12px;background:#edf6f0;color:#176b43;text-decoration:none;font-size:15px;font-weight:700;line-height:1.35;overflow:hidden}
+.reservation-preview-phone svg{flex:0 0 20px;width:20px;height:20px}
+.reservation-preview-phone span{flex:1 1 auto;min-width:0;margin:0;color:inherit;font-size:15px;font-weight:700;line-height:1.35;letter-spacing:0;overflow-wrap:anywhere;word-break:break-word}
+.reservation-preview-phone i{flex:none;margin-left:auto;font-size:16px;font-style:normal}
+.reservation-preview-no-phone{font-size:13px!important;color:#87938c!important;overflow-wrap:anywhere}
+@media(max-width:700px){
+  .reservation-card{padding:15px 13px 13px 16px;border-radius:16px}
+  .reservation-card-head{gap:7px}
+  .reservation-card-head time{font-size:14px;max-width:calc(100% - 102px)}
+  .reservation-card .reservation-status{min-height:27px;padding:5px 8px;font-size:8px}
+  .reservation-card-body{margin-top:10px}
+  .reservation-card-body strong{font-size:13px}
+  .reservation-card-phone,.reservation-card-muted{font-size:11px}
+  .reservation-card-footer{margin-top:7px}
+  .reservation-card-edit{min-height:30px}
+  .reservation-preview-dialog{width:calc(100vw - 24px);max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);border-radius:21px}
+  .reservation-preview{gap:14px;padding:23px 17px 18px}
+  .reservation-preview-top{padding-right:34px}
+  .reservation-preview-top h2{font-size:29px}
+  .reservation-preview-data{grid-template-columns:minmax(0,1fr)!important;gap:9px}
+  .reservation-preview-data>div{padding:12px 13px}
+  .reservation-preview-phone,.reservation-preview-phone span{font-size:14px}
+}
+
+/* Sidebar settings group with a restrained brass gear animation. */
+.admin-settings-toggle{display:flex;align-items:center;gap:11px;width:100%;min-height:50px;margin-top:auto;padding:9px 12px;border:1px solid rgba(239,196,158,.2);border-radius:13px;background:linear-gradient(120deg,rgba(239,196,158,.1),rgba(255,255,255,.035));color:#f2d2aa;text-align:left;font:600 12px 'DM Sans',Arial,sans-serif;cursor:pointer;transition:background .2s,border-color .2s,box-shadow .2s}
+.admin-settings-toggle:hover,.admin-settings-toggle.has-active{border-color:rgba(239,196,158,.42);background:rgba(239,196,158,.13);box-shadow:0 5px 18px rgba(0,0,0,.08)}
+.settings-gear{display:grid;place-items:center;flex:none;width:30px;height:30px;color:#efc49e;font-size:25px;line-height:1;transform-origin:50% 50%}
+.settings-chevron{margin-left:auto;color:#d7c1a3;font-size:18px;line-height:1;transition:transform .25s}
+.admin-settings-toggle[aria-expanded="true"] .settings-gear{animation:admin-gear-spin 3.2s linear infinite}
+.admin-settings-toggle[aria-expanded="true"] .settings-chevron{transform:rotate(180deg)}
+.admin-settings-nav{display:grid;gap:4px;margin:9px 0 0 14px;padding:4px 0 4px 12px;border-left:1px solid rgba(239,196,158,.3)}
+.admin-settings-nav button{min-height:42px;padding:10px 12px;border-radius:9px;color:#ffffffa8;font-size:11px}
+.admin-settings-nav button:hover,.admin-settings-nav button.active{background:rgba(239,196,158,.12);color:#fff}
+.admin-settings-nav[hidden]{display:none!important}
+.logout{flex:none;margin-top:12px}
+@keyframes admin-gear-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.admin-settings-toggle[aria-expanded="true"] .settings-gear{animation:none}}
+@media(max-width:850px){
+  .admin-settings-toggle{flex:none;min-height:50px}
+  .admin-settings-nav{flex:none}
+  .admin-settings-nav button{min-height:44px}
+}
+
+/* Photo title field: visible, touchable and comfortable to edit on phones. */
+.photo-queue-title .photo-title-field{display:grid;gap:7px;min-width:0;cursor:text}
+.photo-queue-title .photo-title-field input[data-field="title"]{position:relative;z-index:2;display:block;width:100%;min-width:0;min-height:48px;box-sizing:border-box;padding:11px 13px;border:1px solid rgba(23,59,61,.2);border-radius:11px;background:#fff;color:#173b3d;font:400 16px/1.35 'DM Sans',Arial,sans-serif;opacity:1;pointer-events:auto;user-select:text;-webkit-user-select:text;caret-color:#39756e;touch-action:manipulation}
+.photo-queue-title .photo-title-field input[data-field="title"]::placeholder{color:#9aa49d;opacity:1}
+.photo-queue-title .photo-title-field input[data-field="title"]:focus{outline:none;border-color:#39756e;box-shadow:0 0 0 3px rgba(57,117,110,.14)}
+
+/* Compact reservation card: keep the edit action beside the guest details. */
+.reservation-card{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'head head' 'body edit';column-gap:12px;row-gap:0;align-items:center}
+.reservation-card-head{grid-area:head}
+.reservation-card-body{grid-area:body;margin-top:9px!important}
+.reservation-card-footer{grid-area:edit;align-self:center;margin:9px 0 0!important;justify-self:end}
+.reservation-card-edit{min-height:34px}
+@media(max-width:700px){
+  .reservation-card{grid-template-columns:minmax(0,1fr) auto;column-gap:8px}
+  .reservation-card-body{margin-top:8px!important}
+  .reservation-card-footer{margin-top:8px!important}
+}
+
+/* Settings is an icon-only gear; the submenu opens when the gear is pressed. */
+.admin-settings-toggle{display:grid;place-items:center;align-self:center;flex:none;width:54px;height:54px;min-height:54px;margin-top:auto;padding:0;border:0;border-radius:50%;background:transparent;box-shadow:none;color:#efc49e}
+.admin-settings-toggle:hover,.admin-settings-toggle.has-active,.admin-settings-toggle:focus-visible{border:0;background:transparent;box-shadow:none;outline:2px solid rgba(239,196,158,.35);outline-offset:4px}
+.settings-gear{display:grid;place-items:center;width:42px;height:42px;color:#efc49e;font-family:Arial,sans-serif;font-size:37px;line-height:1;transform-origin:center;animation:admin-gear-spin 8s linear infinite}
+.admin-settings-toggle[aria-expanded="true"] .settings-gear{animation-duration:2.4s}
+.admin-settings-toggle.has-active .settings-gear{color:#f5d7b2}
+.settings-chevron{display:none}
+.admin-settings-toggle[aria-expanded="true"] .settings-chevron{display:none}
+@media(prefers-reduced-motion:reduce){.settings-gear,.admin-settings-toggle[aria-expanded="true"] .settings-gear{animation:none}}
+
+/* The admin page has a later critical-style block; this specificity keeps these refinements active there too. */
+#app .photo-upload .photo-queue-card .photo-queue-fields .photo-queue-title .photo-title-field{display:grid!important;min-width:0!important;cursor:text!important}
+#app .photo-upload .photo-queue-card .photo-queue-fields .photo-queue-title .photo-title-field input[data-field="title"]{display:block!important;position:relative!important;z-index:3!important;width:100%!important;min-width:0!important;min-height:48px!important;box-sizing:border-box!important;padding:11px 13px!important;border:1px solid rgba(23,59,61,.2)!important;border-radius:11px!important;background:#fff!important;color:#173b3d!important;font:400 16px/1.35 'DM Sans',Arial,sans-serif!important;opacity:1!important;pointer-events:auto!important;user-select:text!important;-webkit-user-select:text!important;caret-color:#39756e!important;touch-action:manipulation}
+#app .reservation-card{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:'head head' 'body edit'!important;column-gap:12px!important;row-gap:0!important;align-items:center!important;min-width:0!important}
+#app .reservation-card-head{grid-area:head!important;display:flex!important;align-items:center!important;justify-content:space-between!important;min-width:0!important}
+#app .reservation-card-head time{display:block!important;flex:1 1 auto!important;min-width:0!important;max-width:calc(100% - 108px)!important;padding:0!important;background:none!important;overflow-wrap:anywhere!important}
+#app .reservation-card-body{grid-area:body!important;display:grid!important;gap:5px!important;min-width:0!important;margin:9px 0 0!important;padding:0 1px!important}
+#app .reservation-card-footer{grid-area:edit!important;display:flex!important;align-self:center!important;justify-self:end!important;justify-content:flex-end!important;margin:9px 0 0!important;padding:0!important;border:0!important}
+#app .admin-settings-toggle{display:grid!important;place-items:center!important;align-self:center!important;flex:none!important;width:54px!important;height:54px!important;min-height:54px!important;margin-top:auto!important;padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;box-shadow:none!important}
+#app .admin-settings-toggle:hover,#app .admin-settings-toggle.has-active,#app .admin-settings-toggle:focus-visible{border:0!important;background:transparent!important;box-shadow:none!important;outline:none!important;filter:drop-shadow(0 0 5px rgba(239,196,158,.5))}

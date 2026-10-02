@@ -453,5 +453,12 @@ dialog[open]{overscroll-behavior:contain}
 /* Modal de reserva: impede o scroll da página por trás, inclusive no mobile. */
 html.stay-modal-open, body.stay-modal-open{overflow:hidden!important;height:100%;touch-action:none}
 body.stay-modal-open{position:fixed;left:0;right:0;width:100%}
+
+/* Keep mobile form controls at the iOS no-auto-zoom size. */
+@media(max-width:768px){
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea{font-size:16px!important}
+}
 .calendar-day.is-past{opacity:.32;cursor:not-allowed!important;pointer-events:none}
 #calendarPrev:disabled{opacity:.35;cursor:not-allowed}
