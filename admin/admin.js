@@ -71,7 +71,7 @@ async function overview(){
   const results=await Promise.all(tables.map(async table=>{const result=await supabase.from(table).select('*',{count:'exact',head:true});return {table,count:result.error?null:(result.count||0),error:result.error}}));
   const counts=Object.fromEntries(results.map(item=>[item.table,item.count]));
   const needsSetup=results.some(item=>item.error);
-  const since=new Date(Date.now()-30*24*60*60*1000).toISOString();
+  const now=new Date();const since=new Date(now.getFullYear(),0,1).toISOString();
   const analyticsResults=await Promise.all(['visit','whatsapp_click'].map(async type=>{
     const result=await supabase.from('site_events').select('*',{count:'exact',head:true}).eq('event_type',type).gte('created_at',since);
     return {type,count:result.count||0,error:result.error};
@@ -79,8 +79,8 @@ async function overview(){
   const analyticsAvailable=analyticsResults.every(result=>!result.error);
   const analytics=Object.fromEntries(analyticsResults.map(result=>[result.type,result.count]));
   let records=[];
-  try{const record=await linkPageRecord();records=reservationRecords(record.availability||linkPageDefaults().availability).filter(item=>item.status&&item.status!=='available')}catch(error){console.info('[Admin] Agenda indisponível na visão geral:',error?.message||error)}
-  const now=new Date();const today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  try{const record=await linkPageRecord();records=reservationRecords(record.availability||linkPageDefaults().availability).filter(item=>item.status&&item.status!=='available'&&item.check_out>=adminTodayKey())}catch(error){console.info('[Admin] Agenda indisponível na visão geral:',error?.message||error)}
+  const today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   const upcoming=records.filter(item=>item.check_out>=today).sort((a,b)=>a.check_in.localeCompare(b.check_in));
   const appointments=records.filter(item=>item.status==='pre'||item.status==='reserved').length;
   const nextEntry=upcoming.find(item=>item.check_in>=today);
@@ -88,9 +88,9 @@ async function overview(){
   const dateLabel=key=>validDateKey(key)?new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'short',timeZone:'UTC'}).format(new Date(`${key}T12:00:00`)):'';
   const statusLabel={reserved:'Reservado',pre:'Pré-reserva',blocked:'Bloqueado'};
   const statusPill=item=>`<span class="overview-status status-${esc(item.status)}">${esc(statusLabel[item.status]||'Reserva')}</span>`;
-  const nextLine=(title,item,field)=>`<div class="overview-date-row"><span>${title}</span>${item?`<strong>${dateLabel(item[field])}</strong><small>${esc(item.name||'Hóspede não informado')} · ${esc(statusLabel[item.status]||'Reserva')}</small>`:'<strong class="overview-none">Nenhuma prevista</strong>'}</div>`;
+  const nextLine=(title,item,field)=>`<div class="overview-date-row overview-date-${field}"><span>${title}</span>${item?`<strong>${dateLabel(item[field])}</strong><small>${esc(item.name||'Hóspede não informado')} · ${esc(statusLabel[item.status]||'Reserva')}</small>`:'<strong class="overview-none">Nenhuma prevista</strong>'}</div>`;
   const reservationList=upcoming.slice(0,5).map(item=>`<div class="overview-reservation"><div><strong>${dateLabel(item.check_in)}${item.check_out!==item.check_in?` – ${dateLabel(item.check_out)}`:''}</strong><small>${esc(item.name||'Hóspede não informado')}</small></div>${statusPill(item)}</div>`).join('')||'<p class="overview-empty">Nenhuma reserva próxima cadastrada.</p>';
-  $('#view').innerHTML=`<div class="view overview-view"><div class="view-head"><div><p class="eyebrow">CASA OITO DEL MARE</p><h1>Visão geral.</h1><p>Agenda e indicadores rápidos da casa.</p></div></div>${needsSetup?migrationHelp():''}<div class="stats"><div class="stat"><strong>${counts.gallery??'—'}</strong><span>Fotos</span></div><div class="stat"><strong>${counts.videos??'—'}</strong><span>Vídeos</span></div><div class="stat"><strong>${counts.links??'—'}</strong><span>Cards da página inicial</span></div><div class="stat stat-appointments"><strong>${appointments}</strong><span>Agendamentos ativos</span></div></div><div class="overview-grid"><section class="overview-panel"><div class="overview-panel-heading"><div><p class="eyebrow">AGENDA</p><h2>Próximas datas</h2></div><button type="button" class="overview-link" data-overview-reservations>Ver calendário ↗</button></div><div class="overview-date-pair">${nextLine('Próxima entrada',nextEntry,'check_in')}${nextLine('Próxima saída',nextExit,'check_out')}</div></section><section class="overview-panel overview-analytics-panel"><div class="overview-panel-heading"><div><p class="eyebrow">ÚLTIMOS 30 DIAS</p><h2>Acessos</h2></div>${analyticsAvailable?'<span class="overview-data-live">Coletando</span>':'<span class="overview-data-pending">Ativar coleta</span>'}</div><div class="overview-access-metrics"><div><strong>${analyticsAvailable?analytics.visit:'—'}</strong><span>Visitas</span></div><div><strong>${analyticsAvailable?analytics.whatsapp_click:'—'}</strong><span>Cliques no WhatsApp</span></div></div>${analyticsAvailable?'':'<p class="analytics-setup-note">Aplique a <a href="../supabase/migrations/20261002_site_analytics.sql" target="_blank" rel="noopener">atualização de métricas do Supabase</a> para começar a contar. Os registros começam após a ativação.</p>'}</section><section class="overview-panel overview-reservations-panel"><div class="overview-panel-heading"><div><p class="eyebrow">AGENDA</p><h2>Reservas próximas</h2></div><button type="button" class="overview-link" data-overview-reservations>Ver todas ↗</button></div><div class="overview-reservation-list">${reservationList}</div></section></div></div>`;
+  $('#view').innerHTML=`<div class="view overview-view"><div class="view-head"><div><p class="eyebrow">CASA OITO DEL MARE</p><h1>Visão geral.</h1><p>Agenda e indicadores rápidos da casa.</p></div></div>${needsSetup?migrationHelp():''}<div class="stats"><div class="stat"><strong>${counts.gallery??'—'}</strong><span>Fotos</span></div><div class="stat"><strong>${counts.videos??'—'}</strong><span>Vídeos</span></div><div class="stat"><strong>${counts.links??'—'}</strong><span>Cards da página inicial</span></div><div class="stat stat-appointments"><strong>${appointments}</strong><span>Agendamentos ativos</span></div></div><div class="overview-grid"><section class="overview-panel"><div class="overview-panel-heading"><div><p class="eyebrow">AGENDA</p><h2>Próximas datas</h2></div><button type="button" class="overview-link" data-overview-reservations>Ver calendário</button></div><div class="overview-date-pair">${nextLine('Próxima entrada',nextEntry,'check_in')}${nextLine('Próxima saída',nextExit,'check_out')}</div></section><section class="overview-panel overview-analytics-panel"><div class="overview-panel-heading"><div><p class="eyebrow">ANO ATUAL</p><h2>Acessos</h2></div>${analyticsAvailable?'<span class="overview-data-live">Coletando</span>':'<span class="overview-data-pending">Ativar coleta</span>'}</div><div class="overview-access-metrics"><div><strong>${analyticsAvailable?analytics.visit:'—'}</strong><span>Visitas</span></div><div><strong>${analyticsAvailable?analytics.whatsapp_click:'—'}</strong><span>Cliques no WhatsApp</span></div></div>${analyticsAvailable?'':'<p class="analytics-setup-note">Aplique a <a href="../supabase/migrations/20261002_site_analytics.sql" target="_blank" rel="noopener">atualização de métricas do Supabase</a> para começar a contar. Os registros começam após a ativação.</p>'}</section><section class="overview-panel overview-reservations-panel"><div class="overview-panel-heading"><div><p class="eyebrow">AGENDA</p><h2>Reservas próximas</h2></div><button type="button" class="overview-link" data-overview-reservations>Ver todas</button></div><div class="overview-reservation-list">${reservationList}</div></section></div></div>`;
   document.querySelectorAll('[data-overview-reservations]').forEach(button=>button.onclick=()=>{current='reservations';document.querySelectorAll('nav button[data-view]').forEach(item=>item.classList.toggle('active',item.dataset.view==='reservations'));render(current)});
   $('#reloadView')?.addEventListener('click',reloadAfterMigration)
 }
@@ -237,7 +237,10 @@ function confirmReservationRemoval(checkIn,checkOut){
 async function reservationsView(){
   const record=await linkPageRecord();
   const availability=record.availability||linkPageDefaults().availability;
-  const records=reservationRecords(availability);
+  const storedRecords=reservationRecords(availability);
+  const today=adminTodayKey();
+  const expiredRecords=storedRecords.filter(item=>item.check_out<today);
+  const records=storedRecords.filter(item=>item.check_out>=today);
   let draftStart=null,draftEnd=null,editingId='';
   const statusMeta={reserved:['Reservado','reserved'],pre:['Pré-reservado','pre'],blocked:['Bloqueado','blocked']};
   const showSelectionError=(message)=>{
@@ -256,13 +259,14 @@ async function reservationsView(){
     for(let i=0;i<offset;i++)cells.push('<span class="reservation-day empty"></span>');
     for(let d=1;d<=days;d++){
       const key=`${reservationMonth.getFullYear()}-${String(reservationMonth.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const item=reservationAt(records,key); const status=item?.status||'available';
+      const item=reservationAt(records,key); const storedStatus=item?.status||'available';
       const isPast=key<adminTodayKey();
-      const disabledPast=isPast&&!item;
-      const inDraft=draftStart&&draftEnd&&key>=draftStart&&key<=draftEnd;
+      const status=isPast?'available':storedStatus;
+      const disabledPast=isPast;
+      const inDraft=!isPast&&draftStart&&draftEnd&&key>=draftStart&&key<=draftEnd;
       const isStart=key===draftStart,isEnd=key===draftEnd;
-      const cls=['reservation-day',`status-${status}`,item?.name?'has-guest':'',inDraft?'is-range':'',isStart?'is-range-start':'',isEnd?'is-range-end':'',disabledPast?'is-date-disabled is-past':''].filter(Boolean).join(' ');
-      cells.push(`<button type="button" class="${cls}" data-res-date="${key}" ${disabledPast?'disabled':''} aria-pressed="${item?'true':'false'}" aria-label="${brDateFromKey(key)}${item?', '+(statusMeta[status]?.[0]||status):disabledPast?', indisponível':''}"><span>${d}</span>${status!=='available'?'<i aria-hidden="true"></i>':''}</button>`);
+      const cls=['reservation-day',`status-${status}`,!isPast&&item?.name?'has-guest':'',inDraft?'is-range':'',!isPast&&isStart?'is-range-start':'',!isPast&&isEnd?'is-range-end':'',disabledPast?'is-date-disabled is-past':''].filter(Boolean).join(' ');
+      cells.push(`<button type="button" class="${cls}" data-res-date="${key}" ${disabledPast?'disabled':''} aria-pressed="${!isPast&&item?'true':'false'}" aria-label="${brDateFromKey(key)}${isPast?', indisponível':item?', '+(statusMeta[storedStatus]?.[0]||storedStatus):''}"><span>${d}</span>${!isPast&&status!=='available'?'<i aria-hidden="true"></i>':''}</button>`);
     }
     const root=$('#view');root.querySelector('#reservationMonth').textContent=monthLabel;root.querySelector('#reservationGrid').innerHTML=cells.join('');
     const prevButton=root.querySelector('#reservationPrev');
@@ -387,10 +391,10 @@ async function reservationsView(){
         const afterExit=target==='check_in'&&seedCheckOut&&key>seedCheckOut;
         const disabled=conflict||isPast||beforeEntry||afterExit;
         const selected=key===(target==='check_in'?seedCheckIn:seedCheckOut);
-        const status=conflict?(occupied.status||'reserved'):'available';
+        const status=conflict&&!isPast?(occupied.status||'reserved'):'available';
         const classes=['reservation-day',`status-${status}`,selected?'is-range-start':'',disabled?'is-date-disabled':''].filter(Boolean).join(' ');
         const label=disabled?`${brDateFromKey(key)}, indisponível`:`${brDateFromKey(key)}, disponível`;
-        cells.push(`<button type="button" class="${classes}" data-picker-date="${key}" ${disabled?'disabled':''} aria-label="${label}" aria-pressed="${selected?'true':'false'}"><span>${d}</span>${conflict?'<i aria-hidden="true"></i>':''}</button>`);
+        cells.push(`<button type="button" class="${classes}" data-picker-date="${key}" ${disabled?'disabled':''} aria-label="${label}" aria-pressed="${selected?'true':'false'}"><span>${d}</span>${conflict&&!isPast?'<i aria-hidden="true"></i>':''}</button>`);
       }
       dialog.innerHTML=`<div class="reservation-date-picker"><div class="reservation-date-picker-top"><div><p class="eyebrow">${target==='check_in'?'NOVA ENTRADA':'NOVA SAÍDA'}</p><h2>Escolha a data</h2><p>${target==='check_in'?'Selecione uma nova data de entrada.':'Selecione uma nova data de saída.'}</p></div><button type="button" class="reservation-close" data-picker-close aria-label="Fechar">×</button></div><div class="reservation-toolbar"><button type="button" data-picker-prev aria-label="Mês anterior">‹</button><strong>${monthLabel}</strong><button type="button" data-picker-next aria-label="Próximo mês">›</button></div><div class="reservation-week"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div><div class="reservation-grid reservation-date-picker-grid">${cells.join('')}</div><div class="reservation-summary reservation-date-picker-legend"><span><i class="reservation-legend-available-dot"></i> disponível</span><span class="reservation-legend-pre">pré-reserva</span><span class="reservation-legend-blocked">bloqueado</span><span class="reservation-legend-reserved">reservado</span></div></div>`;
       const pickerPrev=dialog.querySelector('[data-picker-prev]');
@@ -453,7 +457,7 @@ async function reservationsView(){
     lockReservationScroll();dialog.showModal();
   };
   const persist=async()=>{
-    const reservations=records.filter(r=>r.status&&r.status!=='available').map(r=>({id:r.id,check_in:r.check_in,check_out:r.check_out,status:r.status,name:r.name,phone:r.phone,note:r.note})).sort((a,b)=>a.check_in.localeCompare(b.check_in));
+    const reservations=[...expiredRecords,...records].filter(r=>r.status&&r.status!=='available').map(r=>({id:r.id,check_in:r.check_in,check_out:r.check_out,status:r.status,name:r.name,phone:r.phone,note:r.note})).sort((a,b)=>a.check_in.localeCompare(b.check_in));
     const reservedDates=reservations.filter(r=>r.status==='reserved'||r.status==='blocked').flatMap(r=>daysBetweenKeys(r.check_in,r.check_out));
     const next={...availability,enabled:true,reservations,reservedDates:[...new Set(reservedDates)].sort()};
     await saveLinkPage({...record,availability:next});
