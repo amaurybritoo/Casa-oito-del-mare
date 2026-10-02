@@ -203,8 +203,9 @@ function renderContact(contact) {
   const root = $('#contactActions');
   if (!root) return;
   const phones = Array.isArray(contact?.phones) ? contact.phones : fallbackProfile.contact.phones;
+  const contactNames = ['Mônica', 'Camila'];
   const instagram = contact?.instagram || fallbackProfile.contact.instagram;
-  root.innerHTML = `${phones.map(phone => `<a class="contact-action" href="tel:${escapeHtml(phone.replace(/\D/g,''))}"><span>☎</span><div><small>Telefone</small><b>${escapeHtml(phone)}</b></div></a>`).join('')}<a class="contact-action" href="${escapeHtml(safeUrl(instagram))}" target="_blank" rel="noopener"><span>◎</span><div><small>Instagram</small><b>@casaoitodelmare</b></div></a>`;
+  root.innerHTML = `${phones.map((phone,index) => {const digits=String(phone||'').replace(/\D/g,'');const name=contactNames[index]||`Contato ${index+1}`;const text=encodeURIComponent(`Olá, ${name}! Gostaria de falar sobre a Casa Oito Del Mare.`);return `<a class="contact-action" href="https://wa.me/${digits}?text=${text}" target="_blank" rel="noopener"><span>◉</span><div><small>WhatsApp · ${escapeHtml(name)}</small><b>${escapeHtml(phone)}</b></div></a>`}).join('')}<a class="contact-action" href="${escapeHtml(safeUrl(instagram))}" target="_blank" rel="noopener"><span>◎</span><div><small>Instagram</small><b>@casaoitodelmare</b></div></a>`;
 }
 
 function bindDynamicActions() {
@@ -339,7 +340,7 @@ function updateCalendarWhatsApp(){
     w.removeAttribute('aria-disabled');
     w.classList.remove('is-disabled');
   }else{
-    w.href='https://wa.me/'+phone;
+    w.href='https://wa.me/'+phone+'?text='+encodeURIComponent('Olá! Gostaria de falar sobre uma estadia na Casa Oito Del Mare.');
     w.setAttribute('aria-disabled','true');
     w.classList.add('is-disabled');
   }

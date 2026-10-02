@@ -710,3 +710,82 @@ body.reservation-modal-open{position:fixed;left:0;right:0;width:100%}
 #app .reservation-card-footer{grid-area:edit!important;display:flex!important;align-self:center!important;justify-self:end!important;justify-content:flex-end!important;margin:9px 0 0!important;padding:0!important;border:0!important}
 #app .admin-settings-toggle{display:grid!important;place-items:center!important;align-self:center!important;flex:none!important;width:54px!important;height:54px!important;min-height:54px!important;margin-top:auto!important;padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;box-shadow:none!important}
 #app .admin-settings-toggle:hover,#app .admin-settings-toggle.has-active,#app .admin-settings-toggle:focus-visible{border:0!important;background:transparent!important;box-shadow:none!important;outline:none!important;filter:drop-shadow(0 0 5px rgba(239,196,158,.5))}
+#app .settings-gear{width:42px!important;height:42px!important;font-size:0!important}
+#app .settings-gear svg{display:block;width:38px;height:38px;overflow:visible;fill:currentColor;stroke:rgba(239,196,158,.4);stroke-width:.35;filter:drop-shadow(0 3px 7px rgba(0,0,0,.2))}
+#app aside.settings-open .admin-primary-nav{gap:8px}
+#app aside.settings-open .admin-primary-nav button{min-height:49px;padding:13px 14px}
+#app aside.settings-open .admin-settings-toggle{margin-top:18px!important}
+#app aside.settings-open .admin-settings-nav{display:grid;gap:9px;margin:12px 0 8px;padding:12px 9px;border:1px solid rgba(255,255,255,.1);border-left:1px solid rgba(239,196,158,.35);border-radius:15px;background:rgba(255,255,255,.045);box-shadow:inset 0 1px rgba(255,255,255,.035)}
+#app aside.settings-open .admin-settings-nav button{min-height:50px;padding:13px 14px;border:1px solid rgba(255,255,255,.055);border-radius:10px;background:rgba(255,255,255,.035);font-size:12px;line-height:1.35}
+#app aside.settings-open .admin-settings-nav button:hover,#app aside.settings-open .admin-settings-nav button.active{border-color:rgba(239,196,158,.18);background:rgba(239,196,158,.11);color:#fff}
+
+/* Instagram-style crop workspace. The preview canvas and saved crop share one geometry. */
+#app .photo-upload .photo-queue-card{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:22px;padding:18px;background:#fffdfa;border-color:rgba(23,59,61,.1);border-radius:18px;box-shadow:0 12px 30px rgba(23,59,61,.055)}
+#app .photo-crop-column{display:grid;align-content:start;justify-items:center;gap:10px;min-width:0}
+#app .crop-preview-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;color:#76867d}
+#app .crop-preview-heading span{font-size:9px;font-weight:800;letter-spacing:.16em}
+#app .crop-preview-heading b{padding:5px 8px;border-radius:999px;background:#eef3ed;color:#50756a;font-size:9px;font-weight:700}
+#app .photo-upload .crop-window{position:relative;display:block;width:min(100%,420px);min-width:0;min-height:0;overflow:hidden;border:1px solid rgba(23,59,61,.12);border-radius:15px;background:#102f30;box-shadow:0 10px 25px rgba(8,30,29,.13);touch-action:none;cursor:grab}
+#app .photo-upload .crop-window.is-dragging{cursor:grabbing}
+#app .photo-upload .crop-preview-canvas{position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none}
+#app .photo-upload .crop-window.crop-preview-error:after{content:'Não foi possível pré-visualizar esta foto';position:absolute;inset:0;display:grid;place-items:center;padding:20px;color:#fff;text-align:center;font-size:12px}
+#app .photo-upload .crop-hint{z-index:2;left:50%;bottom:12px;transform:translateX(-50%);padding:8px 12px;border:1px solid rgba(255,255,255,.24);border-radius:999px;background:rgba(13,39,39,.78);color:#fff;font:600 10px 'DM Sans',Arial,sans-serif;letter-spacing:.01em;white-space:nowrap;pointer-events:none;backdrop-filter:blur(8px)}
+#app .photo-upload .crop-help{max-width:420px;margin:0;color:#7a8981;font-size:11px;line-height:1.5;text-align:center}
+#app .photo-upload .photo-queue-fields{display:grid;grid-template-columns:minmax(0,1fr);align-content:start;gap:13px;min-width:0}
+#app .photo-upload .photo-queue-row{display:grid;grid-template-columns:minmax(0,1fr);gap:11px}
+#app .photo-upload .photo-queue-fields label{min-width:0;line-height:1.4}
+#app .photo-upload .photo-queue-fields select,#app .photo-upload .photo-queue-fields input:not([type=range]),#app .photo-upload .photo-queue-fields textarea{min-height:46px;border:1px solid rgba(23,59,61,.15);border-radius:11px;background:#fff;color:#173b3d;font:400 15px 'DM Sans',Arial,sans-serif}
+#app .photo-upload .photo-queue-fields textarea{min-height:78px;padding:12px 13px;resize:vertical}
+#app .photo-upload .photo-queue-title{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:0 0 12px;border-bottom:1px solid rgba(23,59,61,.08)}
+#app .photo-upload .photo-queue-title .text-danger{justify-self:start;min-height:30px;padding:4px 0}
+#app .photo-upload .crop-controls{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding:14px;border:1px solid rgba(23,59,61,.08);border-radius:14px;background:#f5f7f3}
+#app .photo-upload .range-label{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 12px;align-items:center;color:#50665e;font-size:11px;font-weight:700}
+#app .photo-upload .range-label output{padding:4px 7px;border-radius:7px;background:#e5eee7;color:#39756e;font-size:10px;font-variant-numeric:tabular-nums}
+#app .photo-upload .range-label input[type=range]{grid-column:1/-1;width:100%;height:25px;margin:0;accent-color:#39756e;touch-action:pan-x}
+@media(max-width:700px){
+  #app .photo-upload .photo-queue-card{grid-template-columns:minmax(0,1fr);gap:16px;padding:13px;border-radius:15px}
+  #app .photo-upload .photo-crop-column{width:100%}
+  #app .photo-upload .crop-window{width:min(100%,420px)}
+  #app .photo-upload .photo-queue-fields{grid-template-columns:minmax(0,1fr);gap:12px}
+  #app .photo-upload .photo-queue-row{grid-template-columns:minmax(0,1fr)}
+  #app .photo-upload .crop-controls{gap:12px;padding:13px}
+  #app aside.settings-open .admin-settings-toggle{margin-top:14px!important}
+  #app aside.settings-open .admin-settings-nav{gap:10px;margin-top:10px;padding:11px 8px}
+  #app aside.settings-open .admin-settings-nav button{min-height:52px;padding:14px 13px;font-size:13px}
+}
+
+/* Visão geral: agenda compacta e indicadores de acompanhamento. */
+.overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px;align-items:start}
+.overview-panel{min-width:0;padding:20px;background:#fff;border:1px solid #173b3d12;border-radius:16px}
+.overview-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.overview-panel-heading .eyebrow{margin:0 0 5px;color:#718078}
+.overview-panel-heading h2{margin:0;font:29px 'Cormorant Garamond';font-weight:500}
+.overview-link{flex:none;border:0;background:transparent;color:#39756e;font:600 11px 'DM Sans',Arial,sans-serif;cursor:pointer}
+.overview-date-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.overview-date-row{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:13px;border-radius:12px;background:#f7f8f4}
+.overview-date-row>span{color:#78827d;font-size:10px}
+.overview-date-row>strong{font:26px 'Cormorant Garamond';font-weight:500}
+.overview-date-row>small,.overview-reservation small{color:#78827d;font-size:10px;line-height:1.4;overflow-wrap:anywhere}
+.overview-date-row>.overview-none{font-size:15px;color:#84918a}
+.overview-access{display:flex;align-items:center;gap:14px;min-height:72px;padding:13px;border-radius:12px;background:#f7f8f4}
+.overview-access strong{font:36px 'Cormorant Garamond';color:#84918a}
+.overview-access span{color:#78827d;font-size:11px;line-height:1.55}
+.overview-data-pending{padding:6px 9px;border-radius:99px;background:#f4efe6;color:#887552;font-size:9px;font-weight:700}
+.overview-reservations-panel{grid-column:1/-1}
+.overview-reservation-list{display:grid}
+.overview-reservation{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;border-top:1px solid #173b3d0d}
+.overview-reservation>div{display:grid;gap:3px;min-width:0}
+.overview-reservation>div>strong{font-size:12px;font-weight:600}
+.overview-reservation .overview-status{flex:none;padding:6px 9px;border-radius:99px;background:#e8eeea;color:#52655b;font-size:9px;font-weight:700}
+.overview-reservation .status-reserved{background:#f7e9e6;color:#a3544d}
+.overview-reservation .status-pre{background:#f8f0df;color:#9b7740}
+.overview-reservation .status-blocked{background:#e9ece9;color:#4d5752}
+.overview-empty{margin:0;padding:12px 2px;color:#78827d;font-size:11px}
+.desktop-shortcuts{display:grid;gap:8px;margin:0 0 20px}
+.desktop-shortcuts .site-link{margin:0;padding:11px 10px}
+.desktop-shortcuts .links-shortcut{border-color:#ffffff24;background:#ffffff0b;color:#fff}
+.desktop-shortcuts .links-shortcut:hover{background:#ffffff16}
+@media(max-width:850px){.desktop-shortcuts{display:none}.overview-grid{grid-template-columns:minmax(0,1fr)}.overview-reservations-panel{grid-column:auto}.overview-panel{padding:16px}.overview-date-pair{gap:8px}.overview-date-row{padding:11px}}
+/* O fundo da tela de login cobre toda a altura dinâmica no mobile. */
+html{min-height:100%;background:#173b3d}\nbody{min-height:100%;background:#f5f0e7}\nbody:has(#login:not([hidden])){background:#173b3d}
+.login{min-height:100vh;min-height:100svh;min-height:100dvh;padding: max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom));background:#173b3d}
