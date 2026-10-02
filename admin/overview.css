@@ -1,0 +1,34 @@
+body:has(.overview-view){background:#e8e8df}
+.overview-view{max-width:1440px}
+.overview-view .view-head{margin-bottom:25px}
+.overview-view .view-head h1{color:#203f3b}
+.overview-view .view-head>div>p:last-child{color:#65766e}
+.overview-view .stats{gap:13px}
+.overview-view .stat{min-height:116px;display:flex;flex-direction:column;justify-content:center;border:1px solid transparent;border-radius:12px;box-shadow:0 8px 22px #263f3510}
+.overview-view .stat:nth-child(1){background:#f2eee3;border-color:#dcd5c5}
+.overview-view .stat:nth-child(2){background:#e1e9e2;border-color:#cad8cc}
+.overview-view .stat:nth-child(3){background:#f0e4d9;border-color:#e4cbb7}
+.overview-view .stat-appointments{background:#244744;border-color:#244744;color:#fff}
+.overview-view .stat-appointments span{color:#d0ded3}
+.overview-view .stat strong{font-variant-numeric:tabular-nums}
+.overview-grid{gap:14px;margin-top:16px}
+.overview-panel{padding:21px;background:#e0e7df;border:1px solid #cbd7cc;border-radius:12px;box-shadow:0 8px 22px #263f350a}
+.overview-panel:nth-child(2){background:#e9e3d7;border-color:#d9cebb}
+.overview-panel:nth-child(3){background:#e8e1d8;border-color:#d9cfc2}
+.overview-panel-heading .eyebrow{color:#56736a}
+.overview-panel-heading h2{color:#244744}
+.overview-link{color:#276b60}
+.overview-date-row{background:#f0f1e9;border:1px solid #d5ded3}
+.overview-date-row>span,.overview-date-row>small,.overview-reservation small{color:#66766d}
+.overview-access-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.overview-access-metrics>div{min-width:0;display:grid;gap:4px;padding:14px;border:1px solid #d7cdbb;border-radius:9px;background:#f3eee4}
+.overview-access-metrics>div+div{background:#dce8df;border-color:#c6d7ca}
+.overview-access-metrics strong{font:36px 'Cormorant Garamond';font-variant-numeric:tabular-nums;color:#284b45}
+.overview-access-metrics span{color:#67776e;font-size:10px;line-height:1.35}
+.overview-data-live,.overview-data-pending{padding:6px 9px;border-radius:99px;font-size:9px;font-weight:700}
+.overview-data-live{background:#d4e8d8;color:#326448}
+.analytics-setup-note{margin:12px 0 0;color:#716d60;font-size:10px;line-height:1.55}
+.analytics-setup-note a{color:#276b60;font-weight:700}
+.overview-reservation{border-color:#d0d4c9}
+.overview-reservation .overview-status{background:#d7e3d9;color:#42634d}
+@media(max-width:520px){.overview-view .stat{min-height:96px}.overview-view .stat strong{font-size:34px}.overview-panel{padding:15px}.overview-access-metrics>div{padding:12px}}

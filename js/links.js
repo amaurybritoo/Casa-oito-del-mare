@@ -1,5 +1,9 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { trackPageVisit, trackWhatsappLinks } from './analytics.js';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js';
+
+trackPageVisit('links');
+trackWhatsappLinks('links');
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
