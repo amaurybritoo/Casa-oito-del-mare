@@ -4,7 +4,9 @@ body:has(.overview-view){background:#e8ece6}
 .overview-view .view-head h1{color:#203f3b}
 .overview-view .view-head>div>p:last-child{color:#65766e}
 .overview-view .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
-.overview-view .stat,.overview-view .stat-appointments{position:relative;min-width:0;min-height:122px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;padding:17px 18px 18px;background:#edf1ec;color:#244744;border:1px solid #d6ded5;border-radius:10px;box-shadow:0 7px 20px #263f350a;overflow:hidden}
+.overview-view .stat,.overview-view .stat-appointments{position:relative;min-width:0;min-height:122px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;padding:17px 18px 18px;background:#edf1ec;color:#244744;border:1px solid #d6ded5;border-radius:10px;box-shadow:0 7px 20px #263f350a;overflow:hidden;font:inherit;text-align:left;cursor:pointer;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+.overview-view .stat:hover,.overview-view .stat-appointments:hover{transform:translateY(-2px);border-color:#aabeb0;box-shadow:0 10px 22px #263f3516}
+.overview-view .stat:focus-visible{outline:2px solid #b99c65;outline-offset:3px}
 .overview-view .stat span{order:-1;margin:0;color:#60766b;font-size:10px;font-weight:700;line-height:1.4}
 .overview-view .stat strong{font-variant-numeric:tabular-nums;color:#244744;font-size:43px;line-height:1}
 .overview-view .stats .stat:nth-child(1){background:#e4eee7;border-color:#cadbd0}
