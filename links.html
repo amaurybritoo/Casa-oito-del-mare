@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./css/links.css?v=20261005-1">
+  <link rel="stylesheet" href="./css/links.css?v=20261005-4">
 </head>
 <body>
   <main class="links-shell">
@@ -40,12 +40,12 @@
 
     <section class="quick-links tab-panel active" data-panel="home" aria-labelledby="linksTitle">
       <div class="section-heading"><span class="eyebrow">CASA OITO EM UM TOQUE</span><h2 id="linksTitle">Por onde começamos?</h2></div>
-      <div class="link-list" id="dynamicLinks">
-        <a class="link-card" href="./index.html#cards"><span class="link-icon" aria-hidden="true"></span><span class="link-copy"><strong>Conheça a casa</strong><small>Ambientes, detalhes e experiências</small></span></a>
-        <button class="link-card" type="button" data-open-calendar><span class="link-icon" aria-hidden="true"></span><span class="link-copy"><strong>Consultar disponibilidade</strong><small>Veja o calendário da Casa Oito</small></span></button>
-        <button class="link-card" type="button" data-open-tourism><span class="link-icon" aria-hidden="true"></span><span class="link-copy"><strong>Descubra Búzios</strong><small>Praias, passeios e lugares que recomendamos</small></span></button>
-        <a class="link-card" href="https://www.instagram.com/casaoitodelmare/" target="_blank" rel="noopener"><span class="link-icon" aria-hidden="true"></span><span class="link-copy"><strong>Instagram</strong><small>Acompanhe a Casa Oito Del Mare</small></span></a>
-        <button class="link-card" type="button" data-open-contact><span class="link-icon" aria-hidden="true"></span><span class="link-copy"><strong>Fale com a Casa</strong><small>Telefones e Instagram</small></span></button>
+      <div class="link-list" id="dynamicLinks" aria-busy="true">
+        <div class="link-card link-skeleton" aria-hidden="true"><span class="link-icon"></span><span class="link-copy"><strong></strong><small></small></span></div>
+        <div class="link-card link-skeleton" aria-hidden="true"><span class="link-icon"></span><span class="link-copy"><strong></strong><small></small></span></div>
+        <div class="link-card link-skeleton" aria-hidden="true"><span class="link-icon"></span><span class="link-copy"><strong></strong><small></small></span></div>
+        <div class="link-card link-skeleton" aria-hidden="true"><span class="link-icon"></span><span class="link-copy"><strong></strong><small></small></span></div>
+        <div class="link-card link-skeleton" aria-hidden="true"><span class="link-icon"></span><span class="link-copy"><strong></strong><small></small></span></div>
       </div>
     </section>
 
@@ -84,13 +84,14 @@
       <div class="calendar-head"><button type="button" id="calendarPrev" aria-label="Mês anterior">‹</button><strong id="calendarMonth"></strong><button type="button" id="calendarNext" aria-label="Próximo mês">›</button></div>
       <div class="calendar-week" aria-hidden="true"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div>
       <div class="calendar-grid" id="calendarGrid"></div>
+      <div class="calendar-holiday-info" id="calendarHolidayInfo" role="status" aria-live="polite" hidden></div>
       <div class="calendar-error" id="calendarError" role="alert" aria-live="assertive" hidden></div>
-      <div class="calendar-legend"><span><i class="available-dot"></i> disponível</span><span><i class="pre-dot"></i> pré-reserva</span><span><i class="reserved-dot"></i> reservado</span><span>1º toque · entrada</span><span>2º toque · saída</span></div>
+      <div class="calendar-legend"><span><i class="available-dot"></i> disponível</span><span><i class="pre-dot"></i> pré-reserva</span><span><i class="reserved-dot"></i> reservado</span><span><i class="holiday-national-dot"></i> nacional</span><span><i class="holiday-rj-dot"></i> RJ</span><span>1º toque · entrada</span><span>2º toque · saída</span></div>
       <a class="calendar-whatsapp" id="calendarWhatsapp" href="https://wa.me/5521986362770" target="_blank" rel="noopener">Consultar esta data pelo WhatsApp <span>↗</span></a>
     </div>
   </dialog>
 
   <div class="toast" id="shareToast" role="status" aria-live="polite"></div>
-  <script type="module" src="./js/links.js?v=20261005-1"></script>
+  <script type="module" src="./js/links.js?v=20261005-6"></script>
 </body>
 </html>

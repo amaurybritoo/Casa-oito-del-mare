@@ -1,6 +1,7 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { trackPageVisit, trackWhatsappLinks } from './analytics.js';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js';
+import { CARD_ICONS, cardIconSvg, resolveCardIcon } from './card-icons.js';
 
 trackPageVisit('links');
 trackWhatsappLinks('links');
@@ -50,6 +51,7 @@ let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
 let selectedDate = null;
 let checkinDate = null;
 let checkoutDate = null;
+let holidayInfoKey = null;
 
 function showCalendarError(message){
   const el=$('#calendarError');
@@ -129,28 +131,33 @@ function renderProfile() {
 
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function safeUrl(value) { try { return new URL(value, window.location.href).href; } catch { return '#'; } }
+function whatsappPhone(value) {
+  let digits=String(value||'').replace(/\D/g,'');
+  if(digits.startsWith('00'))digits=digits.slice(2);
+  if(digits.startsWith('0'))digits=digits.slice(1);
+  if(!digits.startsWith('55')&&(digits.length===10||digits.length===11))digits=`55${digits}`;
+  return digits;
+}
 
-function cardIcon(type='link') {
-  const icons = {
-    home:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>',
-    calendar:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4M17 3v4M3 10h18"/><path d="M8 14h3M13 14h3M8 17h3"/></svg>',
-    whatsapp:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-11.9 7L4 20l1.5-4A8 8 0 1 1 20 11.5Z"/><path d="M8.7 9.2c.2-.4.5-.5.8-.3l1 .8c.3.2.3.5.1.8l-.5.7c.7 1.1 1.6 2 2.7 2.7l.7-.5c.3-.2.6-.2.8.1l.8 1c.2.3.1.6-.3.8-.6.3-1.3.4-2 .2-2.5-.8-4.6-2.9-5.4-5.4-.2-.7-.1-1.4.2-2Z"/></svg>',
-    tourism:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg>',
-    contact:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H12l-4.8 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-8Z"/><path d="M8 8h8M8 11h5"/></svg>',
-    instagram:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="12" cy="12" r="3.5"/><circle cx="17.2" cy="6.8" r="1"/></svg>',
-    map:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 6 5-2 6 2 5-2v14l-5 2-6-2-5 2V6Z"/><path d="M9 4v14M15 6v14"/></svg>',
-    link:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13.8 8.5 15.3a3.5 3.5 0 1 1-5-5l3-3a3.5 3.5 0 0 1 5 0M14 10.2l1.5-1.5a3.5 3.5 0 1 1 5 5l-3 3a3.5 3.5 0 0 1-5 0M8.5 12h7"/></svg>'
-  };
-  return icons[type] || icons.link;
+function cardIcon(key='link') { return cardIconSvg(key); }
+function publicLinkType(item){
+  const title=String(item?.title||'').toLowerCase(),type=item?.type||'link',url=String(item?.url||'');
+  if(type!=='link')return type;
+  if(url==='#stay'||/consult|disponib|estadia/.test(title))return 'whatsapp';
+  if(url==='#tourism'||/pontos turíst|descubra búzios|búzios/.test(title))return 'tourism';
+  if(url==='#contact'||/falar no whatsapp|entre em contato|^contato$|fale com/.test(title))return 'contact';
+  if(url==='__MAP__'||/onde estamos|localiza/.test(title))return 'map';
+  return 'link';
 }
 
 function renderLinks() {
   const root = $('#dynamicLinks');
   if (!root) return;
+  const manualOrder = links.length > 0 && links.every(item => Number.isFinite(Number(item.position)) && Number(item.position) > 0);
   const visible = links
     .filter(item => item.active !== false)
-    .filter(item => !/falar no whatsapp/i.test(item.title || ''))
     .sort((a,b) => {
+      if (manualOrder) return Number(a.position) - Number(b.position);
       const order = (item) => {
         const title = String(item.title || '').toLowerCase();
         if (/conheça a casa|conhecer a casa/.test(title)) return 0;
@@ -162,13 +169,16 @@ function renderLinks() {
       };
       return order(a) - order(b);
     });
+  let contactCardAdded=false;
   root.innerHTML = visible.map(item => {
     const rawTitle = String(item.title || '');
-    const type = item.type || (/instagram/i.test(rawTitle) ? 'instagram' : /contato|fale com/i.test(rawTitle) ? 'contact' : /turíst|búzios/i.test(rawTitle) ? 'tourism' : /consult|disponib/i.test(rawTitle) ? 'whatsapp' : 'home');
-    const titleForIcon = rawTitle.toLowerCase();
-    const iconType = /consult|disponib/.test(titleForIcon) ? 'calendar' : /contato|fale com/.test(titleForIcon) ? 'whatsapp' : type;
-    const icon = cardIcon(iconType);
-    const content = `<span class="link-icon" aria-hidden="true">${icon}</span><span class="link-copy"><strong>${escapeHtml(rawTitle)}</strong><small>${escapeHtml(item.subtitle||'')}</small></span>`;
+    const type = publicLinkType(item);
+    const icon = cardIcon(resolveCardIcon(item, type));
+    if(type==='contact'&&contactCardAdded)return '';
+    if(type==='contact')contactCardAdded=true;
+    const displayTitle=type==='contact'?'Entre em contato':rawTitle;
+    const displaySubtitle=type==='contact'?'WhatsApp, telefones e Instagram da casa':item.subtitle||'';
+    const content = `<span class="link-icon" aria-hidden="true">${icon}</span><span class="link-copy"><strong>${escapeHtml(displayTitle)}</strong><small>${escapeHtml(displaySubtitle)}</small></span>`;
     if (type === 'contact') return `<button class="link-card" type="button" data-open-contact>${content}</button>`;
     if (type === 'tourism') return `<button class="link-card" type="button" data-open-tourism>${content}</button>`;
     if (type === 'whatsapp') return `<button class="link-card" type="button" data-open-calendar>${content}</button>`;
@@ -209,7 +219,7 @@ function renderContact(contact) {
   const phones = Array.isArray(contact?.phones) ? contact.phones : fallbackProfile.contact.phones;
   const contactNames = ['Mônica', 'Camila'];
   const instagram = contact?.instagram || fallbackProfile.contact.instagram;
-  root.innerHTML = `${phones.map((phone,index) => {const digits=String(phone||'').replace(/\D/g,'');const name=contactNames[index]||`Contato ${index+1}`;const text=encodeURIComponent(`Olá, ${name}! Gostaria de falar sobre a Casa Oito Del Mare.`);return `<a class="contact-action" href="https://wa.me/${digits}?text=${text}" target="_blank" rel="noopener"><span>◉</span><div><small>WhatsApp · ${escapeHtml(name)}</small><b>${escapeHtml(phone)}</b></div></a>`}).join('')}<a class="contact-action" href="${escapeHtml(safeUrl(instagram))}" target="_blank" rel="noopener"><span>◎</span><div><small>Instagram</small><b>@casaoitodelmare</b></div></a>`;
+  root.innerHTML = `${phones.map((phone,index) => {const digits=whatsappPhone(phone);const name=contactNames[index]||`Contato ${index+1}`;const text=encodeURIComponent(`Olá, ${name}! Gostaria de falar sobre a Casa Oito Del Mare.`);return `<a class="contact-action" href="https://wa.me/${digits}?text=${text}" target="_blank" rel="noopener"><span>◉</span><div><small>WhatsApp · ${escapeHtml(name)}</small><b>${escapeHtml(phone)}</b></div></a>`}).join('')}<a class="contact-action" href="${escapeHtml(safeUrl(instagram))}" target="_blank" rel="noopener"><span>◎</span><div><small>Instagram</small><b>@casaoitodelmare</b></div></a>`;
 }
 
 function bindDynamicActions() {
@@ -263,6 +273,34 @@ function unlockStayScroll(){
 }
 function parseDateKey(key){const [y,m,d]=String(key).split('-').map(Number);return new Date(y,m-1,d)}
 function isBetween(key,a,b){if(!a||!b)return false;const t=parseDateKey(key).getTime();return t>parseDateKey(a).getTime()&&t<parseDateKey(b).getTime()}
+function easterSunday(year){
+  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=(h+l-7*m+114)%31+1;
+  return new Date(year,month-1,day);
+}
+function holidayMapForYear(year){
+  const holidays=new Map(),add=(month,day,name,scope)=>holidays.set(`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`,{name,scope});
+  add(1,1,'Confraternização Universal','nacional');
+  const easter=easterSunday(year),goodFriday=new Date(year,easter.getMonth(),easter.getDate()-2);
+  add(goodFriday.getMonth()+1,goodFriday.getDate(),'Paixão de Cristo','nacional');
+  add(4,21,'Tiradentes','nacional');
+  add(4,23,'Dia de São Jorge','rj');
+  add(5,1,'Dia do Trabalho','nacional');
+  add(9,7,'Independência do Brasil','nacional');
+  add(10,12,'Nossa Senhora Aparecida','nacional');
+  add(11,2,'Finados','nacional');
+  add(11,15,'Proclamação da República','nacional');
+  if(year>=2024)add(11,20,'Dia Nacional de Zumbi e da Consciência Negra','nacional');
+  add(12,25,'Natal','nacional');
+  return holidays;
+}
+function holidayForKey(key){return holidayMapForYear(parseDateKey(key).getFullYear()).get(key)||null}
+function clearHolidayInfo(){const info=$('#calendarHolidayInfo');if(info){info.hidden=true;info.textContent=''}holidayInfoKey=null}
+function showHolidayInfo(key,holiday){
+  const info=$('#calendarHolidayInfo');if(!info)return;
+  const scope=holiday.scope==='rj'?'Feriado estadual · Rio de Janeiro':'Feriado nacional';
+  info.innerHTML=`<span class="calendar-holiday-info-dot ${holiday.scope==='rj'?'is-rj':'is-national'}" aria-hidden="true"></span><span><b>${escapeHtml(holiday.name)}</b><small>${scope} · data selecionada para consulta</small></span>`;
+  info.hidden=false;holidayInfoKey=key;
+}
 function rangeHasReserved(a,b){
   if(!a||!b)return false;
   const statusMap=availabilityStatusMap(), start=parseDateKey(a), end=parseDateKey(b);
@@ -290,10 +328,10 @@ function renderCalendar(){
     const isPast=key<today;
     const isReserved=status==='reserved'||status==='blocked';
     const unavailable=status!=='available'||isPast;
-    const selectedIn=checkinDate===key, selectedOut=checkoutDate===key;
+    const holiday=holidayForKey(key), selectedIn=checkinDate===key, selectedOut=checkoutDate===key;
     const inRange=isBetween(key,checkinDate,checkoutDate);
-    const cls=['calendar-day',status==='reserved'?'is-reserved':'',status==='blocked'?'is-blocked':'',status==='pre'?'is-pre':'',selectedIn?'is-checkin':'',selectedOut?'is-checkout':'',inRange?'is-range':'',key===today?'is-today':''].filter(Boolean).join(' ');
-    const label=unavailable?', indisponível':selectedIn?', entrada':selectedOut?', saída':'';
+    const cls=['calendar-day',status==='reserved'?'is-reserved':'',status==='blocked'?'is-blocked':'',status==='pre'?'is-pre':'',holiday?'is-holiday':'',holiday?.scope==='rj'?'is-holiday-rj':'',holiday?.scope==='nacional'?'is-holiday-national':'',selectedIn?'is-checkin':'',selectedOut?'is-checkout':'',inRange?'is-range':'',key===today?'is-today':''].filter(Boolean).join(' ');
+    const label=unavailable?', indisponível':holiday?`, ${holiday.scope==='rj'?'feriado estadual do Rio de Janeiro':'feriado nacional'}: ${holiday.name}`:selectedIn?', entrada':selectedOut?', saída':'';
     html+=`<button class="${cls}${isPast?' is-past':''}" type="button" data-date="${key}" aria-label="${d} de ${monthEl.textContent}${label}" ${unavailable?'aria-disabled="true"':''}>${d}</button>`;
   }
   grid.innerHTML=html;
@@ -315,6 +353,9 @@ $('#calendarGrid')?.addEventListener('click', event=>{
   const key=btn.dataset.date;
   const status=availabilityStatusMap().get(key)||'available';
   if(key<todayKey() || status!=='available') return;
+  const holiday=holidayForKey(key);
+  if(holiday)showHolidayInfo(key,holiday);
+  else clearHolidayInfo();
   if(!checkinDate || (checkinDate && checkoutDate)){
     checkinDate=key; checkoutDate=null; clearCalendarError(); updateCalendarWhatsApp(); renderCalendar(); return;
   }
@@ -331,7 +372,7 @@ $('#calendarGrid')?.addEventListener('click', event=>{
 function updateCalendarWhatsApp(){
   const w=$('#calendarWhatsapp');
   if(!w) return;
-  const phone=String(availability.whatsapp||fallbackProfile.whatsapp).replace(/\D/g,'');
+  const phone=whatsappPhone(availability.whatsapp||fallbackProfile.whatsapp);
   if(!phone) return;
   if(checkinDate && checkoutDate){
     const brIn=checkinDate.split('-').reverse().join('/'), brOut=checkoutDate.split('-').reverse().join('/');
@@ -354,7 +395,7 @@ function openStayCalendar(){
   const dialog=$('#stayDialog'); if(!dialog)return;
   $('#stayTitle').textContent=availability.title||'Consulte sua estadia.';
   $('#staySubtitle').textContent=availability.subtitle||'Escolha a entrada e a saída. As datas reservadas aparecem em vermelho.';
-  checkinDate=null; checkoutDate=null; selectedDate=null; clearCalendarError();
+  checkinDate=null; checkoutDate=null; selectedDate=null; clearCalendarError();clearHolidayInfo();
   calendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
   updateCalendarWhatsApp();
   renderCalendar();
@@ -371,23 +412,23 @@ $('#stayDialog')?.addEventListener('click',event=>{
   const isClose=target.closest?.('[data-close-stay]');
   const isWhatsapp=target.closest?.('#calendarWhatsapp');
   if(target===dialog){
-    checkinDate=null; checkoutDate=null; selectedDate=null; clearCalendarError(); updateCalendarWhatsApp(); renderCalendar();
+    checkinDate=null; checkoutDate=null; selectedDate=null; clearCalendarError();clearHolidayInfo(); updateCalendarWhatsApp(); renderCalendar();
     dialog.close();
     unlockStayScroll();
     return;
   }
   // Qualquer toque fora de um número do calendário cancela a seleção atual.
   if(!isDate && !isCalendarArea && !isMonthControl && !isClose && !isWhatsapp){
-    checkinDate=null; checkoutDate=null; selectedDate=null; clearCalendarError(); updateCalendarWhatsApp(); renderCalendar();
+    checkinDate=null; checkoutDate=null; selectedDate=null; clearCalendarError();clearHolidayInfo(); updateCalendarWhatsApp(); renderCalendar();
   }
 });
 
-$('#stayDialog')?.addEventListener('close',()=>{checkinDate=null;checkoutDate=null;selectedDate=null;unlockStayScroll();});
+$('#stayDialog')?.addEventListener('close',()=>{checkinDate=null;checkoutDate=null;selectedDate=null;clearHolidayInfo();unlockStayScroll();});
 $('#calendarWhatsapp')?.addEventListener('click',event=>{
   if(!checkinDate){event.preventDefault();showToast('Escolha uma data para consultar.');}
 });
-$('#calendarPrev')?.addEventListener('click',()=>{const currentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);if(calendarMonth<=currentMonth)return;calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1);renderCalendar();});
-$('#calendarNext')?.addEventListener('click',()=>{calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1);renderCalendar();});
+$('#calendarPrev')?.addEventListener('click',()=>{const currentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);if(calendarMonth<=currentMonth)return;calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1);clearHolidayInfo();renderCalendar();});
+$('#calendarNext')?.addEventListener('click',()=>{calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1);clearHolidayInfo();renderCalendar();});
 
 $('[data-close-contact]')?.addEventListener('click', () => $('#contactDialog')?.close());
 $('#contactDialog')?.addEventListener('click', event => { if (event.target === $('#contactDialog')) $('#contactDialog').close(); });
@@ -403,11 +444,13 @@ shareButton?.addEventListener('click', async () => {
 // Conteúdo local aparece primeiro; o Supabase atualiza em segundo plano.
 setupCoverCarousel();
 renderProfile();
-renderLinks();
 renderTourism();
 
+let linksShown = false;
+function showLinksOnce() { if (linksShown) return; linksShown = true; renderLinks(); }
+
 async function hydrate() {
-  if (!SUPABASE_URL.startsWith('https://') || !SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')) return;
+  if (!SUPABASE_URL.startsWith('https://') || !SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')) { showLinksOnce(); return; }
   try {
     const client = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
     const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1800));
@@ -417,8 +460,9 @@ async function hydrate() {
       profile = {...profile, ...(result.data.profile || {})};
       availability = {...availability, ...(result.data.availability || {})};
       if (Array.isArray(result.data.links) && result.data.links.length) links = result.data.links;
-      renderProfile(); renderLinks();
+      renderProfile();
     }
+    showLinksOnce();
     try {
       const galleryResult = await Promise.race([client.from('gallery').select('image_url,position,in_carousel,active').eq('active',true).order('position',{ascending:true}), timeout]);
       if (!galleryResult?.error && Array.isArray(galleryResult?.data)) {
@@ -431,5 +475,6 @@ async function hydrate() {
     const touristResult = await Promise.race([touristQuery, timeout]);
     if (!touristResult?.error && Array.isArray(touristResult?.data) && touristResult.data.length) { tourism = touristResult.data; renderTourism(); }
   } catch {}
+  showLinksOnce();
 }
 hydrate();
