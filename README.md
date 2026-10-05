@@ -32,3 +32,4 @@ V4: visual premium clean na página de links, sem bordas decorativas e carrossel
 - A migração `supabase/migrations/20261002_site_analytics.sql` cria o registro anônimo de visitas e cliques no WhatsApp. Execute o SQL uma vez no SQL Editor do Supabase antes de publicar os arquivos.
 - A tabela guarda somente tipo de evento, página e data. Os totais da Visão geral contam o ano corrente, desde 1º de janeiro, e começam após a ativação; a contagem reinicia no primeiro dia de cada ano.
 - O indicador Agendamentos conta estadias marcadas como Pré-reserva ou Reservado no calendário do Admin; períodos Bloqueados ficam fora.
+- Para habilitar o reset dos indicadores por pressão contínua de 30 segundos, execute uma vez `supabase/migrations/20261005_reset_site_analytics.sql` no SQL Editor do Supabase. O reset apaga apenas os eventos do ano atual.

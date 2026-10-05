@@ -415,6 +415,8 @@ button,a,input,select,textarea{touch-action:manipulation}
 /* Popup menor para alteração de entrada/saída: somente calendário + legenda */
 .reservation-date-picker-dialog{border:0;padding:0;width:min(390px,calc(100vw - 28px));border-radius:23px;background:#fbfaf5;color:#173b3d;box-shadow:0 30px 90px rgba(0,0,0,.28);overflow:hidden}
 .reservation-date-picker-dialog::backdrop{background:rgba(17,35,34,.48);backdrop-filter:blur(5px)}
+.reservation-register-button{display:block;width:100%;min-height:48px;margin-top:15px;border-radius:12px;font:650 12px 'DM Sans',Arial,sans-serif;letter-spacing:.02em}
+.reservation-register-button:disabled{opacity:.48;cursor:not-allowed;box-shadow:none;transform:none}
 .reservation-date-picker{padding:20px 20px 18px}
 .reservation-date-picker-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
 .reservation-date-picker-top h2{margin:2px 0 3px;font:500 28px/1 'Cormorant Garamond',Georgia,serif;color:#173b3d}
@@ -462,7 +464,12 @@ body.reservation-modal-open{position:fixed;left:0;right:0;width:100%}
 .reservation-dialog-top h2{margin:0 0 8px;font-size:clamp(29px,6vw,38px);line-height:1.02;overflow-wrap:anywhere}
 .reservation-dialog-top p:not(.eyebrow){max-width:390px;font-size:12px;line-height:1.55}
 .reservation-date-summary{gap:11px;margin:0}
+.reservation-date-summary{display:block}
 .reservation-date-pick{min-height:104px;align-content:center;gap:8px;padding:15px 16px;background:#f0f4ef;border-color:#173b3d12}
+.reservation-date-pick{grid-template-columns:1fr;align-items:start;text-align:left}
+.reservation-date-pick>span{padding:0;border-radius:0;background:transparent}
+.reservation-date-pick .reservation-date-divider{grid-column:1/-1;height:1px;width:100%;background:rgba(23,59,61,.1)}
+.reservation-date-pick small{grid-column:1/-1;margin-top:3px}
 .reservation-date-pick span{color:#7b8981;font-size:9px;letter-spacing:.16em}
 .reservation-date-pick b{font-size:21px}
 .reservation-date-pick small{display:flex;align-items:center;gap:5px;color:#46756e;font-size:10px;font-weight:650}
@@ -755,7 +762,7 @@ body.reservation-modal-open{position:fixed;left:0;right:0;width:100%}
 }
 
 /* Visão geral: agenda compacta e indicadores de acompanhamento. */
-.overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px;align-items:start}
+.overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px;align-items:stretch}
 .overview-panel{min-width:0;padding:20px;background:#fff;border:1px solid #173b3d12;border-radius:16px}
 .overview-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
 .overview-panel-heading .eyebrow{margin:0 0 5px;color:#718078}
@@ -786,6 +793,23 @@ body.reservation-modal-open{position:fixed;left:0;right:0;width:100%}
 .desktop-shortcuts .links-shortcut{border-color:#ffffff24;background:#ffffff0b;color:#fff}
 .desktop-shortcuts .links-shortcut:hover{background:#ffffff16}
 @media(max-width:850px){.desktop-shortcuts{display:none}.overview-grid{grid-template-columns:minmax(0,1fr)}.overview-reservations-panel{grid-column:auto}.overview-panel{padding:16px}.overview-date-pair{gap:8px}.overview-date-row{padding:11px}}
+#app .overview-data-live{appearance:none;border:0;padding:6px 9px;border-radius:99px;background:#dce8df;color:#42634d;font:700 9px 'DM Sans',Arial,sans-serif;cursor:default;user-select:none;-webkit-user-select:none;touch-action:none;transition:background .2s,color .2s}
+#app .overview-data-live.is-holding{background:#f4e8d8;color:#8a5d35}
+#app .overview-data-live:focus-visible{outline:2px solid #39756e;outline-offset:3px}
+.reservation-form{position:relative}
+.reservation-form .reservation-dialog-top .reservation-close{position:absolute;top:12px;right:12px;z-index:2}
+.reservation-form .reservation-dialog-top{padding-right:50px}
+#app .photo-upload{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;padding:0;border:0;background:transparent}
+#app .photo-upload .photo-dropzone{appearance:none;display:grid;justify-items:center;align-content:center;gap:13px;width:100%;min-height:268px;padding:24px;border:2px dashed #b8c0ba;border-radius:18px;background:#f8f8f6;color:#173b3d;text-align:center;cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s}
+#app .photo-upload .photo-dropzone:hover,#app .photo-upload .photo-dropzone.is-dragover{border-color:#39756e;background:#f0f5f0;box-shadow:inset 0 0 0 1px #39756e1c}
+#app .photo-upload .photo-dropzone:focus-visible{outline:3px solid #39756e55;outline-offset:3px}
+#app .photo-upload .photo-dropzone svg{width:68px;height:68px;fill:none;stroke:#173b3d;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+#app .photo-upload .photo-dropzone svg path:last-child{stroke:#39756e}
+#app .photo-upload .photo-dropzone strong{font:700 19px 'DM Sans',Arial,sans-serif;color:#263b37}
+#app .photo-upload .photo-dropzone span{margin:0;color:#39756e;font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+#app .photo-upload .upload-actions{display:grid;justify-items:center;gap:7px;width:100%;padding-top:2px}
+#app .photo-upload .upload-actions .primary{width:min(100%,360px);min-height:48px}
+@media(max-width:700px){#app .photo-upload .photo-dropzone{min-height:225px;padding:20px 14px;border-radius:15px}#app .photo-upload .photo-dropzone strong{font-size:17px}}
 /* O fundo da tela de login cobre toda a altura dinâmica no mobile. */
 html{min-height:100%;background:#173b3d}\nbody{min-height:100%;background:#f5f0e7}\nbody:has(#login:not([hidden])){background:#173b3d}
 .login{min-height:100vh;min-height:100svh;min-height:100dvh;padding: max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom));background:#173b3d}

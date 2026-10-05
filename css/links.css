@@ -461,4 +461,5 @@ body.stay-modal-open{position:fixed;left:0;right:0;width:100%}
   textarea{font-size:16px!important}
 }
 .calendar-day.is-past{opacity:.32;cursor:not-allowed!important;pointer-events:none}
+.calendar-day.is-past.is-reserved,.calendar-day.is-past.is-pre,.calendar-day.is-past.is-blocked{background:#ebeae5!important;color:#8d918c!important;box-shadow:none!important}
 #calendarPrev:disabled{opacity:.35;cursor:not-allowed}
