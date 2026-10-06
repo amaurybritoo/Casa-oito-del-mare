@@ -125,19 +125,8 @@ function restartCoverTimer() {
   clearInterval(coverTimer);
   if (coverImages.length > 1) coverTimer=setInterval(()=>goCover(coverIndex+1),5000);
 }
-function setupCoverWaves() {
-  const box = $('#profileCoverCarousel');
-  if (!box || box.querySelector('.cover-waves')) return;
-  const waves = document.createElement('div');
-  waves.className = 'cover-waves'; waves.setAttribute('aria-hidden', 'true');
-  waves.innerHTML = [3,2,1].map(n => `<i class="cw w${n}">${WAVE_SVG}</i>`).join('');
-  box.appendChild(waves);
-  // Só anima enquanto a capa está visível (economiza bateria e processamento).
-  if ('IntersectionObserver' in window) new IntersectionObserver(([e]) => waves.classList.toggle('is-off', !e.isIntersecting)).observe(box);
-}
 function setupCoverCarousel() {
   renderCoverCarousel();
-  setupCoverWaves();
   restartCoverTimer();
 }
 
@@ -218,53 +207,87 @@ function renderLinks() {
 }
 
 function bindCardPressAnimation() {
-  const list = $('#dynamicLinks');
   const cards = $$('.link-card:not(.link-skeleton)');
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // Entrada em cascata, todos os cards juntos.
   cards.forEach((card,i) => card.style.setProperty('--enter-delay', `${i*70}ms`));
+  const list = $('#dynamicLinks');
   if (!list || list.dataset.fx) return;
   list.dataset.fx = '1';
-  let current = null;
-  const light = (card, e) => {
-    const r = card.getBoundingClientRect();
-    const x = e.clientX - r.left, y = e.clientY - r.top;
-    card.style.setProperty('--mx', `${x}px`);
-    card.style.setProperty('--my', `${y}px`);
-    if (!reduce) {
-      card.style.setProperty('--roll', `${((x / r.width) - .5) * 1.1}deg`);
+
+  const SEL = '#dynamicLinks .link-card:not(.link-skeleton)';
+  const LEAVE_MS = 60;    // a maré do card anterior baixa na hora em que a do novo sobe
+  const wetTimers = new WeakMap();
+  let current = null, pending = null, mouse = null;
+
+  const drop = card => {
+    card.classList.remove('is-lit');
+    card.style.setProperty('--roll', '0deg');
+    clearTimeout(wetTimers.get(card));
+    wetTimers.set(card, window.setTimeout(() => card.classList.remove('is-wet'), 1300));
+  };
+  const select = (card, x) => {
+    if (card !== current) {
+      const old = current;
+      current = card;
+      if (old) window.setTimeout(() => drop(old), LEAVE_MS);
     }
-  };
-  const enter = card => { if (current === card) return; leave(); current = card; card.classList.add('is-lit'); };
-  const leave = () => {
-    if (!current) return;
-    current.classList.remove('is-lit');
-    current.style.setProperty('--roll', '0deg');
-    current = null;
-  };
-  // Passar o dedo (ou o mouse) por cima acende o card sob o ponteiro, sem precisar tocar.
-  const track = e => {
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const card = el && el.closest ? el.closest('#dynamicLinks .link-card') : null;
-    if (!card) { leave(); return; }
-    enter(card); light(card, e);
-  };
-  list.addEventListener('pointermove', track, {passive:true});
-  list.addEventListener('pointerleave', leave, {passive:true});
-  list.addEventListener('pointercancel', leave, {passive:true});
-  list.addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') window.setTimeout(leave, 380); }, {passive:true});
-  list.addEventListener('pointerdown', e => {
-    const card = e.target.closest ? e.target.closest('.link-card') : null;
-    if (!card) return;
-    enter(card); light(card, e);
     const r = card.getBoundingClientRect();
-    const wave = document.createElement('span');
-    wave.className = 'link-ripple';
-    wave.style.left = `${e.clientX - r.left}px`; wave.style.top = `${e.clientY - r.top}px`;
-    card.appendChild(wave);
-    window.setTimeout(() => wave.remove(), 1300);
-  }, {passive:true});
+    card.style.setProperty('--roll', `${(((x - r.left) / r.width) - .5) * 1.1}deg`);
+    clearTimeout(wetTimers.get(card));
+    card.classList.add('is-wet', 'is-lit');
+  };
+  const cardAt = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    return el && el.closest ? el.closest(SEL) : null;
+  };
+  const straighten = () => { if (current) current.style.setProperty('--roll', '0deg'); };
+
+  // Celular: a maré vai para o card que o dedo toca ou por onde desliza (inclusive rolando a página)
+  // e FICA ali, mesmo depois de soltar o dedo. Só troca quando o dedo toca ou passa em outro card.
+  document.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    pending = null;
+    if (!t) return;
+    const card = cardAt(t.clientX, t.clientY);
+    if (card) select(card, t.clientX);
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    if (!t) return;
+    const card = cardAt(t.clientX, t.clientY);
+    if (!card || card === current) { pending = null; if (card) select(card, t.clientX); return; }
+    // Troca ao confirmar o novo card em duas leituras seguidas (evita piscar durante rolagem rápida).
+    if (card === pending) { pending = null; select(card, t.clientX); } else pending = card;
+  }, { passive: true });
+  const end = () => { if (pending) { select(pending, 0); pending = null; } straighten(); };
+  document.addEventListener('touchend', end, { passive: true });
+  document.addEventListener('touchcancel', () => { pending = null; straighten(); }, { passive: true });
+
+  // Mouse e caneta: a maré sobe enquanto o ponteiro está em cima (também ao girar a roda).
+  const hover = () => { if (!mouse) return; const card = cardAt(mouse.x, mouse.y); if (card) select(card, mouse.x); else if (current) { drop(current); current = null; } };
+  list.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch') return;
+    mouse = { x: e.clientX, y: e.clientY };
+    hover();
+  }, { passive: true });
+  list.addEventListener('pointerleave', e => {
+    if (e.pointerType === 'touch') return;
+    mouse = null;
+    if (current) { drop(current); current = null; }
+  }, { passive: true });
+  window.addEventListener('scroll', () => { if (mouse) window.requestAnimationFrame(hover); }, { passive: true });
 }
+
+// Página de leitura: sem copiar texto (exceto contatos/Instagram) e sem zoom no celular.
+function setupPageGuards() {
+  const elOf = n => (n && n.nodeType === 1 ? n : n && n.parentElement) || null;
+  const allowed = n => { const el = elOf(n); return !!(el && el.closest('#contactDialog, [data-copyable]')); };
+  ['copy', 'cut', 'dragstart', 'contextmenu', 'selectstart'].forEach(type =>
+    document.addEventListener(type, e => { if (!allowed(e.target)) e.preventDefault(); }));
+  // iOS: pinça para dar zoom.
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(type =>
+    document.addEventListener(type, e => e.preventDefault()));
+}
+setupPageGuards();
 
 function tripadvisorSearch(title) { return 'https://www.tripadvisor.com.br/Search?q=' + encodeURIComponent(title + ' Búzios'); }
 
