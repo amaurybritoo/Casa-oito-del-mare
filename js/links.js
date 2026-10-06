@@ -93,31 +93,72 @@ const fallbackCoverImages = [
   './assets/gallery/casa-05.jpg'
 ];
 let coverImages = [...fallbackCoverImages];
+let coverFromGallery = false;
 let coverIndex = 0;
 let coverTimer = null;
 
+let coverKey = '';
+let coverBuild = 0;
+const imageReady = img => !!(img && img.complete && img.naturalWidth > 0);
+// Espera a foto estar baixada e decodificada (com limite de tempo) para ela nunca aparecer "em branco" na troca.
+function whenImageReady(img, timeout = 4000) {
+  if (!img) return Promise.resolve(false);
+  const decoded = img.decode ? img.decode().then(() => true, () => imageReady(img)) : Promise.resolve(imageReady(img));
+  return Promise.race([decoded, new Promise(resolve => window.setTimeout(() => resolve(imageReady(img)), timeout))]);
+}
 function renderCoverCarousel(images = coverImages) {
   const track = $('#profileCoverTrack');
   if (!track) return;
-  coverImages = images.filter(Boolean);
-  if (!coverImages.length) coverImages = [...fallbackCoverImages];
+  let list = images.filter(Boolean);
+  if (!list.length) list = [...fallbackCoverImages];
+  const key = list.join('|');
+  // Mesma lista de fotos: não mexe no DOM. Recriar os slides a cada atualização causava um "piscar" na capa.
+  if (key === coverKey && track.querySelector('.cover-slide')) { coverImages = list; return; }
+  coverKey = key;
+  coverImages = list;
   coverIndex = Math.min(coverIndex, coverImages.length - 1);
+  const build = ++coverBuild;
   // Os slides são criados uma única vez; trocar de foto só alterna classes, e é isso que permite a transição.
-  track.innerHTML = coverImages.map((src,i)=>`<div class="cover-slide ${i===coverIndex?'is-active':''}"><img src="${escapeHtml(src)}" alt="Casa Oito Del Mare · foto ${i+1}" ${i===0?'fetchpriority="high"':''} loading="${i===0?'eager':'lazy'}" draggable="false"></div>`).join('');
+  const frag = document.createDocumentFragment();
+  coverImages.forEach((src,i) => {
+    const slide = document.createElement('div');
+    slide.className = 'cover-slide' + (i === coverIndex ? ' is-active' : '');
+    const img = new Image();
+    img.alt = `Casa Oito Del Mare · foto ${i+1}`;
+    img.decoding = 'async';
+    img.draggable = false;
+    if (i === coverIndex) img.fetchPriority = 'high';
+    img.src = src;
+    slide.appendChild(img);
+    frag.appendChild(slide);
+  });
+  // A capa atual só é trocada quando a nova foto principal já está pronta (sem tela vazia no meio).
+  const first = frag.querySelectorAll('img')[coverIndex];
+  whenImageReady(first, 2500).then(() => {
+    if (build !== coverBuild) return;
+    track.replaceChildren(frag);
+  });
 }
 
 function goCover(index,manual=false) {
   if (!coverImages.length) return;
   const next=(index+coverImages.length)%coverImages.length;
   const slides=$$('#profileCoverTrack .cover-slide');
-  if (slides.length!==coverImages.length) { coverIndex=next; renderCoverCarousel(); }
+  if (slides.length!==coverImages.length) { coverIndex=Math.min(coverIndex,coverImages.length-1); renderCoverCarousel(); }
   else if (next!==coverIndex) {
-    slides[coverIndex]?.classList.remove('is-active');
-    slides[coverIndex]?.classList.add('is-leaving');
-    const leaving=slides[coverIndex];
-    window.setTimeout(()=>leaving?.classList.remove('is-leaving'),1200);
-    coverIndex=next;
-    slides[coverIndex].classList.add('is-active');
+    const incoming=slides[next], leaving=slides[coverIndex];
+    const show=()=>{
+      if (!incoming.isConnected || next===coverIndex) return;
+      leaving?.classList.remove('is-active');
+      leaving?.classList.add('is-leaving');
+      // A foto que sai continua opaca por baixo até a nova terminar de aparecer; só então é solta.
+      window.setTimeout(()=>leaving?.classList.remove('is-leaving'),1300);
+      coverIndex=next;
+      incoming.classList.add('is-active');
+    };
+    // Só avança quando a próxima foto já carregou; se ainda não carregou, tenta de novo no próximo ciclo.
+    if (imageReady(incoming.querySelector('img'))) show();
+    else whenImageReady(incoming.querySelector('img'), 1500).then(ok => { if (ok) show(); });
   }
   if (manual) restartCoverTimer();
 }
@@ -136,7 +177,7 @@ function renderProfile() {
   const parts = name.split(/\s+(?=Del Mare$)/i);
   $('#profileName').innerHTML = `${escapeHtml(parts[0] || name)}<br><em>${escapeHtml(parts[1] || 'Del Mare')}</em>`;
   $('#profileBio').innerHTML = escapeHtml(profile.bio || fallbackProfile.bio).replace(/\n/g,'<br>');
-  if (profile.cover_image) coverImages = [profile.cover_image, ...fallbackCoverImages.filter(x=>x!==profile.cover_image)];
+  if (profile.cover_image && !coverFromGallery) coverImages = [profile.cover_image, ...fallbackCoverImages.filter(x=>x!==profile.cover_image)];
   renderCoverCarousel();
   const map = profile.map || fallbackProfile.map;
   $('#mapLink').href = map;
@@ -213,79 +254,100 @@ function bindCardPressAnimation() {
   if (!list || list.dataset.fx) return;
   list.dataset.fx = '1';
 
+  // A maré só muda CLASSES (is-lit / is-wet). Nada de escrever estilos por movimento do dedo nem de ler layout
+  // durante a rolagem: o navegador anima tudo na GPU (transform), então a rolagem continua fluida.
   const SEL = '#dynamicLinks .link-card:not(.link-skeleton)';
-  const LEAVE_MS = 60;    // a maré do card anterior baixa na hora em que a do novo sobe
+  const LEAVE_MS = 60;     // a maré do card anterior baixa quase junto com a subida do novo
+  const DRY_MS = 1300;     // depois de baixar, as ondas só param quando o card já secou
   const wetTimers = new WeakMap();
-  let current = null, pending = null, mouse = null;
+  let current = null;
 
-  const drop = card => {
+  const dropNow = card => {
     card.classList.remove('is-lit');
-    card.style.setProperty('--roll', '0deg');
     clearTimeout(wetTimers.get(card));
-    wetTimers.set(card, window.setTimeout(() => card.classList.remove('is-wet'), 1300));
+    wetTimers.set(card, window.setTimeout(() => card.classList.remove('is-wet'), DRY_MS));
   };
-  const select = (card, x) => {
-    if (card !== current) {
-      const old = current;
-      current = card;
-      if (old) window.setTimeout(() => drop(old), LEAVE_MS);
-    }
-    const r = card.getBoundingClientRect();
-    card.style.setProperty('--roll', `${(((x - r.left) / r.width) - .5) * 1.1}deg`);
+  const lightUp = card => {
+    if (current && !current.isConnected) current = null;     // lista recriada pelo painel em tempo real
+    if (card === current) return;
+    const old = current;
+    current = card;
     clearTimeout(wetTimers.get(card));
     card.classList.add('is-wet', 'is-lit');
+    if (old) window.setTimeout(() => dropNow(old), LEAVE_MS);
   };
+  const clear = () => { if (current) { dropNow(current); current = null; } };
   const cardAt = (x, y) => {
     const el = document.elementFromPoint(x, y);
     return el && el.closest ? el.closest(SEL) : null;
   };
-  const straighten = () => { if (current) current.style.setProperty('--roll', '0deg'); };
+  const modalOpen = () => document.body.classList.contains('stay-modal-open') || !!document.querySelector('dialog[open]');
 
-  // Celular: a maré vai para o card que o dedo toca ou por onde desliza (inclusive rolando a página)
-  // e FICA ali, mesmo depois de soltar o dedo. Só troca quando o dedo toca ou passa em outro card.
+  // ---- Celular: a maré vai para o card tocado e FICA nele, mesmo depois de soltar o dedo. ----
+  // Durante o arrasto, a posição do dedo é avaliada no máximo UMA vez por quadro (rAF) e a maré só troca de card
+  // depois de o novo card ser confirmado em dois quadros seguidos (evita piscar em rolagem rápida).
+  let touching = false, tx = 0, ty = 0, frame = 0, pending = null;
+  const evaluate = () => {
+    frame = 0;
+    if (!touching) return;
+    const card = cardAt(tx, ty);
+    if (!card || card === current) { pending = null; return; }
+    if (card === pending) { pending = null; lightUp(card); } else { pending = card; frame = requestAnimationFrame(evaluate); }
+  };
   document.addEventListener('touchstart', e => {
+    if (modalOpen()) return;
     const t = e.touches[0];
-    pending = null;
     if (!t) return;
-    const card = cardAt(t.clientX, t.clientY);
-    if (card) select(card, t.clientX);
+    touching = true; pending = null; tx = t.clientX; ty = t.clientY;
+    const card = cardAt(tx, ty);
+    if (card) lightUp(card);
   }, { passive: true });
   document.addEventListener('touchmove', e => {
+    if (!touching) return;
     const t = e.touches[0];
     if (!t) return;
-    const card = cardAt(t.clientX, t.clientY);
-    if (!card || card === current) { pending = null; if (card) select(card, t.clientX); return; }
-    // Troca ao confirmar o novo card em duas leituras seguidas (evita piscar durante rolagem rápida).
-    if (card === pending) { pending = null; select(card, t.clientX); } else pending = card;
+    tx = t.clientX; ty = t.clientY;
+    if (!frame) frame = requestAnimationFrame(evaluate);
   }, { passive: true });
-  const end = () => { if (pending) { select(pending, 0); pending = null; } straighten(); };
-  document.addEventListener('touchend', end, { passive: true });
-  document.addEventListener('touchcancel', () => { pending = null; straighten(); }, { passive: true });
+  const endTouch = () => { touching = false; pending = null; if (frame) { cancelAnimationFrame(frame); frame = 0; } };
+  document.addEventListener('touchend', endTouch, { passive: true });
+  document.addEventListener('touchcancel', endTouch, { passive: true });
 
-  // Mouse e caneta: a maré sobe enquanto o ponteiro está em cima (também ao girar a roda).
-  const hover = () => { if (!mouse) return; const card = cardAt(mouse.x, mouse.y); if (card) select(card, mouse.x); else if (current) { drop(current); current = null; } };
+  // ---- Mouse e caneta: a maré sobe enquanto o ponteiro está em cima (também ao girar a roda). ----
+  let mouse = null, hoverFrame = 0;
+  const hover = () => {
+    hoverFrame = 0;
+    if (!mouse) return;
+    const card = cardAt(mouse.x, mouse.y);
+    if (card) lightUp(card); else clear();
+  };
+  const scheduleHover = () => { if (!hoverFrame) hoverFrame = requestAnimationFrame(hover); };
   list.addEventListener('pointermove', e => {
     if (e.pointerType === 'touch') return;
     mouse = { x: e.clientX, y: e.clientY };
-    hover();
+    scheduleHover();
   }, { passive: true });
   list.addEventListener('pointerleave', e => {
     if (e.pointerType === 'touch') return;
     mouse = null;
-    if (current) { drop(current); current = null; }
+    clear();
   }, { passive: true });
-  window.addEventListener('scroll', () => { if (mouse) window.requestAnimationFrame(hover); }, { passive: true });
+  window.addEventListener('scroll', () => { if (mouse) scheduleHover(); }, { passive: true });
 }
 
-// Página de leitura: sem copiar texto (exceto contatos/Instagram) e sem zoom no celular.
+// Página de leitura: no CELULAR/TABLET (tela de toque) não copia texto (exceto contatos/Instagram) e não dá zoom.
+// No DESKTOP (mouse) nada é bloqueado: botão direito, seleção, cópia e zoom funcionam normalmente.
+// A checagem é feita a cada evento, então acompanha mudanças reais de dispositivo (ex.: tablet com mouse).
+const touchOnlyQuery = window.matchMedia('(hover: none) and (pointer: coarse)');
+const isTouchDevice = () => touchOnlyQuery.matches;
 function setupPageGuards() {
   const elOf = n => (n && n.nodeType === 1 ? n : n && n.parentElement) || null;
   const allowed = n => { const el = elOf(n); return !!(el && el.closest('#contactDialog, [data-copyable]')); };
   ['copy', 'cut', 'dragstart', 'contextmenu', 'selectstart'].forEach(type =>
-    document.addEventListener(type, e => { if (!allowed(e.target)) e.preventDefault(); }));
+    document.addEventListener(type, e => { if (isTouchDevice() && !allowed(e.target)) e.preventDefault(); }));
   // iOS: pinça para dar zoom.
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(type =>
-    document.addEventListener(type, e => e.preventDefault()));
+    document.addEventListener(type, e => { if (isTouchDevice()) e.preventDefault(); }));
 }
 setupPageGuards();
 
@@ -597,7 +659,7 @@ async function hydrate() {
       const galleryResult = await Promise.race([client.from('gallery').select('image_url,position,in_carousel,active').eq('active',true).order('position',{ascending:true}), timeout]);
       if (!galleryResult?.error && Array.isArray(galleryResult?.data)) {
         const selected = galleryResult.data.filter(x=>x.in_carousel===true).map(x=>x.image_url);
-        if (selected.length) { coverImages = selected; renderCoverCarousel(); restartCoverTimer(); }
+        if (selected.length) { coverFromGallery = true; coverImages = selected; renderCoverCarousel(); restartCoverTimer(); }
       }
     } catch {}
 

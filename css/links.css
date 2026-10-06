@@ -485,8 +485,15 @@ body.stay-modal-open{position:fixed;left:0;right:0;width:100%}
 @media(prefers-reduced-motion:reduce){.link-skeleton .link-icon,.link-skeleton strong,.link-skeleton small{animation:none}}
 
 /* ===== Carrossel: transição suave (fade + zoom lento) ===== */
+/* A capa vira um contexto de empilhamento próprio. Antes, a foto que saía ficava com z-index menor que o fundo
+   bege da área do perfil (que sobe sob o selo) e aparecia uma faixa clara na troca. Agora a foto que sai
+   permanece 100% opaca por baixo enquanto a nova aparece por cima: nunca sobra fundo à mostra. */
+.cover-photo{isolation:isolate;z-index:1;background:var(--sea)}
+.cover-photo:after{z-index:0}
 .cover-slide,.cover-slide.is-active{transition:opacity 1.15s cubic-bezier(.4,0,.2,1),transform 7s cubic-bezier(.2,.6,.3,1);will-change:opacity,transform}
-.cover-slide.is-leaving{opacity:0;transform:scale(1.05);z-index:0}
+.cover-slide{z-index:1}
+.cover-slide.is-leaving{opacity:1;transform:scale(1.05);z-index:1}
+.cover-slide.is-active{opacity:1;z-index:2}
 .cover-slide img{transform:scale(1.08);transition:transform 7s cubic-bezier(.2,.6,.3,1)}
 .cover-slide.is-active img{transform:scale(1)}
 
@@ -495,24 +502,34 @@ body.stay-modal-open{position:fixed;left:0;right:0;width:100%}
 /* ===== MAR: cards (o dedo ou o mouse faz a maré subir) ===== */
 @keyframes linkCardIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
 #dynamicLinks .link-card:not(.link-skeleton){animation:linkCardIn .7s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:var(--enter-delay,0ms)}
-#dynamicLinks .link-card{--roll:0deg;isolation:isolate;transform:rotate(var(--roll));transition:transform .6s cubic-bezier(.2,.7,.2,1),box-shadow .45s ease;-webkit-tap-highlight-color:transparent}
+#dynamicLinks .link-card{isolation:isolate;transition:box-shadow .45s ease;-webkit-tap-highlight-color:transparent}
 #dynamicLinks .link-card::before,#dynamicLinks .link-card::after{display:none}
-.sea{position:absolute;inset:0;z-index:-1;border-radius:inherit;overflow:hidden;pointer-events:none;transform:translate3d(0,104%,0);transition:transform 1s cubic-bezier(.4,0,.2,1);will-change:transform}
+.sea{position:absolute;inset:0;z-index:-1;border-radius:inherit;overflow:hidden;pointer-events:none;transform:translate3d(0,104%,0);transition:transform 1s cubic-bezier(.4,0,.2,1);will-change:transform;contain:strict}
 .sea-body{position:absolute;left:0;right:0;top:19px;bottom:0;background:linear-gradient(180deg,rgba(64,166,168,.26),rgba(23,92,96,.2))}
-.sea-w{position:absolute;left:0;top:0;width:200%;height:20px;display:block;animation:seaDrift linear infinite paused;will-change:transform}
+.sea-w{position:absolute;left:0;top:0;width:200%;height:20px;display:block;animation:seaDrift linear infinite paused}
 .sea-w svg{display:block;width:100%;height:100%}
 .sea-w path{fill:currentColor}
 .sea-w.w3{top:-5px;color:rgba(23,92,96,.14);animation-duration:9s;animation-direction:reverse}
 .sea-w.w2{top:-2px;color:rgba(64,166,168,.2);animation-duration:6.5s}
 .sea-w.w1{color:rgba(64,166,168,.26);animation-duration:4.6s;animation-direction:reverse}
 #dynamicLinks .link-card.is-lit{box-shadow:0 16px 34px rgba(23,92,96,.16)!important}
-#dynamicLinks .link-card.is-lit .sea{transform:translate3d(0,24%,0) rotate(calc(var(--roll) * -1.8))}
+#dynamicLinks .link-card.is-lit .sea{transform:translate3d(0,24%,0)}
 #dynamicLinks .link-card.is-lit .sea{transition-duration:.55s;transition-timing-function:cubic-bezier(.2,.8,.2,1)}
 #dynamicLinks .link-card.is-wet .sea-w{animation-play-state:running}
 #dynamicLinks .link-card .link-icon{transition:background .4s,color .4s}
 #dynamicLinks .link-card.is-lit .link-icon{background:#173f3e;color:#bfe6e1;animation:iconBob 2.8s ease-in-out infinite}
 @keyframes iconBob{0%,100%{transform:translateY(1px) rotate(-4deg)}50%{transform:translateY(-2px) rotate(4deg)}}
-#dynamicLinks .link-card:active{transform:scale(.985) rotate(var(--roll))}
+/* Sem transform no próprio card: nada de rotação/escala/translate trocando durante a rolagem (era a causa do tremor).
+   Em telas de toque o :hover "gruda" no último toque, então o efeito de elevação só vale para mouse. */
+#dynamicLinks .link-card,#dynamicLinks .link-card:active{transform:none}
+@media (hover:none),(pointer:coarse){
+  #dynamicLinks .link-card:hover,#dynamicLinks .link-card:active{transform:none!important;background:rgba(255,253,248,.82)!important}
+}
+@media (hover:hover) and (pointer:fine){
+  #dynamicLinks .link-card:hover{transform:translate3d(0,-2px,0)!important}
+}
+/* backdrop-filter sobre fundo liso não muda nada visualmente, mas recalcula o desfoque a cada quadro da rolagem. */
+#dynamicLinks .link-card{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 
 /* Calendário: dia que acabou de mudar ganha uma ondulação */
 .calendar-day.just-changed{animation:dayRipple 1.7s ease-out}
@@ -521,14 +538,17 @@ body.stay-modal-open{position:fixed;left:0;right:0;width:100%}
 @media(prefers-reduced-motion:reduce){
   .cover-slide,.cover-slide img{transition:opacity .4s linear!important;transform:none!important}
   .sea-w,.calendar-day.just-changed,#dynamicLinks .link-card .link-icon{animation:none!important}
-  #dynamicLinks .link-card{animation:none!important;transform:none!important}
+  #dynamicLinks .link-card{animation:none!important}
   .sea{transition:transform .3s linear}
 }
 
-/* ===== Leitura: sem seleção de texto (exceto contatos) e sem zoom no celular ===== */
-html,body{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:pan-x pan-y}
-body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
-img,svg{-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none}
-#contactDialog,#contactDialog *,[data-copyable],[data-copyable] *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
-a,button,.link-card{-webkit-touch-callout:none}
-#contactDialog a,#contactDialog button{-webkit-touch-callout:default}
+/* ===== Leitura: sem seleção de texto (exceto contatos) e sem zoom — SOMENTE no celular/tablet (toque). =====
+   No desktop (mouse) o texto pode ser selecionado/copiado, o botão direito funciona e o zoom é livre. */
+@media (hover:none) and (pointer:coarse){
+  html,body{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:pan-x pan-y}
+  body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+  img,svg{-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none}
+  #contactDialog,#contactDialog *,[data-copyable],[data-copyable] *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+  a,button,.link-card{-webkit-touch-callout:none}
+  #contactDialog a,#contactDialog button{-webkit-touch-callout:default}
+}

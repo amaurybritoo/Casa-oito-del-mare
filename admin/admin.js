@@ -352,6 +352,7 @@ async function reservationsView(){
   const records=storedRecords.filter(item=>item.check_out>=today);
   let draftStart=null,draftEnd=null,editingId='';
   const statusMeta={reserved:['Reservado','reserved'],pre:['Pré-reservado','pre'],blocked:['Bloqueado','blocked']};
+  const dateStatusFem={reserved:'reservada',pre:'pré-reservada',blocked:'bloqueada'};
   const showSelectionError=(message)=>{
     let box=$('#view').querySelector('#reservationRangeError');
     if(!box){box=document.createElement('div');box.id='reservationRangeError';box.className='reservation-range-error';box.setAttribute('role','alert');const panel=$('#view').querySelector('.reservation-panel');panel?.prepend(box)}
@@ -442,7 +443,7 @@ async function reservationsView(){
         }
         const conflict=rangeConflict(records,draftStart,key,'');
         if(conflict){
-          const errorText=`Há uma data ${statusMeta[conflict.status]?.[0]?.toLowerCase()||'indisponível'} entre a entrada e a saída. Escolha outro período.`;
+          const errorText=`Há uma data ${dateStatusFem[conflict.status]||'indisponível'} entre a entrada e a saída. Escolha outro período.`;
           draftStart=null;draftEnd=null;editingId='';renderReservationCalendar();showSelectionError(errorText);return;
         }
         draftEnd=key;renderReservationCalendar();
@@ -504,9 +505,26 @@ async function reservationsView(){
     const seedCheckOut=options.checkOut||current?.check_out||draftEnd||seedCheckIn;
     const preserved={status:options.status||current?.status||'reserved',name:options.name ?? current?.name ?? '',phone:options.phone ?? current?.phone ?? '',note:options.note ?? current?.note ?? ''};
     let rangeStart=seedCheckIn,rangeEnd=seedCheckOut;
+    let pickerError='',pickerHolidayKey='',pickerErrorTimer=0;
     let pickerMonth=new Date(validDateKey(target==='check_out'?seedCheckOut:seedCheckIn)?`${target==='check_out'?seedCheckOut:seedCheckIn}T12:00:00`:reservationMonth);
     pickerMonth=new Date(pickerMonth.getFullYear(),pickerMonth.getMonth(),1);
     const dialog=document.createElement('dialog');dialog.className='reservation-date-picker-dialog';
+    const pickerHolidayHtml=()=>{
+      const h=pickerHolidayKey?holidayForKey(pickerHolidayKey):null;
+      if(!h)return '<div class="reservation-holiday-info" data-picker-holiday hidden></div>';
+      return `<div class="reservation-holiday-info" data-picker-holiday><em class="${h.scope==='rj'?'rj':''}"></em><span><b>${esc(h.name)}</b><small>${h.scope==='rj'?'Feriado estadual · Rio de Janeiro':'Feriado nacional'} · ${brDateFromKey(pickerHolidayKey)}</small></span></div>`;
+    };
+    const showPickerError=message=>{
+      pickerError=message;render();
+      clearTimeout(pickerErrorTimer);
+      pickerErrorTimer=setTimeout(()=>{pickerError='';const box=dialog.querySelector('[data-picker-error]');if(box){box.hidden=true;box.textContent=''}},5200);
+    };
+    const finishRange=()=>{
+      if(!rangeStart)return;
+      const from=rangeStart,to=rangeEnd||rangeStart;
+      close();draftStart=null;draftEnd=null;editingId='';
+      openReservationEditor(current?.id||null,fromSelection,{checkIn:from,checkOut:to,...preserved});
+    };
     const render=()=>{
       const first=new Date(pickerMonth.getFullYear(),pickerMonth.getMonth(),1),days=new Date(pickerMonth.getFullYear(),pickerMonth.getMonth()+1,0).getDate(),offset=first.getDay();
       const monthLabel=new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(pickerMonth);
@@ -524,27 +542,37 @@ async function reservationsView(){
         const selected=target==='range'?(key===rangeStart||key===rangeEnd):key===(target==='check_in'?seedCheckIn:seedCheckOut);
         const inRange=target==='range'&&rangeStart&&rangeEnd&&key>=rangeStart&&key<=rangeEnd;
         const status=conflict&&!isPast?(occupied.status||'reserved'):'available';
-        const classes=['reservation-day',`status-${status}`,inRange?'is-range':'',selected?'is-range-start':'',disabled?'is-date-disabled':''].filter(Boolean).join(' ');
-        const label=disabled?`${brDateFromKey(key)}, indisponível`:`${brDateFromKey(key)}, disponível`;
-        cells.push(`<button type="button" class="${classes}" data-picker-date="${key}" ${disabled?'disabled':''} aria-label="${label}" aria-pressed="${selected?'true':'false'}"><span>${d}</span>${conflict&&!isPast?'<i aria-hidden="true"></i>':''}</button>`);
+        const holiday=holidayForKey(key);
+        const classes=['reservation-day',`status-${status}`,inRange?'is-range':'',selected?'is-range-start':'',target==='range'&&rangeEnd&&key===rangeEnd?'is-range-end':'',holiday?'is-holiday':'',holiday?.scope==='rj'?'is-holiday-rj':'',isPast?'is-past':'',disabled?'is-date-disabled':''].filter(Boolean).join(' ');
+        const label=`${brDateFromKey(key)}${disabled?', indisponível':', disponível'}${holiday?', '+(holiday.scope==='rj'?'feriado estadual: ':'feriado nacional: ')+holiday.name:''}`;
+        cells.push(`<button type="button" class="${classes}" data-picker-date="${key}" ${holiday?`title="${esc(holiday.name)}"`:''} ${disabled?'disabled':''} aria-label="${label}" aria-pressed="${selected?'true':'false'}"><span>${d}</span>${conflict&&!isPast?'<i aria-hidden="true"></i>':''}</button>`);
       }
-      dialog.innerHTML=`<div class="reservation-date-picker"><div class="reservation-date-picker-top"><div><p class="eyebrow">${target==='range'?'PERÍODO DA ESTADIA':target==='check_in'?'NOVA ENTRADA':'NOVA SAÍDA'}</p><h2>Escolha as datas</h2><p>${target==='range'?'Toque uma vez para a entrada e outra para a saída.':'Selecione a nova data.'}</p></div><button type="button" class="reservation-close" data-picker-close aria-label="Fechar">×</button></div><div class="reservation-toolbar"><button type="button" data-picker-prev aria-label="Mês anterior">‹</button><strong>${monthLabel}</strong><button type="button" data-picker-next aria-label="Próximo mês">›</button></div><div class="reservation-week"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div><div class="reservation-grid reservation-date-picker-grid">${cells.join('')}</div><div class="reservation-summary reservation-date-picker-legend"><span><i class="reservation-legend-available-dot"></i> disponível</span><span class="reservation-legend-pre">pré-reserva</span><span class="reservation-legend-blocked">bloqueado</span><span class="reservation-legend-holiday"><em></em>feriado</span><span class="reservation-legend-holiday"><em class="rj"></em>feriado RJ</span><span class="reservation-legend-reserved">reservado</span></div></div>`;
+      dialog.innerHTML=`<div class="reservation-date-picker"><div class="reservation-date-picker-top"><div><p class="eyebrow">${target==='range'?'PERÍODO DA ESTADIA':target==='check_in'?'NOVA ENTRADA':'NOVA SAÍDA'}</p><h2>Escolha as datas</h2><p>${target==='range'?'Toque uma vez para a entrada e outra para a saída.':'Selecione a nova data.'}</p></div><button type="button" class="reservation-close" data-picker-close aria-label="Fechar">×</button></div><div class="reservation-range-error" data-picker-error role="alert" ${pickerError?'':'hidden'}>${esc(pickerError)}</div><div class="reservation-toolbar"><button type="button" data-picker-prev aria-label="Mês anterior">‹</button><strong>${monthLabel}</strong><button type="button" data-picker-next aria-label="Próximo mês">›</button></div><div class="reservation-week"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div><div class="reservation-grid reservation-date-picker-grid">${cells.join('')}</div>${pickerHolidayHtml()}<div class="reservation-summary reservation-date-picker-legend"><span><i class="reservation-legend-available-dot"></i> disponível</span><span class="reservation-legend-pre">pré-reserva</span><span class="reservation-legend-blocked">bloqueado</span><span class="reservation-legend-holiday"><em></em>feriado</span><span class="reservation-legend-holiday"><em class="rj"></em>feriado RJ</span><span class="reservation-legend-reserved">reservado</span>${target==='range'?'<span>1º entrada · 2º saída</span>':''}</div>${target==='range'?`<button type="button" class="primary reservation-register-button" data-picker-confirm ${rangeStart?'':'disabled'}>Confirmar período</button>`:''}</div>`;
       const pickerPrev=dialog.querySelector('[data-picker-prev]');
       const currentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
       if(pickerPrev)pickerPrev.disabled=pickerMonth<=currentMonth;
       pickerPrev.onclick=()=>{if(pickerMonth<=currentMonth)return;pickerMonth=new Date(pickerMonth.getFullYear(),pickerMonth.getMonth()-1,1);render()};
       dialog.querySelector('[data-picker-next]').onclick=()=>{pickerMonth=new Date(pickerMonth.getFullYear(),pickerMonth.getMonth()+1,1);render()};
       dialog.querySelector('[data-picker-close]').onclick=close;
+      dialog.querySelector('[data-picker-confirm]')?.addEventListener('click',finishRange);
       dialog.querySelectorAll('[data-picker-date]').forEach(btn=>btn.addEventListener('click',()=>{
         const picked=btn.dataset.pickerDate;
         if(target==='range'){
+          // Mesmas regras do calendário de cadastro:
+          // 1º toque = entrada · 2º toque = saída (pode ser o mesmo dia) · toque em data anterior recomeça a entrada ·
+          // 3º toque na mesma data (entrada = saída) limpa a seleção · período com conflito mostra o aviso e zera.
+          clearTimeout(pickerErrorTimer);pickerError='';
+          pickerHolidayKey=holidayForKey(picked)?picked:'';
+          if(rangeStart&&rangeEnd&&picked===rangeStart&&picked===rangeEnd){rangeStart='';rangeEnd='';pickerHolidayKey='';render();return}
           if(!rangeStart||rangeEnd){rangeStart=picked;rangeEnd='';render();return}
           if(picked<rangeStart){rangeStart=picked;rangeEnd='';render();return}
-          rangeEnd=picked;
-          const conflict=rangeConflict(records,rangeStart,rangeEnd,current?.id||'');
-          if(conflict){rangeStart='';rangeEnd='';render();showReservationConflict();return}
-          close();draftStart=null;draftEnd=null;editingId='';
-          openReservationEditor(current?.id||null,fromSelection,{checkIn:rangeStart,checkOut:rangeEnd,...preserved});return;
+          const conflict=rangeConflict(records,rangeStart,picked,current?.id||'');
+          if(conflict){
+            rangeStart='';rangeEnd='';
+            showPickerError(`Há uma data ${dateStatusFem[conflict.status]||'indisponível'} entre a entrada e a saída. Escolha outro período.`);
+            return;
+          }
+          rangeEnd=picked;render();return;
         }
         let nextIn=seedCheckIn,nextOut=seedCheckOut;
         if(target==='check_in'){nextIn=picked;if(nextOut&&nextIn>nextOut)nextOut=picked}else{nextOut=picked;if(nextIn&&nextOut<nextIn)nextIn=picked}
@@ -559,9 +587,9 @@ async function reservationsView(){
     const close=()=>{if(dialog.open)dialog.close();dialog.remove();unlockReservationScroll()};
     dialog.addEventListener('click',event=>{
       if(target!=='range')return;
-      if(event.target.closest('[data-picker-close]'))return;
-      if(event.target.closest('[data-picker-date]'))return;
-      rangeStart='';rangeEnd='';render();
+      if(event.target.closest('[data-picker-close],[data-picker-date],[data-picker-confirm]'))return;
+      if(!rangeStart&&!rangeEnd)return;
+      rangeStart='';rangeEnd='';pickerHolidayKey='';render();
     });
     dialog.addEventListener('cancel',event=>{event.preventDefault();close()});
     dialog.addEventListener('close',()=>unlockReservationScroll(),{once:true});

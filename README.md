@@ -33,3 +33,10 @@ V4: visual premium clean na página de links, sem bordas decorativas e carrossel
 - A tabela guarda somente tipo de evento, página e data. Os totais da Visão geral contam o ano corrente, desde 1º de janeiro, e começam após a ativação; a contagem reinicia no primeiro dia de cada ano.
 - O indicador Agendamentos conta estadias marcadas como Pré-reserva ou Reservado no calendário do Admin; períodos Bloqueados ficam fora.
 - Para habilitar o reset dos indicadores por pressão contínua de 30 segundos, execute uma vez `supabase/migrations/20261005_reset_site_analytics.sql` no SQL Editor do Supabase. O reset apaga apenas os eventos do ano atual.
+
+
+## Ajustes de 06/10/2026
+- Botão direito, seleção/cópia e zoom ficam bloqueados somente em telas de toque (celular/tablet). No desktop tudo funciona normalmente.
+- Maré dos cards: sem rotação/escala no card, sem desfoque de fundo e com a posição do dedo avaliada uma vez por quadro. Elevação por :hover só para mouse.
+- Carrossel da capa: a foto que sai fica opaca por baixo até a nova terminar de aparecer (some a faixa clara); o carrossel só avança quando a próxima foto já carregou.
+- Admin > Reservas > Editar > Alterar período: mesmas regras de clique do cadastro (1º entrada, 2º saída, 3º clique na mesma data limpa, conflito mostra aviso) e feriados nacionais/RJ marcados, com o aviso do feriado ao tocar.
