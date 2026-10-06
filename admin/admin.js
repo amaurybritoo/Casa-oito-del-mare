@@ -431,8 +431,8 @@ async function reservationsView(){
         const existing=reservationAt(records,key);
         if(existing){openReservationEditor(existing.id);return}
         clearSelectionError();
-        // Terceiro clique na mesma data (entrada e saída iguais) limpa a seleção.
-        if(draftStart&&draftEnd&&key===draftStart&&key===draftEnd){
+        // Segundo clique na mesma data da entrada reseta a seleção. Um clique + "Cadastrar reserva" = diária.
+        if(draftStart&&!draftEnd&&key===draftStart){
           draftStart=null;draftEnd=null;editingId='';if(hInfo){hInfo.hidden=true;hInfo.textContent=''}renderReservationCalendar();return;
         }
         if(!draftStart || draftEnd){
@@ -560,10 +560,10 @@ async function reservationsView(){
         if(target==='range'){
           // Mesmas regras do calendário de cadastro:
           // 1º toque = entrada · 2º toque = saída (pode ser o mesmo dia) · toque em data anterior recomeça a entrada ·
-          // 3º toque na mesma data (entrada = saída) limpa a seleção · período com conflito mostra o aviso e zera.
+          // 2º toque na mesma data da entrada reseta a seleção · um toque + Confirmar = diária · conflito mostra o aviso e zera.
           clearTimeout(pickerErrorTimer);pickerError='';
           pickerHolidayKey=holidayForKey(picked)?picked:'';
-          if(rangeStart&&rangeEnd&&picked===rangeStart&&picked===rangeEnd){rangeStart='';rangeEnd='';pickerHolidayKey='';render();return}
+          if(rangeStart&&!rangeEnd&&picked===rangeStart){rangeStart='';rangeEnd='';pickerHolidayKey='';render();return}
           if(!rangeStart||rangeEnd){rangeStart=picked;rangeEnd='';render();return}
           if(picked<rangeStart){rangeStart=picked;rangeEnd='';render();return}
           const conflict=rangeConflict(records,rangeStart,picked,current?.id||'');
