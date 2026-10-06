@@ -2,6 +2,11 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { trackPageVisit, trackWhatsappLinks } from './analytics.js';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js';
 import { CARD_ICONS, cardIconSvg, resolveCardIcon } from './card-icons.js';
+import { holidayForKey } from './holidays.js';
+
+const WAVE_SVG = '<svg viewBox="0 0 1200 40" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M0 20C75 0 225 0 300 20S525 40 600 20 825 0 900 20 1125 40 1200 20V40H0Z"/></svg>';
+const SEA_HTML = `<span class="sea" aria-hidden="true"><span class="sea-body"></span><i class="sea-w w3">${WAVE_SVG}</i><i class="sea-w w2">${WAVE_SVG}</i><i class="sea-w w1">${WAVE_SVG}</i></span>`;
+
 
 trackPageVisit('links');
 trackWhatsappLinks('links');
@@ -97,21 +102,42 @@ function renderCoverCarousel(images = coverImages) {
   coverImages = images.filter(Boolean);
   if (!coverImages.length) coverImages = [...fallbackCoverImages];
   coverIndex = Math.min(coverIndex, coverImages.length - 1);
-  track.innerHTML = coverImages.map((src,i)=>`<div class="cover-slide ${i===coverIndex?'is-active':''}"><img src="${escapeHtml(src)}" alt="Casa Oito Del Mare · foto ${i+1}" ${i===0?'fetchpriority="high"':''} loading="${i===0?'eager':'lazy'}"></div>`).join('');
+  // Os slides são criados uma única vez; trocar de foto só alterna classes, e é isso que permite a transição.
+  track.innerHTML = coverImages.map((src,i)=>`<div class="cover-slide ${i===coverIndex?'is-active':''}"><img src="${escapeHtml(src)}" alt="Casa Oito Del Mare · foto ${i+1}" ${i===0?'fetchpriority="high"':''} loading="${i===0?'eager':'lazy'}" draggable="false"></div>`).join('');
 }
 
 function goCover(index,manual=false) {
   if (!coverImages.length) return;
-  coverIndex=(index+coverImages.length)%coverImages.length;
-  renderCoverCarousel();
+  const next=(index+coverImages.length)%coverImages.length;
+  const slides=$$('#profileCoverTrack .cover-slide');
+  if (slides.length!==coverImages.length) { coverIndex=next; renderCoverCarousel(); }
+  else if (next!==coverIndex) {
+    slides[coverIndex]?.classList.remove('is-active');
+    slides[coverIndex]?.classList.add('is-leaving');
+    const leaving=slides[coverIndex];
+    window.setTimeout(()=>leaving?.classList.remove('is-leaving'),1200);
+    coverIndex=next;
+    slides[coverIndex].classList.add('is-active');
+  }
   if (manual) restartCoverTimer();
 }
 function restartCoverTimer() {
   clearInterval(coverTimer);
   if (coverImages.length > 1) coverTimer=setInterval(()=>goCover(coverIndex+1),5000);
 }
+function setupCoverWaves() {
+  const box = $('#profileCoverCarousel');
+  if (!box || box.querySelector('.cover-waves')) return;
+  const waves = document.createElement('div');
+  waves.className = 'cover-waves'; waves.setAttribute('aria-hidden', 'true');
+  waves.innerHTML = [3,2,1].map(n => `<i class="cw w${n}">${WAVE_SVG}</i>`).join('');
+  box.appendChild(waves);
+  // Só anima enquanto a capa está visível (economiza bateria e processamento).
+  if ('IntersectionObserver' in window) new IntersectionObserver(([e]) => waves.classList.toggle('is-off', !e.isIntersecting)).observe(box);
+}
 function setupCoverCarousel() {
   renderCoverCarousel();
+  setupCoverWaves();
   restartCoverTimer();
 }
 
@@ -178,7 +204,7 @@ function renderLinks() {
     if(type==='contact')contactCardAdded=true;
     const displayTitle=type==='contact'?'Entre em contato':rawTitle;
     const displaySubtitle=type==='contact'?'WhatsApp, telefones e Instagram da casa':item.subtitle||'';
-    const content = `<span class="link-icon" aria-hidden="true">${icon}</span><span class="link-copy"><strong>${escapeHtml(displayTitle)}</strong><small>${escapeHtml(displaySubtitle)}</small></span>`;
+    const content = `<span class="link-icon" aria-hidden="true">${icon}</span><span class="link-copy"><strong>${escapeHtml(displayTitle)}</strong><small>${escapeHtml(displaySubtitle)}</small></span>${SEA_HTML}`;
     if (type === 'contact') return `<button class="link-card" type="button" data-open-contact>${content}</button>`;
     if (type === 'tourism') return `<button class="link-card" type="button" data-open-tourism>${content}</button>`;
     if (type === 'whatsapp') return `<button class="link-card" type="button" data-open-calendar>${content}</button>`;
@@ -192,14 +218,52 @@ function renderLinks() {
 }
 
 function bindCardPressAnimation() {
-  $$('.link-card').forEach(card => {
-    card.addEventListener('pointerdown', () => {
-      card.classList.remove('is-pressing');
-      void card.offsetWidth;
-      card.classList.add('is-pressing');
-      window.setTimeout(() => card.classList.remove('is-pressing'), 520);
-    }, {passive:true});
-  });
+  const list = $('#dynamicLinks');
+  const cards = $$('.link-card:not(.link-skeleton)');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Entrada em cascata, todos os cards juntos.
+  cards.forEach((card,i) => card.style.setProperty('--enter-delay', `${i*70}ms`));
+  if (!list || list.dataset.fx) return;
+  list.dataset.fx = '1';
+  let current = null;
+  const light = (card, e) => {
+    const r = card.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    card.style.setProperty('--mx', `${x}px`);
+    card.style.setProperty('--my', `${y}px`);
+    if (!reduce) {
+      card.style.setProperty('--roll', `${((x / r.width) - .5) * 1.1}deg`);
+    }
+  };
+  const enter = card => { if (current === card) return; leave(); current = card; card.classList.add('is-lit'); };
+  const leave = () => {
+    if (!current) return;
+    current.classList.remove('is-lit');
+    current.style.setProperty('--roll', '0deg');
+    current = null;
+  };
+  // Passar o dedo (ou o mouse) por cima acende o card sob o ponteiro, sem precisar tocar.
+  const track = e => {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const card = el && el.closest ? el.closest('#dynamicLinks .link-card') : null;
+    if (!card) { leave(); return; }
+    enter(card); light(card, e);
+  };
+  list.addEventListener('pointermove', track, {passive:true});
+  list.addEventListener('pointerleave', leave, {passive:true});
+  list.addEventListener('pointercancel', leave, {passive:true});
+  list.addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') window.setTimeout(leave, 380); }, {passive:true});
+  list.addEventListener('pointerdown', e => {
+    const card = e.target.closest ? e.target.closest('.link-card') : null;
+    if (!card) return;
+    enter(card); light(card, e);
+    const r = card.getBoundingClientRect();
+    const wave = document.createElement('span');
+    wave.className = 'link-ripple';
+    wave.style.left = `${e.clientX - r.left}px`; wave.style.top = `${e.clientY - r.top}px`;
+    card.appendChild(wave);
+    window.setTimeout(() => wave.remove(), 1300);
+  }, {passive:true});
 }
 
 function tripadvisorSearch(title) { return 'https://www.tripadvisor.com.br/Search?q=' + encodeURIComponent(title + ' Búzios'); }
@@ -273,27 +337,6 @@ function unlockStayScroll(){
 }
 function parseDateKey(key){const [y,m,d]=String(key).split('-').map(Number);return new Date(y,m-1,d)}
 function isBetween(key,a,b){if(!a||!b)return false;const t=parseDateKey(key).getTime();return t>parseDateKey(a).getTime()&&t<parseDateKey(b).getTime()}
-function easterSunday(year){
-  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=(h+l-7*m+114)%31+1;
-  return new Date(year,month-1,day);
-}
-function holidayMapForYear(year){
-  const holidays=new Map(),add=(month,day,name,scope)=>holidays.set(`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`,{name,scope});
-  add(1,1,'Confraternização Universal','nacional');
-  const easter=easterSunday(year),goodFriday=new Date(year,easter.getMonth(),easter.getDate()-2);
-  add(goodFriday.getMonth()+1,goodFriday.getDate(),'Paixão de Cristo','nacional');
-  add(4,21,'Tiradentes','nacional');
-  add(4,23,'Dia de São Jorge','rj');
-  add(5,1,'Dia do Trabalho','nacional');
-  add(9,7,'Independência do Brasil','nacional');
-  add(10,12,'Nossa Senhora Aparecida','nacional');
-  add(11,2,'Finados','nacional');
-  add(11,15,'Proclamação da República','nacional');
-  if(year>=2024)add(11,20,'Dia Nacional de Zumbi e da Consciência Negra','nacional');
-  add(12,25,'Natal','nacional');
-  return holidays;
-}
-function holidayForKey(key){return holidayMapForYear(parseDateKey(key).getFullYear()).get(key)||null}
 function clearHolidayInfo(){const info=$('#calendarHolidayInfo');if(info){info.hidden=true;info.textContent=''}holidayInfoKey=null}
 function showHolidayInfo(key,holiday){
   const info=$('#calendarHolidayInfo');if(!info)return;
@@ -356,6 +399,10 @@ $('#calendarGrid')?.addEventListener('click', event=>{
   const holiday=holidayForKey(key);
   if(holiday)showHolidayInfo(key,holiday);
   else clearHolidayInfo();
+  // Segundo clique na mesma data de entrada limpa a seleção; qualquer outra data livre vira a nova entrada.
+  if(key===checkinDate && !checkoutDate){
+    checkinDate=null; checkoutDate=null; selectedDate=null; clearCalendarError(); clearHolidayInfo(); updateCalendarWhatsApp(); renderCalendar(); return;
+  }
   if(!checkinDate || (checkinDate && checkoutDate)){
     checkinDate=key; checkoutDate=null; clearCalendarError(); updateCalendarWhatsApp(); renderCalendar(); return;
   }
@@ -401,6 +448,7 @@ function openStayCalendar(){
   renderCalendar();
   lockStayScroll();
   dialog.showModal();
+  startLiveWatch();
 }
 $('[data-close-stay]')?.addEventListener('click',()=>$('#stayDialog')?.close());
 $('#stayDialog')?.addEventListener('click',event=>{
@@ -423,7 +471,7 @@ $('#stayDialog')?.addEventListener('click',event=>{
   }
 });
 
-$('#stayDialog')?.addEventListener('close',()=>{checkinDate=null;checkoutDate=null;selectedDate=null;clearHolidayInfo();unlockStayScroll();});
+$('#stayDialog')?.addEventListener('close',()=>{stopLiveWatch();checkinDate=null;checkoutDate=null;selectedDate=null;clearHolidayInfo();unlockStayScroll();});
 $('#calendarWhatsapp')?.addEventListener('click',event=>{
   if(!checkinDate){event.preventDefault();showToast('Escolha uma data para consultar.');}
 });
@@ -446,6 +494,64 @@ setupCoverCarousel();
 renderProfile();
 renderTourism();
 
+// ===== Sincronização instantânea com o painel (reservas, cards e dados da casa) =====
+let liveClient = null, liveBusy = false, liveKick = 0, livePoll = 0, liveChannels = [];
+const sameJson = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+function onAvailabilityChanged(beforeSet) {
+  const dialog = $('#stayDialog');
+  if (!dialog?.open) return;
+  const conflict = checkinDate && checkoutDate && rangeHasReserved(checkinDate, checkoutDate);
+  if (conflict) { checkinDate = null; checkoutDate = null; selectedDate = null; updateCalendarWhatsApp(); }
+  renderCalendar();
+  if (conflict) showCalendarError('Essas datas acabaram de ser reservadas. Escolha outro período.');
+  const now = reservedSet();
+  const changed = [...now].filter(d => !beforeSet.has(d)).concat([...beforeSet].filter(d => !now.has(d)));
+  changed.forEach(key => {
+    const el = $(`#calendarGrid [data-date="${key}"]`);
+    if (el) { el.classList.add('just-changed'); window.setTimeout(() => el.classList.remove('just-changed'), 1800); }
+  });
+}
+
+async function refreshFromServer() {
+  if (!liveClient || liveBusy) return;
+  liveBusy = true;
+  try {
+    const { data, error } = await liveClient.from('link_page_settings').select('profile,availability,links').eq('id',1).maybeSingle();
+    if (error || !data) return;
+    const beforeSet = reservedSet();
+    const nextAvail = { ...fallbackProfile.availability, ...(data.availability || {}) };
+    if (!sameJson(nextAvail, availability)) { availability = nextAvail; onAvailabilityChanged(beforeSet); }
+    const nextProfile = { ...profile, ...(data.profile || {}) };
+    if (!sameJson(nextProfile, profile)) { profile = nextProfile; renderProfile(); }
+    if (Array.isArray(data.links) && data.links.length && !sameJson(data.links, links)) { links = data.links; renderLinks(); }
+  } catch {} finally { liveBusy = false; }
+}
+const kickRefresh = () => { clearTimeout(liveKick); liveKick = window.setTimeout(refreshFromServer, 80); };
+
+// O canal em tempo real só fica aberto enquanto o calendário está na tela.
+function stopLiveWatch() {
+  clearInterval(livePoll);
+  liveChannels.forEach(ch => { try { liveClient?.removeChannel(ch); } catch {} });
+  liveChannels = [];
+}
+function startLiveWatch() {
+  refreshFromServer();
+  if (!liveClient) return;
+  stopLiveWatch();
+  try {
+    liveChannels = [
+      liveClient.channel('link-page-sync').on('broadcast', { event: 'changed' }, kickRefresh).subscribe(),
+      liveClient.channel('link-page-db').on('postgres_changes', { event: '*', schema: 'public', table: 'link_page_settings' }, kickRefresh).subscribe()
+    ];
+  } catch {}
+  livePoll = window.setInterval(refreshFromServer, 12000);
+}
+try { new BroadcastChannel('casa-oito-links').onmessage = kickRefresh; } catch {}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) kickRefresh(); });
+window.addEventListener('focus', kickRefresh);
+window.addEventListener('online', kickRefresh);
+
 let linksShown = false;
 function showLinksOnce() { if (linksShown) return; linksShown = true; renderLinks(); }
 
@@ -453,6 +559,7 @@ async function hydrate() {
   if (!SUPABASE_URL.startsWith('https://') || !SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')) { showLinksOnce(); return; }
   try {
     const client = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+    liveClient = client;
     const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1800));
     const query = client.from('link_page_settings').select('profile,appearance,availability,links').eq('id',1).maybeSingle();
     const result = await Promise.race([query, timeout]);

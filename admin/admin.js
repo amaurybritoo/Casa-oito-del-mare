@@ -1,3 +1,5 @@
+import { markLoaderHtml } from './loader.js';
+import { holidayForKey } from '../js/holidays.js';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '../js/config.js';
 import { CARD_ICONS, cardIconSvg, resolveCardIcon } from '../js/card-icons.js';
@@ -86,7 +88,7 @@ document.querySelectorAll('nav button[data-view]').forEach(button=>button.onclic
 async function rows(table){const result=await supabase.from(table).select('*');if(result.error)throw result.error;return result.data||[]}
 function reloadAfterMigration(){const button=$('#reloadView');if(button){button.disabled=true;button.textContent='Recarregando…';}sessionStorage.setItem('adminViewAfterReload',current);window.location.href='/admin/?refresh='+Date.now()}
 function migrationHelp(){return `<section class="migration-help"><h2>Carregar o conteúdo inicial</h2><p>As fotos e os vídeos estão incluídos nos arquivos do site. Para listá-los neste painel, é preciso cadastrar seus nomes, endereços e textos no Supabase uma vez.</p><ol><li>Abra o projeto Supabase usado pelo site e entre em <b>SQL Editor</b>.</li><li>Abra o arquivo <a href="../supabase/migrations/20261001_links_page_and_tourism.sql" target="_blank" rel="noopener">20261001_links_page_and_tourism.sql</a>, copie o conteúdo inteiro e cole numa consulta nova.</li><li>Pressione <b>Run</b> e aguarde a mensagem de sucesso. A migração usa os nomes das colunas do seu esquema: cards em <code>subtitle</code>/<code>target_section</code>/<code>position</code>, vídeos em <code>video_url</code>/<code>position</code> e ordem de fotos e comodidades em <code>position</code>.</li><li>Volte ao painel e escolha <b>Atualizei o banco · recarregar</b>. Esta migração pode ser executada novamente sem duplicar os conteúdos iniciais.</li></ol><p class="migration-small">Use o arquivo atualizado completo. Ele cria/atualiza as tabelas da página de links, pontos turísticos, calendário e também <code>public.site_content</code>, além de habilitar edição pelo painel para usuários autenticados.</p><button class="primary" id="reloadView">Atualizei o banco · recarregar</button></section>`}
-async function render(view){const root=$('#view');root.innerHTML='<div class="view"><div class="empty">Carregando…</div></div>';try{if(view==='overview')await overview();else if(view==='gallery')await gallery();else if(view==='link_page')await linkPageView();else if(view==='tourist')await touristView();else if(view==='reservations')await reservationsView();else await contentTable(view)}catch(error){const missing=/site_content|schema cache|PGRST205|42P01/i.test(`${error.code||''} ${error.message||''}`);root.innerHTML=`<div class="view"><div class="view-head"><div><p class="eyebrow">PAINEL DA CASA</p><h1>${missing?'Preparar o painel.':'Não foi possível abrir esta seção.'}</h1><p>${missing?'O Supabase ainda não encontrou a tabela de textos ou as tabelas do conteúdo inicial.':esc(error.message||'Confira a conexão com o Supabase e tente novamente.')}</p></div></div>${migrationHelp()}</div>`;$('#reloadView').onclick=reloadAfterMigration}}
+async function render(view){const root=$('#view');root.innerHTML=`<div class="view">${markLoaderHtml('Carregando')}</div>`;try{if(view==='overview')await overview();else if(view==='gallery')await gallery();else if(view==='link_page')await linkPageView();else if(view==='tourist')await touristView();else if(view==='reservations')await reservationsView();else await contentTable(view)}catch(error){const missing=/site_content|schema cache|PGRST205|42P01/i.test(`${error.code||''} ${error.message||''}`);root.innerHTML=`<div class="view"><div class="view-head"><div><p class="eyebrow">PAINEL DA CASA</p><h1>${missing?'Preparar o painel.':'Não foi possível abrir esta seção.'}</h1><p>${missing?'O Supabase ainda não encontrou a tabela de textos ou as tabelas do conteúdo inicial.':esc(error.message||'Confira a conexão com o Supabase e tente novamente.')}</p></div></div>${migrationHelp()}</div>`;$('#reloadView').onclick=reloadAfterMigration}}
 async function overview(){
   const tables=['gallery','activities','videos','tourist_points','site_content'];
   const results=await Promise.all(tables.map(async table=>{const result=await supabase.from(table).select('*',{count:'exact',head:true});return {table,count:result.error?null:(result.count||0),error:result.error}}));
@@ -221,7 +223,16 @@ async function uploadAdminImage(file,folder='links'){
 }
 function linkPageDefaults(){return {profile:{name:'Casa Oito Del Mare',location:'ARMAÇÃO DOS BÚZIOS · RJ',bio:'Onde o tempo desacelera e Búzios começa.',instagram:'https://www.instagram.com/casaoitodelmare/',whatsapp:'5521986362770',map:'https://www.google.com/maps/search/?api=1&query=Arma%C3%A7%C3%A3o+dos+B%C3%BAzios+RJ',contact:{phones:['(21) 98636-2770','(21) 98635-7913'],instagram:'https://www.instagram.com/casaoitodelmare/'}},appearance:{quote:'Dias de sol. Noites tranquilas.|Memórias para levar.'},availability:{enabled:true,title:'Consulte sua estadia.',subtitle:'As datas em vermelho já estão reservadas. As demais estão livres para consulta.',reservedDates:[],whatsapp:'5521986362770'},links:[]}}
 async function linkPageRecord(){const result=await supabase.from('link_page_settings').select('*').eq('id',1).maybeSingle();if(result.error)throw result.error;return result.data||{id:1,...linkPageDefaults()}}
-async function saveLinkPage(record){const {error}=await supabase.from('link_page_settings').upsert({id:1,profile:record.profile||{},appearance:record.appearance||{},availability:record.availability||{},links:record.links||[],updated_at:new Date().toISOString()});if(error)throw error}
+let syncChannel=null,syncReady=false;
+function notifyLinkPageChange(){
+  try{new BroadcastChannel('casa-oito-links').postMessage('changed')}catch{}
+  try{
+    const msg={type:'broadcast',event:'changed',payload:{t:Date.now()}};
+    if(!syncChannel){syncChannel=supabase.channel('link-page-sync');syncChannel.subscribe(status=>{if(status==='SUBSCRIBED'){syncReady=true;syncChannel.send(msg)}})}
+    else if(syncReady)syncChannel.send(msg);
+  }catch{}
+}
+async function saveLinkPage(record){const {error}=await supabase.from('link_page_settings').upsert({id:1,profile:record.profile||{},appearance:record.appearance||{},availability:record.availability||{},links:record.links||[],updated_at:new Date().toISOString()});if(error)throw error;notifyLinkPageChange()}
 async function linkPageView(){
   const record=await linkPageRecord();
   const profile=record.profile||{};const storedCards=Array.isArray(record.links)?record.links:[];const orderedCards=linkPageVisibleCards(linkPageOrderedCards(storedCards));const cards=orderedCards.map(entry=>entry.card);
@@ -359,12 +370,13 @@ async function reservationsView(){
       const key=`${reservationMonth.getFullYear()}-${String(reservationMonth.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const item=reservationAt(records,key); const storedStatus=item?.status||'available';
       const isPast=key<adminTodayKey();
+      const holiday=holidayForKey(key);
       const status=isPast?'available':storedStatus;
       const disabledPast=isPast;
       const inDraft=!isPast&&draftStart&&draftEnd&&key>=draftStart&&key<=draftEnd;
       const isStart=key===draftStart,isEnd=key===draftEnd;
-      const cls=['reservation-day',`status-${status}`,!isPast&&item?.name?'has-guest':'',inDraft?'is-range':'',!isPast&&isStart?'is-range-start':'',!isPast&&isEnd?'is-range-end':'',disabledPast?'is-date-disabled is-past':''].filter(Boolean).join(' ');
-      cells.push(`<button type="button" class="${cls}" data-res-date="${key}" ${disabledPast?'disabled':''} aria-pressed="${!isPast&&item?'true':'false'}" aria-label="${brDateFromKey(key)}${isPast?', indisponível':item?', '+(statusMeta[storedStatus]?.[0]||storedStatus):''}"><span>${d}</span>${!isPast&&status!=='available'?'<i aria-hidden="true"></i>':''}</button>`);
+      const cls=['reservation-day',`status-${status}`,!isPast&&item?.name?'has-guest':'',inDraft?'is-range':'',!isPast&&isStart?'is-range-start':'',!isPast&&isEnd?'is-range-end':'',holiday?'is-holiday':'',holiday?.scope==='rj'?'is-holiday-rj':'',disabledPast?'is-date-disabled is-past':''].filter(Boolean).join(' ');
+      cells.push(`<button type="button" class="${cls}" data-res-date="${key}" ${holiday?`title="${esc(holiday.name)}"`:''} ${disabledPast?'disabled tabindex="-1"':''} aria-pressed="${!isPast&&item?'true':'false'}" aria-label="${brDateFromKey(key)}${isPast?', indisponível':item?', '+(statusMeta[storedStatus]?.[0]||storedStatus):''}${holiday?', '+(holiday.scope==='rj'?'feriado estadual: ':'feriado nacional: ')+holiday.name:''}"><span>${d}</span>${!isPast&&status!=='available'?'<i aria-hidden="true"></i>':''}</button>`);
     }
     const root=$('#view');root.querySelector('#reservationMonth').textContent=monthLabel;root.querySelector('#reservationGrid').innerHTML=cells.join('');
     const prevButton=root.querySelector('#reservationPrev');
@@ -397,6 +409,14 @@ async function reservationsView(){
     }));
 
     // Delegação no próprio grid: continua funcionando mesmo depois de cada render do calendário.
+    const hInfo=root.querySelector('#reservationHolidayInfo');
+    const showHoliday=key=>{
+      if(!hInfo)return;
+      const h=holidayForKey(key);
+      if(!h){hInfo.hidden=true;hInfo.textContent='';return}
+      hInfo.innerHTML=`<em class="${h.scope==='rj'?'rj':''}"></em><span><b>${esc(h.name)}</b><small>${h.scope==='rj'?'Feriado estadual · Rio de Janeiro':'Feriado nacional'} · ${brDateFromKey(key)}</small></span>`;
+      hInfo.hidden=false;
+    };
     const grid=root.querySelector('#reservationGrid');
     if(grid){
       grid.onclick=event=>{
@@ -405,9 +425,15 @@ async function reservationsView(){
         event.preventDefault();
         event.stopPropagation();
         const key=btn.dataset.resDate;
+        if(btn.disabled||key<adminTodayKey())return;
+        showHoliday(key);
         const existing=reservationAt(records,key);
         if(existing){openReservationEditor(existing.id);return}
         clearSelectionError();
+        // Terceiro clique na mesma data (entrada e saída iguais) limpa a seleção.
+        if(draftStart&&draftEnd&&key===draftStart&&key===draftEnd){
+          draftStart=null;draftEnd=null;editingId='';if(hInfo){hInfo.hidden=true;hInfo.textContent=''}renderReservationCalendar();return;
+        }
         if(!draftStart || draftEnd){
           draftStart=key;draftEnd=null;editingId='';renderReservationCalendar();return;
         }
@@ -502,7 +528,7 @@ async function reservationsView(){
         const label=disabled?`${brDateFromKey(key)}, indisponível`:`${brDateFromKey(key)}, disponível`;
         cells.push(`<button type="button" class="${classes}" data-picker-date="${key}" ${disabled?'disabled':''} aria-label="${label}" aria-pressed="${selected?'true':'false'}"><span>${d}</span>${conflict&&!isPast?'<i aria-hidden="true"></i>':''}</button>`);
       }
-      dialog.innerHTML=`<div class="reservation-date-picker"><div class="reservation-date-picker-top"><div><p class="eyebrow">${target==='range'?'PERÍODO DA ESTADIA':target==='check_in'?'NOVA ENTRADA':'NOVA SAÍDA'}</p><h2>Escolha as datas</h2><p>${target==='range'?'Toque uma vez para a entrada e outra para a saída.':'Selecione a nova data.'}</p></div><button type="button" class="reservation-close" data-picker-close aria-label="Fechar">×</button></div><div class="reservation-toolbar"><button type="button" data-picker-prev aria-label="Mês anterior">‹</button><strong>${monthLabel}</strong><button type="button" data-picker-next aria-label="Próximo mês">›</button></div><div class="reservation-week"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div><div class="reservation-grid reservation-date-picker-grid">${cells.join('')}</div><div class="reservation-summary reservation-date-picker-legend"><span><i class="reservation-legend-available-dot"></i> disponível</span><span class="reservation-legend-pre">pré-reserva</span><span class="reservation-legend-blocked">bloqueado</span><span class="reservation-legend-reserved">reservado</span></div></div>`;
+      dialog.innerHTML=`<div class="reservation-date-picker"><div class="reservation-date-picker-top"><div><p class="eyebrow">${target==='range'?'PERÍODO DA ESTADIA':target==='check_in'?'NOVA ENTRADA':'NOVA SAÍDA'}</p><h2>Escolha as datas</h2><p>${target==='range'?'Toque uma vez para a entrada e outra para a saída.':'Selecione a nova data.'}</p></div><button type="button" class="reservation-close" data-picker-close aria-label="Fechar">×</button></div><div class="reservation-toolbar"><button type="button" data-picker-prev aria-label="Mês anterior">‹</button><strong>${monthLabel}</strong><button type="button" data-picker-next aria-label="Próximo mês">›</button></div><div class="reservation-week"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div><div class="reservation-grid reservation-date-picker-grid">${cells.join('')}</div><div class="reservation-summary reservation-date-picker-legend"><span><i class="reservation-legend-available-dot"></i> disponível</span><span class="reservation-legend-pre">pré-reserva</span><span class="reservation-legend-blocked">bloqueado</span><span class="reservation-legend-holiday"><em></em>feriado</span><span class="reservation-legend-holiday"><em class="rj"></em>feriado RJ</span><span class="reservation-legend-reserved">reservado</span></div></div>`;
       const pickerPrev=dialog.querySelector('[data-picker-prev]');
       const currentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
       if(pickerPrev)pickerPrev.disabled=pickerMonth<=currentMonth;
@@ -582,7 +608,7 @@ async function reservationsView(){
     const next={...availability,enabled:true,reservations,reservedDates:[...new Set(reservedDates)].sort()};
     await saveLinkPage({...record,availability:next});
   };
-  $('#view').innerHTML=`<div class="view reservations-view"><div class="view-head"><div><p class="eyebrow">PÁGINA DE LINKS</p><h1>Reservas.</h1><p>Selecione entrada e saída no calendário. Depois, escolha o estado e os dados da estadia.</p></div></div><div class="reservation-layout"><section class="reservation-panel"><div id="reservationRangeError" class="reservation-range-error" role="alert" hidden></div><div class="reservation-calendar-section"><div class="reservation-toolbar"><button type="button" id="reservationPrev" aria-label="Mês anterior">‹</button><strong id="reservationMonth"></strong><button type="button" id="reservationNext" aria-label="Próximo mês">›</button></div><div class="reservation-week"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div><div class="reservation-grid" id="reservationGrid"></div><div class="reservation-summary"><span><i></i> reservado</span><span class="reservation-legend-pre">pré-reserva</span><span class="reservation-legend-blocked">bloqueado</span><span>1º entrada · 2º saída</span><b id="reservationCount">0 reservas</b></div><button type="button" class="primary reservation-register-button" data-register-reservation disabled>Cadastrar reserva</button></div><div class="reservation-cards-section"><div class="reservation-cards-title"><span>RESERVAS CADASTRADAS</span><small>Por entrada</small></div><div class="reservation-cards" id="reservationCards"></div></div></section><aside class="reservation-settings reservation-howto"><p class="eyebrow">GUIA RÁPIDO</p><h2>Como cadastrar um período</h2><ol><li><b>Escolha as datas</b><span>No calendário, selecione o dia de entrada e depois o de saída. O intervalo fica destacado.</span></li><li><b>Inicie o cadastro</b><span>Com as duas datas marcadas, use o botão <strong>Cadastrar reserva</strong>.</span></li><li><b>Preencha a estadia</b><span>Escolha o estado. Se quiser, informe o nome, o telefone e uma observação.</span></li><li><b>Salve ou ajuste depois</b><span>Toque em <strong>Salvar reserva</strong>. Para mudar ou liberar datas, use <strong>Editar</strong> no card da reserva.</span></li></ol><p class="reservation-howto-note">O calendário avisa se o período escolhido conflitar com outro já cadastrado.</p></aside></div></div>`;
+  $('#view').innerHTML=`<div class="view reservations-view"><div class="view-head"><div><p class="eyebrow">PÁGINA DE LINKS</p><h1>Reservas.</h1><p>Selecione entrada e saída no calendário. Depois, escolha o estado e os dados da estadia.</p></div></div><div class="reservation-layout"><section class="reservation-panel"><div id="reservationRangeError" class="reservation-range-error" role="alert" hidden></div><div class="reservation-calendar-section"><div class="reservation-toolbar"><button type="button" id="reservationPrev" aria-label="Mês anterior">‹</button><strong id="reservationMonth"></strong><button type="button" id="reservationNext" aria-label="Próximo mês">›</button></div><div class="reservation-week"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div><div class="reservation-grid" id="reservationGrid"></div><div class="reservation-holiday-info" id="reservationHolidayInfo" hidden></div><div class="reservation-summary"><span><i></i> reservado</span><span class="reservation-legend-pre">pré-reserva</span><span class="reservation-legend-blocked">bloqueado</span><span>1º entrada · 2º saída</span><b id="reservationCount">0 reservas</b></div><button type="button" class="primary reservation-register-button" data-register-reservation disabled>Cadastrar reserva</button></div><div class="reservation-cards-section"><div class="reservation-cards-title"><span>RESERVAS CADASTRADAS</span><small>Por entrada</small></div><div class="reservation-cards" id="reservationCards"></div></div></section><aside class="reservation-settings reservation-howto"><p class="eyebrow">GUIA RÁPIDO</p><h2>Como cadastrar um período</h2><ol><li><b>Escolha as datas</b><span>No calendário, selecione o dia de entrada e depois o de saída. O intervalo fica destacado.</span></li><li><b>Inicie o cadastro</b><span>Com as duas datas marcadas, use o botão <strong>Cadastrar reserva</strong>.</span></li><li><b>Preencha a estadia</b><span>Escolha o estado. Se quiser, informe o nome, o telefone e uma observação.</span></li><li><b>Salve ou ajuste depois</b><span>Toque em <strong>Salvar reserva</strong>. Para mudar ou liberar datas, use <strong>Editar</strong> no card da reserva.</span></li></ol><p class="reservation-howto-note">O calendário avisa se o período escolhido conflitar com outro já cadastrado.</p></aside></div></div>`;
   $('#reservationPrev').onclick=()=>{const currentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);if(reservationMonth<=currentMonth)return;reservationMonth=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth()-1,1);draftStart=draftEnd=null;renderReservationCalendar()};
   $('#reservationNext').onclick=()=>{reservationMonth=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth()+1,1);draftStart=draftEnd=null;renderReservationCalendar()};
   $('#view [data-register-reservation]').onclick=()=>{if(draftStart)openReservationEditor(null,true,{checkIn:draftStart,checkOut:draftEnd||draftStart})};

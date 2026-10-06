@@ -1132,3 +1132,20 @@ html{min-height:100%;background:#173b3d}\nbody{min-height:100%;background:#f5f0e
   .link-admin-card .link-admin-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .link-admin-card .link-admin-actions button{width:100%}
 }
+<<<<<<< HEAD
+=======
+
+/* ===== Calendário de reservas: passado travado + feriados discretos ===== */
+.reservation-day{position:relative}
+.reservation-day.is-past,.reservation-day:disabled{pointer-events:none!important;cursor:not-allowed;user-select:none;-webkit-tap-highlight-color:transparent;transform:none!important;box-shadow:none!important}
+.reservation-day.is-holiday::before{content:"";position:absolute;top:5px;right:5px;width:4px;height:4px;border-radius:50%;background:#b66d59;box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+.reservation-day.is-holiday-rj::before{background:#7a699a}
+.reservation-day.is-past.is-holiday::before{opacity:.5}
+.reservation-holiday-info{display:flex;align-items:center;gap:10px;margin:12px 0 0;padding:9px 12px;border:1px solid rgba(23,59,61,.1);border-radius:12px;background:#f7f4ec;font-size:11px;color:#35584e}
+.reservation-holiday-info[hidden]{display:none}
+.reservation-holiday-info b{display:block;font-weight:700;color:#173b3d}
+.reservation-holiday-info small{display:block;margin-top:2px;font-size:10px;color:#71817a}
+.reservation-holiday-info em,.reservation-legend-holiday em{flex:none;display:inline-block;width:7px;height:7px;border-radius:50%;background:#b66d59}
+.reservation-holiday-info em.rj,.reservation-legend-holiday em.rj{background:#7a699a}
+.reservation-legend-holiday{display:inline-flex;align-items:center;gap:6px}
+>>>>>>> 7bce100 (ok its not real finish hehe)

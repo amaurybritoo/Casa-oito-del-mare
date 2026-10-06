@@ -124,7 +124,6 @@ a{color:inherit}
 .cover-arrow{position:absolute;z-index:3;top:50%;width:34px;height:34px;display:grid;place-items:center;transform:translateY(-50%);border:1px solid #ffffff55;border-radius:50%;background:#082f3270;color:#fff;font:28px/1 var(--serif);cursor:pointer;backdrop-filter:blur(8px);transition:.2s}
 .cover-arrow:hover{background:#123f40dd;transform:translateY(-50%) scale(1.05)}
 .cover-prev{left:12px}.cover-next{right:12px}
-.cover-dots{position:absolute;z-index:3;left:50%;bottom:13px;display:flex;gap:5px;transform:translateX(-50%);padding:5px 7px;border:1px solid #ffffff30;border-radius:999px;background:#082f3260;backdrop-filter:blur(6px)}
 .cover-dot{width:5px;height:5px;padding:0;border:0;border-radius:50%;background:#ffffff65;cursor:pointer;transition:.2s}
 .cover-dot.active{width:17px;border-radius:99px;background:#f2c99f}
 .cover-caption{bottom:17px;left:21px;right:90px}
@@ -484,3 +483,57 @@ body.stay-modal-open{position:fixed;left:0;right:0;width:100%}
 .link-skeleton small{width:82%;height:10px;border-radius:6px}
 @keyframes link-skeleton{to{background-position:-200% 0}}
 @media(prefers-reduced-motion:reduce){.link-skeleton .link-icon,.link-skeleton strong,.link-skeleton small{animation:none}}
+
+/* ===== Carrossel: transição suave (fade + zoom lento) ===== */
+.cover-slide{transition:opacity 1.15s cubic-bezier(.4,0,.2,1),transform 7s cubic-bezier(.2,.6,.3,1);will-change:opacity,transform}
+.cover-slide.is-leaving{opacity:0;transform:scale(1.05);z-index:0}
+.cover-slide.is-active{transition:opacity 1.15s cubic-bezier(.4,0,.2,1),transform 7s cubic-bezier(.2,.6,.3,1)}
+.cover-slide img{transform:scale(1.08);transition:transform 7s cubic-bezier(.2,.6,.3,1)}
+.cover-slide.is-active img{transform:scale(1)}
+
+/* ===== MAR: ondas na capa ===== */
+.cover-waves{position:absolute;left:0;right:0;bottom:-1px;height:40px;z-index:3;pointer-events:none;overflow:hidden}
+.cw{position:absolute;left:0;bottom:0;width:200%;display:block;will-change:transform;transform:translate3d(0,0,0);animation:seaDrift linear infinite}
+.cw svg{display:block;width:100%;height:100%}
+.cw path{fill:currentColor}
+.cw.w3{height:100%;color:rgba(255,255,255,.34);animation-duration:24s;animation-direction:reverse}
+.cw.w2{height:76%;color:rgba(247,242,231,.62);animation-duration:16s}
+.cw.w1{height:54%;color:#f7f2e7;animation-duration:11s;animation-direction:reverse}
+.cover-waves.is-off .cw{animation-play-state:paused}
+@keyframes seaDrift{to{transform:translate3d(-50%,0,0)}}
+
+/* ===== MAR: cards (o dedo ou o mouse faz a maré subir) ===== */
+@keyframes linkCardIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+#dynamicLinks .link-card:not(.link-skeleton){animation:linkCardIn .7s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:var(--enter-delay,0ms)}
+#dynamicLinks .link-card{--roll:0deg;isolation:isolate;transform:rotate(var(--roll));transition:transform .6s cubic-bezier(.2,.7,.2,1),box-shadow .45s ease;-webkit-tap-highlight-color:transparent;touch-action:pan-y}
+#dynamicLinks .link-card::before,#dynamicLinks .link-card::after{display:none}
+.sea{position:absolute;inset:0;z-index:-1;border-radius:inherit;overflow:hidden;pointer-events:none;transform:translate3d(0,104%,0);transition:transform 1.1s cubic-bezier(.22,.8,.2,1);will-change:transform}
+.sea-body{position:absolute;left:0;right:0;top:19px;bottom:0;background:linear-gradient(180deg,rgba(64,166,168,.26),rgba(23,92,96,.2))}
+.sea-w{position:absolute;left:0;top:0;width:200%;height:20px;display:block;animation:seaDrift linear infinite paused;will-change:transform}
+.sea-w svg{display:block;width:100%;height:100%}
+.sea-w path{fill:currentColor}
+.sea-w.w3{top:-5px;color:rgba(23,92,96,.14);animation-duration:9s;animation-direction:reverse}
+.sea-w.w2{top:-2px;color:rgba(64,166,168,.2);animation-duration:6.5s}
+.sea-w.w1{color:rgba(64,166,168,.26);animation-duration:4.6s;animation-direction:reverse}
+#dynamicLinks .link-card.is-lit{box-shadow:0 16px 34px rgba(23,92,96,.16)!important}
+#dynamicLinks .link-card.is-lit .sea{transform:translate3d(0,24%,0) rotate(calc(var(--roll) * -1.8))}
+#dynamicLinks .link-card.is-lit .sea-w{animation-play-state:running}
+#dynamicLinks .link-card .link-icon{transition:background .4s,color .4s}
+#dynamicLinks .link-card.is-lit .link-icon{background:#173f3e;color:#bfe6e1;animation:iconBob 2.8s ease-in-out infinite}
+@keyframes iconBob{0%,100%{transform:translateY(1px) rotate(-4deg)}50%{transform:translateY(-2px) rotate(4deg)}}
+#dynamicLinks .link-card:active{transform:scale(.985) rotate(var(--roll))}
+.link-ripple{position:absolute;z-index:-1;width:12px;height:12px;margin:-6px 0 0 -6px;pointer-events:none}
+.link-ripple::before,.link-ripple::after{content:"";position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(46,142,146,.55);opacity:0;animation:seaRing 1.25s cubic-bezier(.2,.6,.3,1) forwards}
+.link-ripple::after{border-color:rgba(46,142,146,.32);animation-delay:.2s}
+@keyframes seaRing{0%{opacity:.9;transform:scale(.2)}100%{opacity:0;transform:scale(24)}}
+
+/* Calendário: dia que acabou de mudar ganha uma ondulação */
+.calendar-day.just-changed{animation:dayRipple 1.7s ease-out}
+@keyframes dayRipple{0%{box-shadow:0 0 0 0 rgba(46,142,146,.6)}100%{box-shadow:0 0 0 16px rgba(46,142,146,0)}}
+
+@media(prefers-reduced-motion:reduce){
+  .cover-slide,.cover-slide img{transition:opacity .4s linear!important;transform:none!important}
+  .cw,.sea-w,.link-ripple,.calendar-day.just-changed,#dynamicLinks .link-card .link-icon{animation:none!important}
+  #dynamicLinks .link-card{animation:none!important;transform:none!important}
+  .sea{transition:transform .3s linear}
+}
