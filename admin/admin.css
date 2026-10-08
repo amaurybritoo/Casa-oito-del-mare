@@ -270,7 +270,6 @@ button,a,input,select,textarea{touch-action:manipulation}
 .reservation-form .reservation-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:700px){.reservation-form .reservation-fields{grid-template-columns:1fr}.reservation-panel{width:100%}.reservation-settings{width:100%}}
 
-
 .profile-edit-button{position:relative;overflow:hidden;min-width:190px;box-shadow:0 10px 24px rgba(23,63,62,.12);}
 .profile-edit-button:before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 0%,rgba(255,255,255,.22) 45%,transparent 65%);transform:translateX(-120%);transition:transform .5s ease}
 .profile-edit-button:hover:before{transform:translateX(120%)}
@@ -358,7 +357,6 @@ button,a,input,select,textarea{touch-action:manipulation}
 .reservation-preview-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}
 .reservation-preview-actions button{min-height:45px}
 @media(max-width:700px){.reservation-preview{padding:20px}.reservation-preview-top h2{font-size:27px}.reservation-preview-actions{grid-template-columns:1fr}.reservation-preview-dialog{width:calc(100vw - 18px);border-radius:21px}}
-
 
 /* v16 — calendário e reservas visualmente separados */
 .reservation-calendar-section{background:#fff;border:1px solid rgba(23,59,61,.07);border-radius:20px;padding:18px;box-shadow:0 7px 22px rgba(23,59,61,.035)}
@@ -907,25 +905,7 @@ body.reservation-modal-open{position:fixed;left:0;right:0;width:100%}
 .content-copy-card[hidden]{display:none}
 .content-copy-card .content-card-actions{margin-top:12px}
 .content-image-preview{display:block;width:min(100%,340px);max-height:190px;object-fit:cover;border-radius:10px;background:#edf0eb}
-.welcome-dialog{width:min(92vw,570px);max-height:min(88dvh,760px);padding:0;border:1px solid rgba(23,59,61,.12);border-radius:24px;background:#f8f3e8;color:#173b3d;box-shadow:0 28px 90px rgba(5,30,30,.3);overflow:auto}
-.welcome-dialog::backdrop{background:rgba(10,39,39,.64);backdrop-filter:blur(5px)}
-.welcome-content{display:grid;gap:0;padding:35px clamp(22px,6vw,46px) 30px}
-.welcome-dialog .admin-dialog-mark{display:grid;place-items:center;width:48px;height:48px;margin-bottom:23px;border:1px solid #d8b48e;border-radius:50%;color:#b67950;font:30px 'Cormorant Garamond',serif}
-.welcome-dialog .eyebrow{margin:0 0 12px;color:#9c8168}
-.welcome-dialog h2{margin:0;color:#173b3d;font:400 clamp(42px,8vw,58px)/1 'Cormorant Garamond',serif}
-.welcome-intro{margin:12px 0 22px;color:#61736b;font-size:13px;line-height:1.65}
-.welcome-guide{display:grid;gap:0;border-top:1px solid rgba(23,59,61,.1)}
-.welcome-guide>div{display:grid;grid-template-columns:35px minmax(0,1fr);gap:12px;padding:14px 0;border-bottom:1px solid rgba(23,59,61,.1)}
-.welcome-guide>div>span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#e8eee7;color:#39756e;font-size:9px;font-weight:700}
-.welcome-guide p{display:grid;gap:4px;margin:0}
-.welcome-guide b{font-size:12px}
-.welcome-guide small{color:#718078;font-size:11px;line-height:1.55}
-.welcome-optout{display:flex;align-items:center;gap:9px;margin:20px 0 18px;color:#52665d;font-size:11px;cursor:pointer}
-.welcome-optout input{width:17px;height:17px;margin:0;accent-color:#39756e}
-.welcome-dialog .admin-dialog-actions{display:flex;justify-content:flex-end;margin:0;padding:0;border:0}
-.welcome-dialog .admin-dialog-actions .primary{min-width:120px;min-height:44px}
 @media(max-width:850px){.content-item-card{grid-template-columns:62px minmax(0,1fr);gap:12px;padding:13px}.content-item-order{min-height:62px}.content-item-order img{height:62px}.content-item-copy h2,.content-copy-card h2{font-size:26px}.content-item-card>.content-card-actions{grid-column:1/-1;justify-content:flex-start;padding-top:9px;border-top:1px solid rgba(23,59,61,.08)}.content-tools{grid-template-columns:1fr}}
-@media(max-width:520px){.welcome-dialog{width:calc(100vw - 24px);max-height:calc(100dvh - 28px);border-radius:20px}.welcome-content{padding:27px 22px 22px}.welcome-dialog .admin-dialog-close{top:10px;right:10px}.welcome-guide small{font-size:10px}}
 /* O fundo da tela de login cobre toda a altura dinâmica no mobile. */
 html{min-height:100%;background:#173b3d}\nbody{min-height:100%;background:#f5f0e7}\nbody:has(#login:not([hidden])){background:#173b3d}
 .login{min-height:100vh;min-height:100svh;min-height:100dvh;padding: max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom));background:#173b3d}
@@ -1085,28 +1065,6 @@ html{min-height:100%;background:#173b3d}\nbody{min-height:100%;background:#f5f0e
   .link-admin-card .link-admin-actions button{width:100%}
 }
 
-/* ===== Calendário de reservas: passado travado + feriados discretos ===== */
-
-/* Boas-vindas com tutorial guiado */
-.welcome-dialog.has-tour{width:min(94vw,600px)}
-.welcome-tour{display:grid;grid-template-columns:54px minmax(0,1fr);gap:14px;align-items:center;margin:2px 0 20px;padding:17px 18px;border-radius:20px;color:#fff;background:radial-gradient(120% 140% at 0% 0%,#2a6b66 0%,#173b3d 62%);box-shadow:0 14px 34px rgba(23,59,61,.28);position:relative;overflow:hidden}
-.welcome-tour:after{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(240,196,138,.35),transparent 70%);pointer-events:none}
-.welcome-tour-icon{position:relative;display:grid;place-items:center;width:54px;height:54px;border-radius:50%;background:rgba(240,196,138,.18);border:2px solid #f0c48a}
-.welcome-tour-icon:before,.welcome-tour-icon:after{content:'';position:absolute;inset:-2px;border-radius:50%;border:2px solid #f0c48a;opacity:0;animation:welcomeTap 2s ease-out infinite}
-.welcome-tour-icon:after{animation-delay:.9s}
-.welcome-tour-icon svg{width:26px;height:26px;transform:translate(2px,2px);animation:welcomePoint 1.4s ease-in-out infinite}
-@keyframes welcomeTap{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.7);opacity:0}}
-@keyframes welcomePoint{0%,100%{transform:translate(2px,2px)}50%{transform:translate(-2px,-2px)}}
-.welcome-tour-tag{display:block;margin-bottom:3px;color:#f0c48a;font-size:9px;font-weight:700;letter-spacing:.17em}
-.welcome-tour h3{margin:0 0 5px;color:#fff;font:500 25px/1.05 'Cormorant Garamond',serif}
-.welcome-tour p{margin:0 0 5px;color:rgba(255,255,255,.84);font-size:12px;line-height:1.55}
-.welcome-tour p b{color:#fff}.welcome-tour .welcome-tour-safe{margin:0;padding-top:6px;border-top:1px solid rgba(255,255,255,.16);font-size:11px}
-.welcome-dialog.has-tour .welcome-guide>div{padding:11px 0}
-.welcome-dialog.has-tour .admin-dialog-actions{gap:10px;flex-wrap:wrap}
-.welcome-dialog .admin-dialog-actions .ghost{min-height:44px;padding:0 18px;border:1px solid rgba(23,59,61,.18);border-radius:12px;background:transparent;color:#52665d;font:650 13px 'DM Sans',sans-serif;cursor:pointer}
-.welcome-dialog .admin-dialog-actions .welcome-start{min-width:170px;background:linear-gradient(135deg,#c9965f,#e3b57d);color:#173b3d;font-weight:800;box-shadow:0 8px 20px rgba(201,150,95,.4)}
-@media(max-width:520px){.welcome-tour{grid-template-columns:44px minmax(0,1fr);gap:11px;padding:14px}.welcome-tour-icon{width:44px;height:44px}.welcome-tour h3{font-size:22px}.welcome-dialog.has-tour .welcome-guide small{display:none}.welcome-dialog.has-tour .admin-dialog-actions{display:grid;grid-template-columns:1fr}.welcome-dialog.has-tour .admin-dialog-actions .welcome-start{order:-1;width:100%}.welcome-dialog.has-tour .admin-dialog-actions .ghost{width:100%}}
-
 /* ===== Refinamento final: desktop, boas-vindas e tutorial ===== */
 @media (min-width:851px){
   #app{grid-template-columns:250px minmax(0,1fr);min-height:100dvh}
@@ -1125,27 +1083,6 @@ html{min-height:100%;background:#173b3d}\nbody{min-height:100%;background:#f5f0e
 #app input[name="phone"],#app input[name="whatsapp"],#app textarea[name="phones"]{font-variant-numeric:tabular-nums;letter-spacing:.02em}
 #app textarea[name="phones"]{line-height:1.75}
 
-/* Boas-vindas mais editorial: hierarquia, respiro e chamada clara para o tutorial. */
-.welcome-dialog.has-tour{width:min(92vw,660px);max-height:min(88dvh,760px);overflow:auto;border:1px solid rgba(23,59,61,.08);box-shadow:0 30px 90px rgba(15,45,43,.25)}
-.welcome-dialog.has-tour .welcome-content{padding:32px 34px 28px}
-.welcome-dialog.has-tour .admin-dialog-mark{width:48px;height:48px;margin-bottom:15px;box-shadow:0 8px 20px rgba(23,59,61,.08)}
-.welcome-dialog.has-tour .welcome-intro{max-width:540px;margin-bottom:22px;font-size:13px;line-height:1.65;color:#64736d}
-.welcome-dialog.has-tour .welcome-guide{margin-bottom:20px;border-top:1px solid rgba(23,59,61,.08);border-bottom:1px solid rgba(23,59,61,.08)}
-.welcome-dialog.has-tour .welcome-guide>div{grid-template-columns:38px minmax(0,1fr);gap:13px;padding:13px 2px}
-.welcome-dialog.has-tour .welcome-guide>div>span{width:32px;height:32px;background:#eef3ed;color:#2f6f68;box-shadow:inset 0 0 0 1px rgba(47,111,104,.08)}
-.welcome-dialog.has-tour .welcome-guide b{font-size:12px;color:#173b3d}
-.welcome-dialog.has-tour .welcome-guide small{font-size:10.5px;line-height:1.5}
-.welcome-tour{margin:0 0 22px!important;padding:20px 21px!important;grid-template-columns:58px minmax(0,1fr)!important;border:1px solid rgba(240,196,138,.25);background:radial-gradient(120% 160% at 0% 0%,#2f766f 0%,#173b3d 58%,#102f30 100%)!important;box-shadow:0 18px 40px rgba(23,59,61,.2)!important}
-.welcome-tour-icon{width:58px!important;height:58px!important;box-shadow:0 0 0 5px rgba(240,196,138,.07)}
-.welcome-tour-tag{font-size:8px!important;letter-spacing:.19em!important}
-.welcome-tour h3{font-size:27px!important;margin-bottom:6px!important}
-.welcome-tour p{font-size:11.5px!important}
-.welcome-tour .welcome-tour-safe{font-size:10.5px!important}
-.welcome-dialog.has-tour .welcome-optout{margin:18px 0 16px}
-.welcome-dialog.has-tour .admin-dialog-actions{align-items:center}
-.welcome-dialog.has-tour .admin-dialog-actions .welcome-start{min-width:190px;min-height:48px;border-radius:13px}
-.welcome-dialog.has-tour .admin-dialog-actions .ghost{min-height:48px}
-
 /* Tutorial guiado: navegação explícita e acabamento mais profissional. */
 .tour-card{border:1px solid rgba(23,59,61,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .tour-top{gap:8px}
@@ -1157,11 +1094,6 @@ html{min-height:100%;background:#173b3d}\nbody{min-height:100%;background:#f5f0e
 .tour-actions{align-items:center}
 .tour-actions:before{content:'Você pode voltar quando quiser';margin-right:auto;color:#84918b;font-size:9px;line-height:1.2}
 @media(max-width:700px){
-  .welcome-dialog.has-tour{width:calc(100vw - 18px);max-height:calc(100dvh - 18px)}
-  .welcome-dialog.has-tour .welcome-content{padding:25px 19px 20px}
-  .welcome-tour{grid-template-columns:46px minmax(0,1fr)!important;padding:15px!important;gap:11px!important}
-  .welcome-tour-icon{width:46px!important;height:46px!important}
-  .welcome-tour h3{font-size:23px!important}
   .tour-actions:before{display:none}
 }
 
@@ -1184,39 +1116,6 @@ html{min-height:100%;background:#173b3d}\nbody{min-height:100%;background:#f5f0e
     scrollbar-gutter:stable;
   }
   #app>main{min-height:100vh;min-height:100dvh;}
-}
-
-/* Boas-vindas: linhas perfeitamente alinhadas e com leitura editorial. */
-.welcome-dialog.has-tour .welcome-guide-item{
-  display:grid;
-  grid-template-columns:38px minmax(0,1fr);
-  align-items:start;
-  gap:13px;
-  min-height:64px;
-  padding:14px 4px;
-}
-.welcome-dialog.has-tour .welcome-guide-item>span{
-  width:32px;
-  height:32px;
-  margin-top:1px;
-  flex:none;
-}
-.welcome-dialog.has-tour .welcome-guide-item p{
-  min-width:0;
-  display:grid;
-  gap:4px;
-  margin:0;
-  padding:0;
-}
-.welcome-dialog.has-tour .welcome-guide-item b{
-  display:block;
-  line-height:1.2;
-  letter-spacing:.01em;
-}
-.welcome-dialog.has-tour .welcome-guide-item small{
-  display:block;
-  max-width:520px;
-  line-height:1.55;
 }
 
 /* Popup de indisponibilidade do calendário. */
@@ -1291,130 +1190,7 @@ html{min-height:100%;background:#173b3d}\nbody{min-height:100%;background:#f5f0e
   .reservation-conflict-ok{width:100%}
 }
 
-
-/* ===== Boas-vindas: viewport limpo e scroll somente dentro do popup ===== */
-html.welcome-dialog-open,
-body.welcome-dialog-open{
-  overflow:hidden!important;
-  overscroll-behavior:none!important;
-}
-.welcome-dialog.has-tour{
-  width:min(92vw,620px);
-  max-width:620px;
-  max-height:min(700px,calc(100dvh - 28px));
-  overflow:hidden!important;
-  overscroll-behavior:contain;
-}
-.welcome-dialog.has-tour .welcome-content{
-  box-sizing:border-box;
-  max-height:inherit;
-  overflow:auto;
-  overscroll-behavior:contain;
-  scrollbar-gutter:stable;
-  padding:24px 30px 20px;
-}
-.welcome-dialog.has-tour .admin-dialog-mark{
-  width:42px;
-  height:42px;
-  margin-bottom:10px;
-  font-size:27px;
-}
-.welcome-dialog.has-tour .eyebrow{
-  margin-bottom:7px;
-  font-size:8px;
-}
-.welcome-dialog.has-tour h2{
-  font-size:48px;
-  margin-bottom:7px;
-}
-.welcome-dialog.has-tour .welcome-intro{
-  margin:0 0 14px;
-  max-width:540px;
-  font-size:11.5px;
-  line-height:1.5;
-}
-.welcome-dialog.has-tour .welcome-guide{
-  margin-bottom:14px;
-}
-.welcome-dialog.has-tour .welcome-guide-item{
-  min-height:52px;
-  grid-template-columns:34px minmax(0,1fr);
-  gap:11px;
-  padding:9px 2px;
-}
-.welcome-dialog.has-tour .welcome-guide-item>span{
-  width:30px;
-  height:30px;
-}
-.welcome-dialog.has-tour .welcome-guide-item p{gap:2px}
-.welcome-dialog.has-tour .welcome-guide-item b{font-size:11.5px}
-.welcome-dialog.has-tour .welcome-guide-item small{
-  font-size:9.5px;
-  line-height:1.4;
-}
-.welcome-dialog.has-tour .welcome-tour{
-  margin:0 0 13px!important;
-  padding:14px 16px!important;
-  grid-template-columns:48px minmax(0,1fr)!important;
-  gap:12px!important;
-  border-radius:17px;
-}
-.welcome-dialog.has-tour .welcome-tour-icon{
-  width:48px!important;
-  height:48px!important;
-}
-.welcome-dialog.has-tour .welcome-tour-tag{
-  font-size:7.5px!important;
-}
-.welcome-dialog.has-tour .welcome-tour h3{
-  font-size:24px!important;
-  margin-bottom:4px!important;
-}
-.welcome-dialog.has-tour .welcome-tour p{
-  font-size:10.5px!important;
-  line-height:1.4;
-  margin-bottom:4px;
-}
-.welcome-dialog.has-tour .welcome-tour .welcome-tour-safe{
-  padding-top:5px;
-  font-size:9.5px!important;
-}
-.welcome-dialog.has-tour .welcome-optout{
-  margin:11px 0 12px;
-  font-size:10px;
-}
-.welcome-dialog.has-tour .welcome-optout input{
-  width:15px;
-  height:15px;
-}
-.welcome-dialog.has-tour .admin-dialog-actions .ghost,
-.welcome-dialog.has-tour .admin-dialog-actions .welcome-start{
-  min-height:42px;
-  border-radius:11px;
-}
-.welcome-dialog.has-tour .admin-dialog-actions .welcome-start{
-  min-width:170px;
-}
-@media(max-width:700px){
-  .welcome-dialog.has-tour{
-    width:calc(100vw - 18px);
-    max-width:none;
-    max-height:calc(100dvh - 18px);
-  }
-  .welcome-dialog.has-tour .welcome-content{
-    padding:21px 18px 17px;
-  }
-}
-@media(max-width:520px){
-  .welcome-dialog.has-tour .welcome-content{
-    padding:20px 16px 16px;
-  }
-  .welcome-dialog.has-tour h2{font-size:43px}
-  .welcome-dialog.has-tour .welcome-guide-item small{font-size:9px}
-}
-
 @media(max-width:700px){.reservation-calendar-section{overflow:hidden}}
-
 
 /* Botão do tutorial: chamada premium alinhada à identidade Casa Oito Del Mare. */
 .tour-replay{

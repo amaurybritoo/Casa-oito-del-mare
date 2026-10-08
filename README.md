@@ -61,6 +61,8 @@ V4: visual premium clean na página de links, sem bordas decorativas e carrossel
 **Performance.**
 - Home: o GIF de 3,7 MB (inclusive no desktop, onde nem aparece) e o vídeo de 2,5 MB deixaram de baixar no carregamento; agora só quando o rodapé chega perto da tela. Desktop nunca baixa o GIF.
 - Página de links: o SDK do Supabase deixou de ser importação fixa (a página não espera mais o CDN para executar); mapa de datas em cache.
-- Painel: fontes por `<link>` (sem `@import` bloqueante), ~18 KB de CSS duplicado embutido removido, 59 regras antigas de calendário removidas do `admin.css`, lista de reservas só é refeita quando as reservas mudam, eventos do calendário ligados uma única vez. Caminhos do admin agora são relativos.
+- Painel: fontes por `<link>` (sem `@import` bloqueante), regras antigas de calendário e de boas-vindas removidas do `admin.css` (o bloco `<style id="admin-critical-style">` do `admin/index.html` foi mantido como na v28 porque a cascata do celular depende dele), lista de reservas só é refeita quando as reservas mudam, eventos do calendário ligados uma única vez. Caminhos do admin agora são relativos.
 
 **Tutorial guiado.** Testado de ponta a ponta (12 passos, celular e desktop): conclui sem erros e sem gravar nada na agenda. Não foi alterado.
+
+**Tela de boas-vindas.** Redesenhada em `admin/welcome.css` (arquivo único; as cinco camadas de CSS antigas foram removidas do `admin.css`): cabeçalho centralizado com emblema, as três áreas lado a lado no desktop, cartão do tutorial, opção "não mostrar" e botões num rodapé fixo (a parte de cima rola; os botões ficam sempre visíveis). No celular os botões ficam empilhados.
