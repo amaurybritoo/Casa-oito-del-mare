@@ -1,8 +1,7 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { trackPageVisit, trackWhatsappLinks } from './analytics.js';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js';
 import { CARD_ICONS, cardIconSvg, resolveCardIcon } from './card-icons.js';
-import { holidayForKey } from './holidays.js';
+import { holidayForKey, monthTitle } from './holidays.js?v=20261008-1';
 
 const WAVE_SVG = '<svg viewBox="0 0 1200 40" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M0 20C75 0 225 0 300 20S525 40 600 20 825 0 900 20 1125 40 1200 20V40H0Z"/></svg>';
 const SEA_HTML = `<span class="sea" aria-hidden="true"><span class="sea-body"></span><i class="sea-w w3">${WAVE_SVG}</i><i class="sea-w w2">${WAVE_SVG}</i><i class="sea-w w1">${WAVE_SVG}</i></span>`;
@@ -59,16 +58,24 @@ let checkoutDate = null;
 let holidayInfoKey = null;
 
 function showCalendarError(message){
-  const el=$('#calendarError');
-  if(!el) return;
-  el.textContent=message;
-  el.hidden=false;
+  const dialog=$('#calendarConflictDialog');
+  if(!dialog) return;
+  if(dialog.open) dialog.close();
+  const text=dialog.querySelector('.calendar-conflict-inner p');
+  if(text) text.textContent=message||'Há uma data reservada entre a entrada e a saída selecionada. Escolha outro período.';
+  const close=()=>{if(dialog.open)dialog.close()};
+  const ok=dialog.querySelector('[data-ok-calendar-conflict]');
+  const closeControl=dialog.querySelector('[data-close-calendar-conflict]');
+  ok.onclick=close;
+  closeControl.onclick=close;
+  closeControl.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();close()}};
+  dialog.oncancel=event=>{event.preventDefault();close()};
+  dialog.onclick=event=>{if(event.target===dialog)close()};
+  dialog.showModal();
 }
 function clearCalendarError(){
-  const el=$('#calendarError');
-  if(!el) return;
-  el.hidden=true;
-  el.textContent='';
+  const dialog=$('#calendarConflictDialog');
+  if(dialog?.open) dialog.close();
 }
 
 function showToast(message) {
@@ -377,7 +384,9 @@ function bindDynamicActions() {
   $$('[data-open-calendar]').forEach(button => button.onclick = openStayCalendar);
 }
 
+let statusMapCache={src:null,map:null};
 function availabilityStatusMap(){
+  if(statusMapCache.src===availability&&statusMapCache.map)return statusMapCache.map;
   const map=new Map();
   const addRange=(start,end,status)=>{
     if(!start)return;
@@ -397,6 +406,7 @@ function availabilityStatusMap(){
     if(start) addRange(String(start),String(end),r.status || (r.reserved===false?'available':'reserved'));
   });
   (availability?.reservedDates || []).forEach(d=>{if(!map.has(String(d))) map.set(String(d),'reserved');});
+  statusMapCache={src:availability,map};
   return map;
 }
 function reservedSet(){return new Set([...availabilityStatusMap()].filter(([,status])=>status!=='available').map(([date])=>date));}
@@ -426,7 +436,7 @@ function clearHolidayInfo(){const info=$('#calendarHolidayInfo');if(info){info.h
 function showHolidayInfo(key,holiday){
   const info=$('#calendarHolidayInfo');if(!info)return;
   const scope=holiday.scope==='rj'?'Feriado estadual · Rio de Janeiro':'Feriado nacional';
-  info.innerHTML=`<span class="calendar-holiday-info-dot ${holiday.scope==='rj'?'is-rj':'is-national'}" aria-hidden="true"></span><span><b>${escapeHtml(holiday.name)}</b><small>${scope} · data selecionada para consulta</small></span>`;
+  info.innerHTML=`<em class="${holiday.scope==='rj'?'rj':''}" aria-hidden="true"></em><span><b>${escapeHtml(holiday.name)}</b><small>${scope} · ${key.split('-').reverse().join('/')}</small></span>`;
   info.hidden=false;holidayInfoKey=key;
 }
 function rangeHasReserved(a,b){
@@ -440,8 +450,8 @@ function rangeHasReserved(a,b){
 }
 function renderCalendar(){
   const monthEl=$('#calendarMonth'), grid=$('#calendarGrid'); if(!monthEl||!grid)return;
-  const statusMap=availabilityStatusMap(), reserved=reservedSet();
-  monthEl.textContent=new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(calendarMonth);
+  const statusMap=availabilityStatusMap();
+  monthEl.textContent=monthTitle(calendarMonth);
   const prev=$('#calendarPrev');
   const currentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
   if(prev){prev.disabled=calendarMonth.getFullYear()===currentMonth.getFullYear()&&calendarMonth.getMonth()===currentMonth.getMonth();}
@@ -454,21 +464,14 @@ function renderCalendar(){
     const key=dateKey(new Date(calendarMonth.getFullYear(),calendarMonth.getMonth(),d));
     const status=statusMap.get(key)||'available';
     const isPast=key<today;
-    const isReserved=status==='reserved'||status==='blocked';
     const unavailable=status!=='available'||isPast;
     const holiday=holidayForKey(key), selectedIn=checkinDate===key, selectedOut=checkoutDate===key;
     const inRange=isBetween(key,checkinDate,checkoutDate);
     const cls=['calendar-day',status==='reserved'?'is-reserved':'',status==='blocked'?'is-blocked':'',status==='pre'?'is-pre':'',holiday?'is-holiday':'',holiday?.scope==='rj'?'is-holiday-rj':'',holiday?.scope==='nacional'?'is-holiday-national':'',selectedIn?'is-checkin':'',selectedOut?'is-checkout':'',inRange?'is-range':'',key===today?'is-today':''].filter(Boolean).join(' ');
     const label=unavailable?', indisponível':holiday?`, ${holiday.scope==='rj'?'feriado estadual do Rio de Janeiro':'feriado nacional'}: ${holiday.name}`:selectedIn?', entrada':selectedOut?', saída':'';
-    html+=`<button class="${cls}${isPast?' is-past':''}" type="button" data-date="${key}" aria-label="${d} de ${monthEl.textContent}${label}" ${unavailable?'aria-disabled="true"':''}>${d}</button>`;
+    html+=`<button class="${cls}${isPast?' is-past':''}" type="button" data-date="${key}" aria-label="${d} de ${monthEl.textContent.toLowerCase()}${label}" ${unavailable?'aria-disabled="true"':''}>${d}</button>`;
   }
   grid.innerHTML=html;
-  grid.querySelectorAll('[data-date]').forEach(btn=>{
-    const key=btn.dataset.date;
-    const status=statusMap.get(key)||'available';
-    if(status!=='available') btn.setAttribute('aria-disabled','true');
-    else btn.removeAttribute('aria-disabled');
-  });
 }
 
 // Um único listener no calendário deixa o toque confiável no Safari/iPhone e
@@ -496,7 +499,7 @@ $('#calendarGrid')?.addEventListener('click', event=>{
   }
   if(rangeHasReserved(checkinDate,key)){
     checkinDate=null; checkoutDate=null; clearCalendarError(); updateCalendarWhatsApp(); renderCalendar();
-    showCalendarError('Há uma data reservada entre a entrada e a saída. Escolha outra data de saída.');
+    showCalendarError();
     return;
   }
   checkoutDate=key; clearCalendarError(); updateCalendarWhatsApp(); renderCalendar();
@@ -539,21 +542,10 @@ $('[data-close-stay]')?.addEventListener('click',()=>$('#stayDialog')?.close());
 $('#stayDialog')?.addEventListener('click',event=>{
   const target=event.target;
   const dialog=$('#stayDialog');
-  const isDate=target.closest?.('#calendarGrid [data-date]');
-  const isCalendarArea=target.closest?.('#calendarGrid');
-  const isMonthControl=target.closest?.('#calendarPrev, #calendarNext');
-  const isClose=target.closest?.('[data-close-stay]');
-  const isWhatsapp=target.closest?.('#calendarWhatsapp');
-  if(target===dialog){
-    checkinDate=null; checkoutDate=null; selectedDate=null; clearCalendarError();clearHolidayInfo(); updateCalendarWhatsApp(); renderCalendar();
-    dialog.close();
-    unlockStayScroll();
-    return;
-  }
-  // Qualquer toque fora de um número do calendário cancela a seleção atual.
-  if(!isDate && !isCalendarArea && !isMonthControl && !isClose && !isWhatsapp){
-    checkinDate=null; checkoutDate=null; selectedDate=null; clearCalendarError();clearHolidayInfo(); updateCalendarWhatsApp(); renderCalendar();
-  }
+  if(target!==dialog)return;
+  checkinDate=null; checkoutDate=null; selectedDate=null; clearCalendarError();clearHolidayInfo(); updateCalendarWhatsApp(); renderCalendar();
+  dialog.close();
+  unlockStayScroll();
 });
 
 $('#stayDialog')?.addEventListener('close',()=>{stopLiveWatch();checkinDate=null;checkoutDate=null;selectedDate=null;clearHolidayInfo();unlockStayScroll();});
@@ -562,6 +554,129 @@ $('#calendarWhatsapp')?.addEventListener('click',event=>{
 });
 $('#calendarPrev')?.addEventListener('click',()=>{const currentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);if(calendarMonth<=currentMonth)return;calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1);clearHolidayInfo();renderCalendar();});
 $('#calendarNext')?.addEventListener('click',()=>{calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1);clearHolidayInfo();renderCalendar();});
+// Gestos do calendário público: toque normal seleciona a data; toque longo + arraste
+// seleciona o período. O gesto fica restrito ao calendário público desta página.
+(()=>{
+  const grid=$('#calendarGrid');
+  if(!grid) return;
+  const host=grid.closest('dialog')||grid.parentElement||grid;
+  let holdTimer=null,edgeTimer=null,pointerId=null,dragging=false,swiping=false;
+  let startX=0,startY=0,lastX=0,lastY=0,dragStartKey='',dragLastKey='',tapKey='',suppressUntil=0;
+  const currentMonth=()=>new Date(new Date().getFullYear(),new Date().getMonth(),1);
+  const stopTimers=()=>{clearTimeout(holdTimer);holdTimer=null;clearInterval(edgeTimer);edgeTimer=null};
+  const available=key=>{
+    const st=availabilityStatusMap().get(key)||'available';
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(key))&&key>=todayKey()&&st==='available';
+  };
+  const keyUnder=(x,y)=>document.elementFromPoint(x,y)?.closest?.('#calendarGrid [data-date]')?.dataset.date||'';
+  const shiftMonth=dir=>{
+    const next=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+dir,1);
+    if(dir<0&&next<currentMonth()) return false;
+    calendarMonth=next;clearHolidayInfo();renderCalendar();return true;
+  };
+  const firstAvailable=dir=>{
+    const buttons=[...document.querySelectorAll('#calendarGrid [data-date]')].filter(b=>available(b.dataset.date));
+    if(!buttons.length)return '';
+    return (dir>0?buttons[0]:buttons[buttons.length-1]).dataset.date;
+  };
+  const applyDragKey=key=>{
+    if(!dragging||!available(key)||key===dragLastKey)return;
+    const a=dragStartKey,b=key;
+    const nextStart=a<=b?a:b,nextEnd=a<=b?b:a;
+    if(rangeHasReserved(nextStart,nextEnd))return;
+    dragLastKey=key;
+    checkinDate=nextStart;checkoutDate=nextEnd;selectedDate=nextStart;
+    clearCalendarError();clearHolidayInfo();updateCalendarWhatsApp();renderCalendar();
+  };
+  const beginLongPress=()=>{
+    if(!dragStartKey||swiping)return;
+    holdTimer=null;dragging=true;
+    checkinDate=dragStartKey;checkoutDate=dragStartKey;selectedDate=dragStartKey;
+    updateCalendarWhatsApp();
+    if(pointerId!==null)try{grid.setPointerCapture(pointerId)}catch{}
+    renderCalendar();
+  };
+  const finish=()=>{
+    stopTimers();
+    if(pointerId!==null)try{grid.releasePointerCapture(pointerId)}catch{}
+    pointerId=null;dragging=false;swiping=false;dragStartKey='';dragLastKey='';tapKey='';
+  };
+  const edgeStep=dir=>{
+    if(!dragging||!shiftMonth(dir))return;
+    const boundary=firstAvailable(dir);
+    if(boundary)applyDragKey(boundary);
+  };
+  const moveSelection=(x,y)=>{
+    if(!dragging)return;
+    lastX=x;lastY=y;
+    const key=keyUnder(x,y);if(key)applyDragKey(key);
+    const g=$('#calendarGrid');if(!g)return;
+    const r=g.getBoundingClientRect(),edge=44;
+    if(x>r.right-edge){if(!edgeTimer)edgeTimer=setInterval(()=>edgeStep(1),300)}
+    else if(x<r.left+edge){if(!edgeTimer)edgeTimer=setInterval(()=>edgeStep(-1),300)}
+    else{clearInterval(edgeTimer);edgeTimer=null}
+  };
+  const startGesture=(x,y,key)=>{
+    startX=x;startY=y;lastX=x;lastY=y;dragging=false;swiping=false;
+    dragStartKey='';dragLastKey='';tapKey=key||'';
+    if(key&&available(key)){dragStartKey=key;dragLastKey=key;holdTimer=setTimeout(beginLongPress,450)}
+  };
+  const moveGesture=(x,y)=>{
+    lastX=x;lastY=y;
+    const dx=x-startX,dy=y-startY;
+    if(!dragging&&!swiping&&(Math.abs(dx)>10||Math.abs(dy)>10)){
+      if(Math.abs(dx)>Math.abs(dy)*1.12&&Math.abs(dx)>26){
+        swiping=true;clearTimeout(holdTimer);holdTimer=null;
+      }else if(Math.abs(dy)>Math.abs(dx)){
+        clearTimeout(holdTimer);holdTimer=null;
+      }
+    }
+    if(swiping||dragging)moveSelection(x,y);
+  };
+  const endGesture=(x,y)=>{
+    const dx=x-startX,dy=y-startY;
+    const wasDrag=dragging,wasSwipe=swiping;
+    stopTimers();
+    if(wasDrag){
+      suppressUntil=Date.now()+700;
+      renderCalendar();
+      finish();
+      return;
+    }
+    if(wasSwipe||(Math.abs(dx)>=52&&Math.abs(dx)>Math.abs(dy)*1.12)){
+      if(shiftMonth(dx<0?1:-1))suppressUntil=Date.now()+700;
+    }
+    finish();
+  };
+  grid.style.touchAction='none';
+  grid.addEventListener('pointerdown',event=>{
+    if(pointerId!==null)return;
+    if(event.pointerType==='mouse'&&event.button!==0)return;
+    const btn=event.target.closest?.('#calendarGrid [data-date]');
+    if(!btn)return;
+    pointerId=event.pointerId;
+    // Sem captura aqui: capturar no pointerdown redireciona o clique para a grade e o toque simples deixava de selecionar a data.
+    startGesture(event.clientX,event.clientY,btn.dataset.date||'');
+  },{passive:false});
+  grid.addEventListener('pointermove',event=>{
+    if(pointerId!==event.pointerId)return;
+    moveGesture(event.clientX,event.clientY);
+    if((swiping||dragging)&&!grid.hasPointerCapture(pointerId)){try{grid.setPointerCapture(pointerId)}catch{}}
+    if(swiping||dragging)event.preventDefault();
+  },{passive:false});
+  grid.addEventListener('pointerup',event=>{
+    if(pointerId!==event.pointerId)return;
+    endGesture(event.clientX,event.clientY);
+  },{passive:false});
+  grid.addEventListener('pointercancel',event=>{
+    if(pointerId===event.pointerId)finish();
+  },{passive:false});
+  grid.addEventListener('lostpointercapture',()=>{if(pointerId!==null&&!dragging&&!swiping)finish()});
+  grid.addEventListener('contextmenu',event=>{if(dragging)event.preventDefault()});
+  grid.addEventListener('click',event=>{
+    if(Date.now()<suppressUntil){event.preventDefault();event.stopPropagation();}
+  },true);
+})();
 
 $('[data-close-contact]')?.addEventListener('click', () => $('#contactDialog')?.close());
 $('#contactDialog')?.addEventListener('click', event => { if (event.target === $('#contactDialog')) $('#contactDialog').close(); });
@@ -643,6 +758,7 @@ function showLinksOnce() { if (linksShown) return; linksShown = true; renderLink
 async function hydrate() {
   if (!SUPABASE_URL.startsWith('https://') || !SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')) { showLinksOnce(); return; }
   try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     const client = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
     liveClient = client;
     const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1800));

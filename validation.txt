@@ -1,2 +1,5 @@
-admin.js: patched login flow and timeout
-links.js: patched calendar conflict reset
+tour-back-reversible: OK
+node-check: OK
+calendars-unified-v29: OK
+gestures-admin-links-picker: OK
+tour-12-steps: OK

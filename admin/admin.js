@@ -1,5 +1,6 @@
 import { markLoaderHtml } from './loader.js';
-import { holidayForKey } from '../js/holidays.js';
+import { holidayForKey, monthTitle } from '../js/holidays.js?v=20261008-1';
+import { initAdminTour, startAdminTour } from './tour.js?v=17';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '../js/config.js';
 import { CARD_ICONS, cardIconSvg, resolveCardIcon } from '../js/card-icons.js';
@@ -13,6 +14,34 @@ const cardPages=[['casa','Por dentro da casa'],['estrutura','A vida à beira-mar
 const defaultCarouselImages=new Set(['./assets/gallery/detalhe-03.jpg','./assets/gallery/detalhe-11.jpg','./assets/gallery/detalhe-13.jpg','./assets/gallery/casa-05.jpg']);
 const featureIcons=[['quartos','Quartos'],['praia','Mar'],['limpeza','Serviço'],['gourmet','Área gourmet'],['piscina','Piscina e sauna'],['wifi','Wi-Fi'],['carro','Garagem'],['pets','Pets'],['horario','Horários']];
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function formatPhoneBr(value){
+  const raw=String(value??'');
+  const digits=raw.replace(/\D/g,'').slice(0,13);
+  const local=digits.startsWith('55') && digits.length>11 ? digits.slice(2) : digits;
+  if(local.length<=2)return local.length?`(${local}`:'';
+  if(local.length<=6)return `(${local.slice(0,2)}) ${local.slice(2)}`;
+  if(local.length<=10)return `(${local.slice(0,2)}) ${local.slice(2,6)}-${local.slice(6)}`;
+  return `(${local.slice(0,2)}) ${local.slice(2,7)}-${local.slice(7,11)}`;
+}
+function normalizePhoneDigits(value){
+  const digits=String(value??'').replace(/\D/g,'');
+  const local=digits.startsWith('55') && digits.length>=12 ? digits.slice(2) : digits;
+  return (local.length===10||local.length===11) ? `55${local}` : digits;
+}
+function bindPhoneMask(root=document){
+  root.querySelectorAll('input[name="phone"],input[name="whatsapp"],textarea[name="phones"]').forEach(el=>{
+    if(el.dataset.phoneMask==='1')return;
+    el.dataset.phoneMask='1';
+    const apply=()=>{
+      if(el.tagName==='TEXTAREA'){
+        el.value=el.value.split(/\n/).map(line=>formatPhoneBr(line)).join('\n');
+      }else el.value=formatPhoneBr(el.value);
+    };
+    el.addEventListener('input',apply);
+    el.addEventListener('blur',apply);
+  });
+}
+
 const orderOf=row=>Number(row.position??row.sort_order)||0;
 function orderedRows(data){return [...data].sort((a,b)=>orderOf(a)-orderOf(b)||String(a.id).localeCompare(String(b.id)))}
 async function assignPositions(table,list){for(let i=0;i<list.length;i++){if(Number(list[i].position)===i+1)continue;const {error}=await supabase.from(table).update({position:i+1}).eq('id',list[i].id);if(error)throw error}}
@@ -24,17 +53,77 @@ function message(text,error=false){$('#loginMsg').textContent=text||'';$('#login
 function configured(){return SUPABASE_URL.startsWith('https://')&&SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')}
 function showLogin(){const login=$('#login'),app=$('#app');app.hidden=true;app.style.display='none';login.hidden=false;login.style.removeProperty('display');login.setAttribute('aria-hidden','false');app.setAttribute('aria-hidden','true')}
 let welcomeOpenedForSession=false;
+const tourDone=()=>localStorage.getItem('casaAdminTourDone')==='1';
+// Boas-vindas + convite ao tutorial guiado (o tutorial só é oferecido enquanto não foi concluído/dispensado).
 function showWelcome(){
   if(welcomeOpenedForSession||localStorage.getItem('casaAdminWelcomeHidden')==='true'||sessionStorage.getItem('casaAdminWelcomeSeen')==='true')return;
   welcomeOpenedForSession=true;
-  const dialog=document.createElement('dialog');dialog.className='admin-dialog welcome-dialog';dialog.setAttribute('aria-labelledby','welcomeTitle');
-  dialog.innerHTML=`<form class="welcome-content"><div class="admin-dialog-mark">8</div><p class="eyebrow">CASA OITO DEL MARE · PAINEL</p><h2 id="welcomeTitle">Boas-vindas.</h2><p class="welcome-intro">Este é o espaço para cuidar do conteúdo e da rotina da casa.</p><div class="welcome-guide"><div><span>01</span><p><b>Conteúdo do site</b><small>Atualize fotos, vídeos, comodidades, textos e cards exibidos aos visitantes.</small></p></div><div><span>02</span><p><b>Reservas e agenda</b><small>Consulte datas e mantenha as informações de disponibilidade organizadas.</small></p></div><div><span>03</span><p><b>Publicação</b><small>Use os controles de visibilidade para escolher o que fica no ar.</small></p></div></div><label class="welcome-optout"><input type="checkbox" id="welcomeNever"><span>Não exibir novamente esta mensagem</span></label><div class="admin-dialog-actions"><button type="button" class="primary" data-welcome-close>Fechar</button></div></form>`;
-  const dismiss=()=>{if(dialog.querySelector('#welcomeNever')?.checked)localStorage.setItem('casaAdminWelcomeHidden','true');sessionStorage.setItem('casaAdminWelcomeSeen','true');dialog.close();dialog.remove()};
+  const withTour=true;
+  const dialog=document.createElement('dialog');dialog.className='admin-dialog welcome-dialog'+(withTour?' has-tour':'');dialog.setAttribute('aria-labelledby','welcomeTitle');
+  const tourPanel=withTour?`<section class="welcome-tour" aria-label="Tutorial guiado"><div class="welcome-tour-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3l12 8.5-5.2 1.2 3 5.6-2.6 1.4-3-5.6L6 18z" fill="#fff" stroke="#173b3d" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="welcome-tour-text"><span class="welcome-tour-tag">TUTORIAL GUIADO · 2 MIN</span><h3>Aprenda fazendo</h3><p>Um passo a passo curto para você dominar a agenda: <b>criar uma diária</b>, reservar um período, editar, usar a pré-reserva e excluir.</p><p class="welcome-tour-safe"><b>Ambiente de simulação:</b> nada é salvo no sistema e nenhuma reserva real é alterada.</p></div></section>`:'';
+  dialog.innerHTML=`<form class="welcome-content"><div class="admin-dialog-mark">8</div><p class="eyebrow">CASA OITO DEL MARE · PAINEL</p><h2 id="welcomeTitle">Boas-vindas.</h2><p class="welcome-intro">Seu painel para cuidar da casa, publicar o conteúdo e manter a agenda sob controle — com tudo organizado em poucos passos.</p><div class="welcome-guide"><div class="welcome-guide-item"><span>01</span><p><b>Conteúdo do site</b><small>Fotos, vídeos, comodidades, textos e cards que apresentam a casa aos visitantes.</small></p></div><div class="welcome-guide-item"><span>02</span><p><b>Reservas e agenda</b><small>Cadastre diárias, períodos, hóspedes e disponibilidade sem perder o histórico.</small></p></div><div class="welcome-guide-item"><span>03</span><p><b>Publicação</b><small>Defina o que fica visível no site e ajuste as informações quando quiser.</small></p></div></div>${tourPanel}<label class="welcome-optout"><input type="checkbox" id="welcomeNever"><span>${withTour?'Não mostrar esta mensagem nem o tutorial novamente':'Não exibir novamente esta mensagem'}</span></label><div class="admin-dialog-actions">${withTour?'<button type="button" class="ghost" data-welcome-close>Pular por agora</button><button type="button" class="primary welcome-start" data-welcome-start>Começar tutorial</button>':'<button type="button" class="primary" data-welcome-close>Fechar</button>'}</div></form>`;
+  const scrollLock={html:'',body:'',bodyClass:false};
+  const lockPageScroll=()=>{
+    if(scrollLock.bodyClass)return;
+    const html=document.documentElement;
+    const body=document.body;
+    scrollLock.html=html.style.overflow;
+    scrollLock.body=body.style.overflow;
+    scrollLock.bodyClass=true;
+    html.classList.add('welcome-dialog-open');
+    body.classList.add('welcome-dialog-open');
+    html.style.overflow='hidden';
+    body.style.overflow='hidden';
+  };
+  const unlockPageScroll=()=>{
+    if(!scrollLock.bodyClass)return;
+    const html=document.documentElement;
+    const body=document.body;
+    html.style.overflow=scrollLock.html;
+    body.style.overflow=scrollLock.body;
+    html.classList.remove('welcome-dialog-open');
+    body.classList.remove('welcome-dialog-open');
+    scrollLock.bodyClass=false;
+  };
+  const remember=()=>{if(dialog.querySelector('#welcomeNever')?.checked){localStorage.setItem('casaAdminWelcomeHidden','true');localStorage.setItem('casaAdminTourDone','1')}sessionStorage.setItem('casaAdminWelcomeSeen','true')};
+  const dismiss=()=>{remember();unlockPageScroll();if(dialog.open)dialog.close();dialog.remove()};
   dialog.querySelector('[data-welcome-close]').onclick=dismiss;
-  dialog.addEventListener('close',()=>{if(dialog.querySelector('#welcomeNever')?.checked)localStorage.setItem('casaAdminWelcomeHidden','true');sessionStorage.setItem('casaAdminWelcomeSeen','true')},{once:true});
-  document.body.append(dialog);dialog.showModal();
+  const start=dialog.querySelector('[data-welcome-start]');
+  if(start)start.onclick=()=>{dismiss();setTimeout(()=>startAdminTour({force:true}),180)};
+  dialog.addEventListener('close',()=>{remember();unlockPageScroll()},{once:true});
+  document.body.append(dialog);
+  lockPageScroll();
+  dialog.showModal();
 }
-function showApp(){const login=$('#login'),app=$('#app');login.hidden=true;login.style.display='none';login.setAttribute('aria-hidden','true');app.hidden=false;app.style.removeProperty('display');app.setAttribute('aria-hidden','false');render(current);showWelcome()}
+async function cleanupLegacyTourTestReservation(){
+  try{
+    const row=await linkPageRecord();
+    const availability={...(row.availability||{})};
+    const reservations=Array.isArray(availability.reservations)?availability.reservations:[ ];
+    const isTutorialTest=item=>{
+      const name=String(item?.name||'').trim().toLowerCase();
+      const note=String(item?.note||'').trim().toLowerCase();
+      return item?.check_in==='2026-10-07' && ((name==='maria silva (teste)' && note.includes('diária de demonstração'))
+        || (name==='joão pereira (teste)' && (note.includes('casal') || note.includes('teste'))));
+    };
+    const cleaned=reservations.filter(item=>!isTutorialTest(item));
+    // Limpa especificamente o resíduo do tutorial antigo (inclusive 07/10),
+    // sem tocar em reservas reais que não tenham a assinatura de teste.
+    if(cleaned.length===reservations.length)return;
+    availability.reservations=cleaned;
+    const blocked=cleaned.filter(item=>item.status==='reserved'||item.status==='blocked').flatMap(item=>daysBetweenKeys(item.check_in,item.check_out));
+    availability.reservedDates=[...new Set(blocked)].sort();
+    await saveLinkPage({...row,availability});
+  }catch(error){console.warn('[Tutorial] Não foi possível limpar um teste antigo:',error)}
+}
+initAdminTour({goToReservations:async()=>{
+  // O modo simulação precisa estar ativo antes de renderizar a agenda.
+  if(window.__casaTour) window.__casaTour.sandbox=true;
+  current='reservations';
+  document.querySelectorAll('nav button[data-view]').forEach(item=>item.classList.toggle('active',item.dataset.view==='reservations'));
+  await render('reservations')
+},cleanupLegacyTest:cleanupLegacyTourTestReservation,reload:async()=>{if(current==='reservations')await render('reservations')}});
+function showApp(){const login=$('#login'),app=$('#app');login.hidden=true;login.style.display='none';login.setAttribute('aria-hidden','true');app.hidden=false;app.style.removeProperty('display');app.setAttribute('aria-hidden','false');render(current);cleanupLegacyTourTestReservation();showWelcome()}
 async function boot(){
   try{
     if(!configured()){
@@ -88,7 +177,7 @@ document.querySelectorAll('nav button[data-view]').forEach(button=>button.onclic
 async function rows(table){const result=await supabase.from(table).select('*');if(result.error)throw result.error;return result.data||[]}
 function reloadAfterMigration(){const button=$('#reloadView');if(button){button.disabled=true;button.textContent='Recarregando…';}sessionStorage.setItem('adminViewAfterReload',current);window.location.href='/admin/?refresh='+Date.now()}
 function migrationHelp(){return `<section class="migration-help"><h2>Carregar o conteúdo inicial</h2><p>As fotos e os vídeos estão incluídos nos arquivos do site. Para listá-los neste painel, é preciso cadastrar seus nomes, endereços e textos no Supabase uma vez.</p><ol><li>Abra o projeto Supabase usado pelo site e entre em <b>SQL Editor</b>.</li><li>Abra o arquivo <a href="../supabase/migrations/20261001_links_page_and_tourism.sql" target="_blank" rel="noopener">20261001_links_page_and_tourism.sql</a>, copie o conteúdo inteiro e cole numa consulta nova.</li><li>Pressione <b>Run</b> e aguarde a mensagem de sucesso. A migração usa os nomes das colunas do seu esquema: cards em <code>subtitle</code>/<code>target_section</code>/<code>position</code>, vídeos em <code>video_url</code>/<code>position</code> e ordem de fotos e comodidades em <code>position</code>.</li><li>Volte ao painel e escolha <b>Atualizei o banco · recarregar</b>. Esta migração pode ser executada novamente sem duplicar os conteúdos iniciais.</li></ol><p class="migration-small">Use o arquivo atualizado completo. Ele cria/atualiza as tabelas da página de links, pontos turísticos, calendário e também <code>public.site_content</code>, além de habilitar edição pelo painel para usuários autenticados.</p><button class="primary" id="reloadView">Atualizei o banco · recarregar</button></section>`}
-async function render(view){const root=$('#view');root.innerHTML=`<div class="view">${markLoaderHtml('Carregando')}</div>`;try{if(view==='overview')await overview();else if(view==='gallery')await gallery();else if(view==='link_page')await linkPageView();else if(view==='tourist')await touristView();else if(view==='reservations')await reservationsView();else await contentTable(view)}catch(error){const missing=/site_content|schema cache|PGRST205|42P01/i.test(`${error.code||''} ${error.message||''}`);root.innerHTML=`<div class="view"><div class="view-head"><div><p class="eyebrow">PAINEL DA CASA</p><h1>${missing?'Preparar o painel.':'Não foi possível abrir esta seção.'}</h1><p>${missing?'O Supabase ainda não encontrou a tabela de textos ou as tabelas do conteúdo inicial.':esc(error.message||'Confira a conexão com o Supabase e tente novamente.')}</p></div></div>${migrationHelp()}</div>`;$('#reloadView').onclick=reloadAfterMigration}}
+async function render(view){if(view!=='reservations')window.__casaTour?.stop?.();const root=$('#view');root.innerHTML=`<div class="view">${markLoaderHtml('Carregando')}</div>`;try{if(view==='overview')await overview();else if(view==='gallery')await gallery();else if(view==='link_page')await linkPageView();else if(view==='tourist')await touristView();else if(view==='reservations')await reservationsView();else await contentTable(view)}catch(error){const missing=/site_content|schema cache|PGRST205|42P01/i.test(`${error.code||''} ${error.message||''}`);root.innerHTML=`<div class="view"><div class="view-head"><div><p class="eyebrow">PAINEL DA CASA</p><h1>${missing?'Preparar o painel.':'Não foi possível abrir esta seção.'}</h1><p>${missing?'O Supabase ainda não encontrou a tabela de textos ou as tabelas do conteúdo inicial.':esc(error.message||'Confira a conexão com o Supabase e tente novamente.')}</p></div></div>${migrationHelp()}</div>`;$('#reloadView').onclick=reloadAfterMigration}}
 async function overview(){
   const tables=['gallery','activities','videos','tourist_points','site_content'];
   const results=await Promise.all(tables.map(async table=>{const result=await supabase.from(table).select('*',{count:'exact',head:true});return {table,count:result.error?null:(result.count||0),error:result.error}}));
@@ -280,9 +369,11 @@ async function editLinkProfile(record){
   document.body.append(dialog);const form=dialog.querySelector('form');dialog.querySelector('[data-close]').onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove(),{once:true});
   let preview=form.querySelector('.link-cover-field img'),previewUrl='';const fileInput=form.querySelector('[name="cover_file"]');
   fileInput.onchange=()=>{const file=fileInput.files[0];if(!file)return;if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=URL.createObjectURL(file);if(!preview){preview=document.createElement('img');preview.alt='Prévia da nova imagem de capa';form.querySelector('.link-cover-field').prepend(preview);form.querySelector('.link-cover-empty')?.remove()}preview.src=previewUrl};
-  form.onsubmit=async e=>{e.preventDefault();const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Salvando…';const q=n=>form.querySelector(`[name="${n}"]`).value.trim();try{let cover=p.cover_image||'';const coverFile=fileInput.files[0];if(coverFile)cover=await uploadAdminImage(coverFile,'links');const phones=q('phones').split(/\n+/).map(x=>x.trim()).filter(Boolean);record.profile={...p,name:q('name'),location:q('location'),bio:q('bio'),instagram:q('instagram'),whatsapp:q('whatsapp').replace(/\D/g,''),map:q('map'),cover_image:cover,contact:{...c,phones,instagram:q('contactInstagram')}};await saveLinkPage(record);if(previewUrl)URL.revokeObjectURL(previewUrl);dialog.close();await linkPageView()}catch(error){const notice=form.querySelector('[data-form-feedback]');notice.textContent='Não foi possível salvar: '+(error.message||error);notice.hidden=false;submit.disabled=false;submit.textContent='Salvar dados da casa'}};
-  dialog.showModal();
+  form.onsubmit=async e=>{e.preventDefault();const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Salvando…';const q=n=>form.querySelector(`[name="${n}"]`).value.trim();try{let cover=p.cover_image||'';const coverFile=fileInput.files[0];if(coverFile)cover=await uploadAdminImage(coverFile,'links');const phones=q('phones').split(/\n+/).map(x=>x.trim()).filter(Boolean);record.profile={...p,name:q('name'),location:q('location'),bio:q('bio'),instagram:q('instagram'),whatsapp:normalizePhoneDigits(q('whatsapp')),map:q('map'),cover_image:cover,contact:{...c,phones,instagram:q('contactInstagram')}};await saveLinkPage(record);if(previewUrl)URL.revokeObjectURL(previewUrl);dialog.close();await linkPageView()}catch(error){const notice=form.querySelector('[data-form-feedback]');notice.textContent='Não foi possível salvar: '+(error.message||error);notice.hidden=false;submit.disabled=false;submit.textContent='Salvar dados da casa'}};
+  bindPhoneMask(dialog);dialog.showModal();
 }
+// Legenda única dos calendários (principal e seletor de período), igual à da página de links.
+const calendarLegendHtml=(footer='')=>`<div class="cal-legend" role="list"><span role="listitem"><i class="cal-dot is-available"></i>disponível</span><span role="listitem"><i class="cal-dot is-pre"></i>pré-reserva</span><span role="listitem"><i class="cal-dot is-reserved"></i>reservado</span><span role="listitem"><i class="cal-dot is-blocked"></i>bloqueado</span><span role="listitem"><i class="cal-dot is-holiday"></i>feriado</span><span role="listitem"><i class="cal-dot is-holiday-rj"></i>feriado RJ</span></div>${footer}`;
 let reservationMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let reservationScrollLockY=0;
 function adminTodayKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
@@ -314,15 +405,27 @@ function rangeConflict(records,start,end,ignoreId=''){
   return records.find(r=>r.id!==ignoreId&&r.status&&r.status!=='available'&&r.check_in<=end&&r.check_out>=start)||null;
 }
 function showReservationConflict(){
+  document.querySelectorAll('.reservation-conflict-dialog').forEach(node=>node.remove());
   const dialog=document.createElement('dialog');
-  dialog.className='reservation-dialog reservation-conflict-dialog';
-  dialog.innerHTML='<div class="reservation-conflict-content"><p>Há outra reserva ou bloqueio dentro deste período. Escolha outras datas.</p><button type="button" class="primary" data-ok>OK</button></div>';
+  dialog.className='reservation-dialog reservation-conflict-dialog calendar-error-popup';
+  dialog.setAttribute('aria-labelledby','reservationConflictTitle');
+  dialog.innerHTML=`<div class="reservation-conflict-content">
+    <span class="reservation-conflict-close" data-close role="button" tabindex="0" aria-label="Fechar mensagem">×</span>
+    <h2 id="reservationConflictTitle">Período indisponível</h2>
+    <p class="reservation-conflict-message">Há uma data reservada entre a entrada e a saída selecionada. Escolha outro período.</p>
+    <button type="button" class="primary reservation-conflict-ok" data-ok>OK</button>
+  </div>`;
   document.body.append(dialog);
   const close=()=>{if(dialog.open)dialog.close();dialog.remove()};
   dialog.querySelector('[data-ok]').onclick=close;
+  const closeControl=dialog.querySelector('[data-close]');
+  closeControl.onclick=close;
+  closeControl.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();close()}};
   dialog.addEventListener('cancel',event=>{event.preventDefault();close()});
+  dialog.addEventListener('click',event=>{if(event.target===dialog)close()});
   dialog.addEventListener('close',()=>dialog.remove(),{once:true});
   dialog.showModal();
+  requestAnimationFrame(()=>dialog.classList.add('is-visible'));
 }
 function confirmReservationRemoval(checkIn,checkOut){
   const period=checkIn===checkOut?brDateFromKey(checkIn):`${brDateFromKey(checkIn)} a ${brDateFromKey(checkOut)}`;
@@ -346,46 +449,25 @@ function confirmReservationRemoval(checkIn,checkOut){
 async function reservationsView(){
   const record=await linkPageRecord();
   const availability=record.availability||linkPageDefaults().availability;
-  const storedRecords=reservationRecords(availability);
+  // Durante o tutorial guiado a agenda começa vazia: reservas reais não aparecem (e nada é gravado).
+  const storedRecords=window.__casaTour?.sandbox?[]:reservationRecords(availability);
   const today=adminTodayKey();
   const expiredRecords=storedRecords.filter(item=>item.check_out<today);
   const records=storedRecords.filter(item=>item.check_out>=today);
-  let draftStart=null,draftEnd=null,editingId='';
+  let draftStart=null,draftEnd=null,editingId='',gestureSuppressClickUntil=0;
   const statusMeta={reserved:['Reservado','reserved'],pre:['Pré-reservado','pre'],blocked:['Bloqueado','blocked']};
   const dateStatusFem={reserved:'reservada',pre:'pré-reservada',blocked:'bloqueada'};
   const showSelectionError=(message)=>{
-    let box=$('#view').querySelector('#reservationRangeError');
-    if(!box){box=document.createElement('div');box.id='reservationRangeError';box.className='reservation-range-error';box.setAttribute('role','alert');const panel=$('#view').querySelector('.reservation-panel');panel?.prepend(box)}
-    box.textContent=message;box.hidden=false;
-    clearTimeout(showSelectionError.timer);showSelectionError.timer=setTimeout(()=>{box.hidden=true},5200);
+    showReservationConflict(message);
   };
-  const clearSelectionError=()=>{const box=$('#view').querySelector('#reservationRangeError');if(box)box.hidden=true};
-  const renderReservationCalendar=()=>{
-    const first=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth(),1);
-    const days=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth()+1,0).getDate();
-    const offset=first.getDay();
-    const monthLabel=new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(reservationMonth);
-    const cells=[];
-    for(let i=0;i<offset;i++)cells.push('<span class="reservation-day empty"></span>');
-    for(let d=1;d<=days;d++){
-      const key=`${reservationMonth.getFullYear()}-${String(reservationMonth.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const item=reservationAt(records,key); const storedStatus=item?.status||'available';
-      const isPast=key<adminTodayKey();
-      const holiday=holidayForKey(key);
-      const status=isPast?'available':storedStatus;
-      const disabledPast=isPast;
-      const inDraft=!isPast&&draftStart&&draftEnd&&key>=draftStart&&key<=draftEnd;
-      const isStart=key===draftStart,isEnd=key===draftEnd;
-      const cls=['reservation-day',`status-${status}`,!isPast&&item?.name?'has-guest':'',inDraft?'is-range':'',!isPast&&isStart?'is-range-start':'',!isPast&&isEnd?'is-range-end':'',holiday?'is-holiday':'',holiday?.scope==='rj'?'is-holiday-rj':'',disabledPast?'is-date-disabled is-past':''].filter(Boolean).join(' ');
-      cells.push(`<button type="button" class="${cls}" data-res-date="${key}" ${holiday?`title="${esc(holiday.name)}"`:''} ${disabledPast?'disabled tabindex="-1"':''} aria-pressed="${!isPast&&item?'true':'false'}" aria-label="${brDateFromKey(key)}${isPast?', indisponível':item?', '+(statusMeta[storedStatus]?.[0]||storedStatus):''}${holiday?', '+(holiday.scope==='rj'?'feriado estadual: ':'feriado nacional: ')+holiday.name:''}"><span>${d}</span>${!isPast&&status!=='available'?'<i aria-hidden="true"></i>':''}</button>`);
-    }
-    const root=$('#view');root.querySelector('#reservationMonth').textContent=monthLabel;root.querySelector('#reservationGrid').innerHTML=cells.join('');
-    const prevButton=root.querySelector('#reservationPrev');
-    const currentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
-    if(prevButton)prevButton.disabled=reservationMonth<=currentMonth;
-    const count=records.filter(r=>r.status&&r.status!=='available').length;root.querySelector('#reservationCount').textContent=`${count} ${count===1?'reserva':'reservas'}`;
-    const registerButton=root.querySelector('[data-register-reservation]');
-    if(registerButton)registerButton.disabled=!draftStart;
+  const clearSelectionError=()=>{
+    const box=$('#view').querySelector('#reservationRangeError');
+    if(box)box.hidden=true;
+    document.querySelectorAll('.reservation-conflict-dialog').forEach(dialog=>dialog.remove());
+  };
+  let cardsSig=null;
+  const renderReservationCards=()=>{
+    const root=$('#view');
     const cardsRoot=root.querySelector('#reservationCards');
     const cards=records.filter(r=>r.status&&r.status!=='available').sort((a,b)=>a.check_in.localeCompare(b.check_in));
     cardsRoot.innerHTML=cards.length?cards.map(item=>{
@@ -409,7 +491,40 @@ async function reservationsView(){
       openReservationEditor(btn.dataset.resId);
     }));
 
-    // Delegação no próprio grid: continua funcionando mesmo depois de cada render do calendário.
+  };
+  const renderReservationCalendar=()=>{
+    const first=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth(),1);
+    const days=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth()+1,0).getDate();
+    const offset=first.getDay();
+    const monthLabel=monthTitle(reservationMonth);
+    const cells=[];
+    for(let i=0;i<offset;i++)cells.push('<span class="reservation-day empty"></span>');
+    for(let d=1;d<=days;d++){
+      const key=`${reservationMonth.getFullYear()}-${String(reservationMonth.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const item=reservationAt(records,key); const storedStatus=item?.status||'available';
+      const isPast=key<adminTodayKey();
+      const holiday=holidayForKey(key);
+      const status=isPast?'available':storedStatus;
+      const disabledPast=isPast;
+      const inDraft=!isPast&&draftStart&&draftEnd&&key>=draftStart&&key<=draftEnd;
+      const isStart=key===draftStart,isEnd=key===draftEnd;
+      const cls=['reservation-day',`status-${status}`,!isPast&&item?.name?'has-guest':'',inDraft?'is-range':'',!isPast&&isStart?'is-range-start':'',!isPast&&isEnd?'is-range-end':'',holiday?'is-holiday':'',holiday?.scope==='rj'?'is-holiday-rj':'',disabledPast?'is-date-disabled is-past':''].filter(Boolean).join(' ');
+      cells.push(`<button type="button" class="${cls}" data-res-date="${key}" ${holiday?`title="${esc(holiday.name)}"`:''} ${disabledPast?'disabled tabindex="-1"':''} aria-pressed="${!isPast&&item?'true':'false'}" aria-label="${brDateFromKey(key)}${isPast?', indisponível':item?', '+(statusMeta[storedStatus]?.[0]||storedStatus):''}${holiday?', '+(holiday.scope==='rj'?'feriado estadual: ':'feriado nacional: ')+holiday.name:''}"><span>${d}</span>${!isPast&&status!=='available'?'<i aria-hidden="true"></i>':''}</button>`);
+    }
+    const root=$('#view');root.querySelector('#reservationMonth').textContent=monthLabel;root.querySelector('#reservationGrid').innerHTML=cells.join('');
+    const prevButton=root.querySelector('#reservationPrev');
+    const currentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+    if(prevButton)prevButton.disabled=reservationMonth<=currentMonth;
+    const count=records.filter(r=>r.status&&r.status!=='available').length;root.querySelector('#reservationCount').textContent=`${count} ${count===1?'reserva':'reservas'}`;
+    const registerButton=root.querySelector('[data-register-reservation]');
+    if(registerButton)registerButton.disabled=!draftStart;
+    // A lista de cards só é refeita quando as reservas mudam (não a cada toque/arraste no calendário).
+    const cardsSignature=records.map(r=>[r.id,r.check_in,r.check_out,r.status,r.name,r.phone].join('|')).join(';');
+    if(cardsSignature!==cardsSig){cardsSig=cardsSignature;renderReservationCards()}
+  };
+  // Eventos do calendário principal: ligados uma única vez (delegação), não a cada desenho da grade.
+  const bindReservationInteractions=()=>{
+    const root=$('#view');
     const hInfo=root.querySelector('#reservationHolidayInfo');
     const showHoliday=key=>{
       if(!hInfo)return;
@@ -425,6 +540,7 @@ async function reservationsView(){
         if(!btn || !grid.contains(btn))return;
         event.preventDefault();
         event.stopPropagation();
+        if(Date.now()<gestureSuppressClickUntil)return;
         const key=btn.dataset.resDate;
         if(btn.disabled||key<adminTodayKey())return;
         showHoliday(key);
@@ -458,20 +574,121 @@ async function reservationsView(){
       };
       root.__resetReservationSelection=resetOutsideSelection;
       reservationPanel.onclick=event=>{
-        if(event.target.closest('button[data-res-date],button[data-register-reservation]'))return;
+        if(event.target.closest('button[data-res-date],button[data-register-reservation],#reservationPrev,#reservationNext'))return;
         resetOutsideSelection();
       };
       if(!document.__reservationOutsideResetHandler){
         document.__reservationOutsideResetHandler=(event)=>{
           const currentRoot=document.querySelector('#view');
           const panel=currentRoot?.querySelector('.reservation-panel');
-          if(!panel || panel.contains(event.target))return;
+          if(!panel || panel.contains(event.target) || event.target.closest?.('.tour-card'))return;
           currentRoot?.__resetReservationSelection?.();
         };
         document.addEventListener('click',document.__reservationOutsideResetHandler);
       }
     }
   };
+
+  // Gestos do calendário principal: swipe horizontal troca mês; toque longo + arraste seleciona período.
+  // A seleção continua válida mesmo quando a grade é redesenhada ao atravessar um mês.
+  // Ligado só depois que o HTML do calendário existe (antes rodava cedo demais e os gestos nunca eram ativados).
+  const bindReservationGestures=()=>{
+  const root=$('#view');
+  const reservationCalendarSection=$('#view .reservation-calendar-section');
+  if(reservationCalendarSection){
+    let holdTimer=null,edgeTimer=null,pointerId=null,dragging=false,swiping=false,touchActive=false;
+    let startX=0,startY=0,lastX=0,lastY=0,dragStartKey='',dragLastKey='',tapKey='',suppressUntil=0;
+    const currentMonth=()=>new Date(new Date().getFullYear(),new Date().getMonth(),1);
+    const stopTimers=()=>{clearTimeout(holdTimer);holdTimer=null;clearInterval(edgeTimer);edgeTimer=null};
+    const shiftMonth=dir=>{
+      const next=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth()+dir,1);
+      if(dir<0&&next<currentMonth())return false;
+      reservationMonth=next;renderReservationCalendar();return true;
+    };
+    const firstSelectableInMonth=dir=>{
+      const cells=[...document.querySelectorAll('#view #reservationGrid button[data-res-date]')];
+      const usable=cells.filter(canUse);
+      if(!usable.length)return '';
+      return dir>0?usable[0].dataset.resDate:usable[usable.length-1].dataset.resDate;
+    };
+    const keyUnder=(x,y)=>document.elementFromPoint(x,y)?.closest?.('#reservationGrid button[data-res-date]')?.dataset.resDate||'';
+    const canUse=key=>!!key&&validDateKey(key)&&key>=adminTodayKey()&&!reservationAt(records,key);
+    const applyDragKey=key=>{
+      if(!canUse(key)||key===dragLastKey)return;
+      dragLastKey=key;
+      const a=dragStartKey,b=key,nextStart=a<=b?a:b,nextEnd=a<=b?b:a;
+      if(rangeConflict(records,nextStart,nextEnd,editingId||''))return;
+      draftStart=nextStart;draftEnd=nextEnd;editingId='';clearSelectionError();renderReservationCalendar();
+    };
+    const beginLongPress=()=>{
+      if(!dragStartKey||swiping)return;
+      holdTimer=null;dragging=true;draftStart=dragStartKey;draftEnd=dragStartKey;editingId='';
+      if(pointerId!==null)try{reservationCalendarSection.setPointerCapture(pointerId)}catch{}
+      renderReservationCalendar();
+    };
+    const edgeStep=dir=>{
+      if(!dragging)return;
+      if(!shiftMonth(dir))return;
+      // Ao cruzar a borda do mês, o primeiro/último dia selecionável do novo mês
+      // entra imediatamente no período. Assim o gesto não “salta” para uma data intermediária.
+      const boundary=firstSelectableInMonth(dir);
+      if(boundary)applyDragKey(boundary);
+    };
+    const finish=()=>{stopTimers();if(pointerId!==null)try{reservationCalendarSection.releasePointerCapture(pointerId)}catch{}pointerId=null;dragging=false;swiping=false;dragStartKey='';dragLastKey='';tapKey='';touchActive=false};
+    const moveSelection=(x,y)=>{
+      if(!dragging)return;
+      lastX=x;lastY=y;
+      const key=keyUnder(x,y);if(key)applyDragKey(key);
+      const grid=$('#view #reservationGrid');if(!grid)return;const r=grid.getBoundingClientRect(),edge=52;
+      if(x>r.right-edge){if(!edgeTimer)edgeTimer=setInterval(()=>edgeStep(1),320)}
+      else if(x<r.left+edge){if(!edgeTimer)edgeTimer=setInterval(()=>edgeStep(-1),320)}
+      else{clearInterval(edgeTimer);edgeTimer=null}
+    };
+    const startGesture=(x,y,key)=>{startX=x;startY=y;lastX=x;lastY=y;dragging=false;swiping=false;dragStartKey='';dragLastKey='';tapKey=key||'';if(key&&canUse(key)){dragStartKey=key;dragLastKey=key;holdTimer=setTimeout(beginLongPress,480)}};
+    const moveGesture=(x,y)=>{
+      lastX=x;lastY=y;
+      const dx=x-startX,dy=y-startY;
+      if(!dragging&&!swiping&&(Math.abs(dx)>10||Math.abs(dy)>10)){
+        if(Math.abs(dx)>Math.abs(dy)*1.12&&Math.abs(dx)>26){swiping=true;clearTimeout(holdTimer);holdTimer=null}
+        else if(Math.abs(dy)>Math.abs(dx)){clearTimeout(holdTimer);holdTimer=null}
+      }
+      if(swiping||dragging)moveSelection(x,y);
+    };
+    const endGesture=(x,y)=>{
+      const dx=x-startX,dy=y-startY;stopTimers();
+      if(dragging){suppressUntil=Date.now()+900;renderReservationCalendar();finish();return}
+      if(swiping||(Math.abs(dx)>=52&&Math.abs(dx)>Math.abs(dy)*1.12)){
+        if(shiftMonth(dx<0?1:-1))suppressUntil=Date.now()+900;
+      }
+      finish();
+    };
+    const reservationGrid=root.querySelector('#reservationGrid');
+    if(reservationGrid)reservationGrid.style.touchAction='none';
+    // Os eventos de toque continuam indo para o elemento onde o dedo encostou, mesmo que a grade seja redesenhada
+    // (o que acontece ao iniciar o toque longo). Por isso move/end/cancel são ligados nesse elemento, e não na seção.
+    reservationCalendarSection.addEventListener('touchstart',event=>{
+      if(!event.touches.length||touchActive)return;
+      touchActive=true;
+      const t=event.touches[0],target=event.target,btn=target.closest?.('#reservationGrid button[data-res-date]');
+      startGesture(t.clientX,t.clientY,btn?.dataset.resDate||'');
+      const unbind=()=>{target.removeEventListener('touchmove',move);target.removeEventListener('touchend',end);target.removeEventListener('touchcancel',cancel)};
+      const move=ev=>{if(!touchActive||!ev.touches.length)return;const p=ev.touches[0];moveGesture(p.clientX,p.clientY);if(swiping||dragging)ev.preventDefault()};
+      const end=ev=>{unbind();if(!touchActive)return;const p=ev.changedTouches[0];endGesture(p.clientX,p.clientY)/* O clique nativo do botão trata o toque simples; não dispare btn.click() (causava clique duplo). */};
+      const cancel=()=>{unbind();if(touchActive)finish()};
+      target.addEventListener('touchmove',move,{passive:false});
+      target.addEventListener('touchend',end,{passive:false});
+      target.addEventListener('touchcancel',cancel,{passive:false});
+    },{passive:true});
+    const coarse=()=>window.matchMedia?.('(pointer:coarse)').matches||'ontouchstart' in window;
+    reservationCalendarSection.addEventListener('pointerdown',event=>{if(coarse())return;if(event.pointerType==='mouse'&&event.button!==0)return;if(pointerId!==null)return;const inGrid=event.target.closest('#reservationGrid');if(!inGrid)return;pointerId=event.pointerId;const btn=event.target.closest('#reservationGrid button[data-res-date]');startGesture(event.clientX,event.clientY,btn?.dataset.resDate||'');/* Sem captura aqui: capturar no pointerdown redirecionava o clique e o mouse deixava de selecionar datas. */},{passive:false});
+    reservationCalendarSection.addEventListener('pointermove',event=>{if(coarse()||pointerId!==event.pointerId)return;moveGesture(event.clientX,event.clientY);if((swiping||dragging)&&!reservationCalendarSection.hasPointerCapture(pointerId)){try{reservationCalendarSection.setPointerCapture(pointerId)}catch{}}if(swiping||dragging)event.preventDefault()},{passive:false});
+    reservationCalendarSection.addEventListener('pointerup',event=>{if(coarse()||pointerId!==event.pointerId)return;endGesture(event.clientX,event.clientY);event.preventDefault()},{passive:false});
+    reservationCalendarSection.addEventListener('pointercancel',event=>{if(!coarse()&&pointerId===event.pointerId)finish()},{passive:false});
+    reservationCalendarSection.addEventListener('contextmenu',event=>{if(dragging)event.preventDefault()});
+    reservationCalendarSection.addEventListener('click',event=>{if(Date.now()<suppressUntil){event.preventDefault();event.stopPropagation()}},true);
+  }
+  };
+
   const openReservationPreview=(item)=>{
     if(!item)return;
     const meta=statusMeta[item.status]||['Reservado','reserved'];
@@ -505,7 +722,7 @@ async function reservationsView(){
     const seedCheckOut=options.checkOut||current?.check_out||draftEnd||seedCheckIn;
     const preserved={status:options.status||current?.status||'reserved',name:options.name ?? current?.name ?? '',phone:options.phone ?? current?.phone ?? '',note:options.note ?? current?.note ?? ''};
     let rangeStart=seedCheckIn,rangeEnd=seedCheckOut;
-    let pickerError='',pickerHolidayKey='',pickerErrorTimer=0;
+    let pickerError='',pickerHolidayKey='',pickerErrorTimer=0,pickerSuppressClickUntil=0;
     let pickerMonth=new Date(validDateKey(target==='check_out'?seedCheckOut:seedCheckIn)?`${target==='check_out'?seedCheckOut:seedCheckIn}T12:00:00`:reservationMonth);
     pickerMonth=new Date(pickerMonth.getFullYear(),pickerMonth.getMonth(),1);
     const dialog=document.createElement('dialog');dialog.className='reservation-date-picker-dialog';
@@ -527,7 +744,7 @@ async function reservationsView(){
     };
     const render=()=>{
       const first=new Date(pickerMonth.getFullYear(),pickerMonth.getMonth(),1),days=new Date(pickerMonth.getFullYear(),pickerMonth.getMonth()+1,0).getDate(),offset=first.getDay();
-      const monthLabel=new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(pickerMonth);
+      const monthLabel=monthTitle(pickerMonth);
       const cells=[];
       for(let i=0;i<offset;i++)cells.push('<span class="reservation-day empty"></span>');
       for(let d=1;d<=days;d++){
@@ -547,15 +764,100 @@ async function reservationsView(){
         const label=`${brDateFromKey(key)}${disabled?', indisponível':', disponível'}${holiday?', '+(holiday.scope==='rj'?'feriado estadual: ':'feriado nacional: ')+holiday.name:''}`;
         cells.push(`<button type="button" class="${classes}" data-picker-date="${key}" ${holiday?`title="${esc(holiday.name)}"`:''} ${disabled?'disabled':''} aria-label="${label}" aria-pressed="${selected?'true':'false'}"><span>${d}</span>${conflict&&!isPast?'<i aria-hidden="true"></i>':''}</button>`);
       }
-      dialog.innerHTML=`<div class="reservation-date-picker"><div class="reservation-date-picker-top"><div><p class="eyebrow">${target==='range'?'PERÍODO DA ESTADIA':target==='check_in'?'NOVA ENTRADA':'NOVA SAÍDA'}</p><h2>Escolha as datas</h2><p>${target==='range'?'Toque uma vez para a entrada e outra para a saída.':'Selecione a nova data.'}</p></div><button type="button" class="reservation-close" data-picker-close aria-label="Fechar">×</button></div><div class="reservation-range-error" data-picker-error role="alert" ${pickerError?'':'hidden'}>${esc(pickerError)}</div><div class="reservation-toolbar"><button type="button" data-picker-prev aria-label="Mês anterior">‹</button><strong>${monthLabel}</strong><button type="button" data-picker-next aria-label="Próximo mês">›</button></div><div class="reservation-week"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div><div class="reservation-grid reservation-date-picker-grid">${cells.join('')}</div>${pickerHolidayHtml()}<div class="reservation-summary reservation-date-picker-legend"><span><i class="reservation-legend-available-dot"></i> disponível</span><span class="reservation-legend-pre">pré-reserva</span><span class="reservation-legend-blocked">bloqueado</span><span class="reservation-legend-holiday"><em></em>feriado</span><span class="reservation-legend-holiday"><em class="rj"></em>feriado RJ</span><span class="reservation-legend-reserved">reservado</span>${target==='range'?'<span>1º entrada · 2º saída</span>':''}</div>${target==='range'?`<button type="button" class="primary reservation-register-button" data-picker-confirm ${rangeStart?'':'disabled'}>Confirmar período</button>`:''}</div>`;
+      dialog.innerHTML=`<div class="reservation-date-picker"><div class="reservation-date-picker-top"><div><p class="eyebrow">${target==='range'?'PERÍODO DA ESTADIA':target==='check_in'?'NOVA ENTRADA':'NOVA SAÍDA'}</p><h2>Escolha as datas</h2><p>${target==='range'?'Toque para escolher. Para selecionar arrastando, mantenha o dedo pressionado e arraste — inclusive para outro mês.':'Selecione a nova data.'}</p></div><button type="button" class="reservation-close" data-picker-close aria-label="Fechar">×</button></div><div class="reservation-range-error" data-picker-error role="alert" ${pickerError?'':'hidden'}>${esc(pickerError)}</div><div class="reservation-toolbar"><button type="button" data-picker-prev aria-label="Mês anterior">‹</button><strong>${monthLabel}</strong><button type="button" data-picker-next aria-label="Próximo mês">›</button></div><div class="reservation-week"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div><div class="reservation-grid reservation-date-picker-grid">${cells.join('')}</div>${pickerHolidayHtml()}${calendarLegendHtml(target==='range'?'<div class="cal-legend-foot"><span>1º toque: entrada · 2º toque: saída</span></div>':'')}${target==='range'?`<button type="button" class="primary reservation-register-button" data-picker-confirm ${rangeStart?'':'disabled'}>Confirmar período</button>`:''}</div>`;
       const pickerPrev=dialog.querySelector('[data-picker-prev]');
       const currentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
       if(pickerPrev)pickerPrev.disabled=pickerMonth<=currentMonth;
       pickerPrev.onclick=()=>{if(pickerMonth<=currentMonth)return;pickerMonth=new Date(pickerMonth.getFullYear(),pickerMonth.getMonth()-1,1);render()};
       dialog.querySelector('[data-picker-next]').onclick=()=>{pickerMonth=new Date(pickerMonth.getFullYear(),pickerMonth.getMonth()+1,1);render()};
       dialog.querySelector('[data-picker-close]').onclick=close;
+
+      // Gesto no seletor de período: Pointer Events único, com swipe separado
+      // de toque longo + arraste. A seleção usa chaves YYYY-MM-DD e não é perdida
+      // quando o mês é redesenhado.
+      const pickerGrid=dialog.querySelector('.reservation-date-picker-grid');
+      if(pickerGrid && !dialog.dataset.pickerGestureBound){
+        dialog.dataset.pickerGestureBound='1';
+        pickerGrid.style.touchAction='none';
+        let pId=null,pStartX=0,pStartY=0,pLastX=0,pLastY=0,pDrag=false,pSwipe=false;
+        let pHold=null,pStartKey='',pLastKey='',pSuppress=0,pEdge=null;
+        const pickerCurrentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+        const stopPickerTimers=()=>{clearTimeout(pHold);pHold=null;clearInterval(pEdge);pEdge=null};
+        const pickerShift=dir=>{
+          const next=new Date(pickerMonth.getFullYear(),pickerMonth.getMonth()+dir,1);
+          if(dir<0&&next<pickerCurrentMonth)return false;
+          pickerMonth=next;render();return true;
+        };
+        const pickerKeyUnder=(x,y)=>document.elementFromPoint(x,y)?.closest?.('button[data-picker-date]')?.dataset.pickerDate||'';
+        const applyPickerDrag=key=>{
+          if(!validDateKey(key)||key<adminTodayKey())return;
+          const occupied=reservationAt(records,key);
+          const own=occupied&&current&&String(occupied.id)===String(current.id);
+          if(occupied&&!own)return;
+          if(key===pLastKey)return;
+          pLastKey=key;
+          if(key<pStartKey){rangeStart=key;rangeEnd=pStartKey}else{rangeStart=pStartKey;rangeEnd=key}
+          const conflict=rangeConflict(records,rangeStart,rangeEnd,current?.id||'');
+          if(conflict){rangeEnd='';pickerError=`Há uma data ${dateStatusFem[conflict.status]||'indisponível'} entre a entrada e a saída. Escolha outro período.`}
+          else pickerError='';
+          render();
+        };
+        const beginPickerDrag=()=>{
+          if(!pStartKey||pSwipe)return;
+          pHold=null;pDrag=true;rangeStart=pStartKey;rangeEnd=pStartKey;pickerError='';
+          try{dialog.setPointerCapture(pId)}catch{}
+          render();
+        };
+        const finishPickerGesture=()=>{
+          stopPickerTimers();
+          if(pId!==null){try{dialog.releasePointerCapture(pId)}catch{}}
+          pId=null;pDrag=false;pSwipe=false;pStartKey='';pLastKey='';
+        };
+        dialog.addEventListener('pointerdown',event=>{
+          if(event.pointerType==='mouse'&&event.button!==0)return;
+          if(pId!==null)return;
+          const btn=event.target.closest?.('button[data-picker-date]');
+          const insideGrid=event.target.closest?.('.reservation-date-picker-grid');
+          if(!insideGrid)return;
+          pId=event.pointerId;pStartX=event.clientX;pStartY=event.clientY;pLastX=event.clientX;pLastY=event.clientY;pDrag=false;pSwipe=false;
+          pStartKey='';pLastKey='';
+          if(btn&&!btn.disabled){pStartKey=btn.dataset.pickerDate;pLastKey=pStartKey;pHold=setTimeout(beginPickerDrag,420)}
+        });
+        dialog.addEventListener('pointermove',event=>{
+          if(pId!==event.pointerId)return;
+          pLastX=event.clientX;pLastY=event.clientY;
+          const dx=event.clientX-pStartX,dy=event.clientY-pStartY;
+          if(!pDrag&&!pSwipe&&(Math.abs(dx)>10||Math.abs(dy)>10)){
+            if(Math.abs(dx)>Math.abs(dy)*1.15&&Math.abs(dx)>24){pSwipe=true;clearTimeout(pHold);pHold=null;event.preventDefault()}
+            else if(Math.abs(dy)>Math.abs(dx)){clearTimeout(pHold);pHold=null}
+          }
+          if(pSwipe){event.preventDefault();return}
+          if(!pDrag)return;
+          event.preventDefault();
+          const key=pickerKeyUnder(event.clientX,event.clientY);if(key)applyPickerDrag(key);
+          const grid=dialog.querySelector('.reservation-date-picker-grid');if(!grid)return;
+          const r=grid.getBoundingClientRect(),edge=34;
+          if(event.clientX>r.right-edge){if(!pEdge)pEdge=setInterval(()=>{if(pickerShift(1)){const k=pickerKeyUnder(pLastX,pLastY);if(k)applyPickerDrag(k)}},320)}
+          else if(event.clientX<r.left+edge){if(!pEdge)pEdge=setInterval(()=>{if(pickerShift(-1)){const k=pickerKeyUnder(pLastX,pLastY);if(k)applyPickerDrag(k)}},320)}
+          else{clearInterval(pEdge);pEdge=null}
+        });
+        dialog.addEventListener('pointerup',event=>{
+          if(pId!==event.pointerId)return;
+          const dx=event.clientX-pStartX,dy=event.clientY-pStartY;stopPickerTimers();
+          if(pDrag){event.preventDefault();pSuppress=Date.now()+700;render();finishPickerGesture();return}
+          if(pSwipe||(Math.abs(dx)>=55&&Math.abs(dx)>Math.abs(dy)*1.15)){
+            event.preventDefault();if(pickerShift(dx<0?1:-1))pSuppress=Date.now()+700;
+          }
+          finishPickerGesture();
+        });
+        dialog.addEventListener('pointercancel',event=>{if(pId===event.pointerId)finishPickerGesture()});
+        dialog.addEventListener('contextmenu',event=>{if(pDrag)event.preventDefault()});
+        dialog.addEventListener('click',event=>{if(Date.now()<pSuppress){event.preventDefault();event.stopPropagation()}},true);
+      }
+
       dialog.querySelector('[data-picker-confirm]')?.addEventListener('click',finishRange);
       dialog.querySelectorAll('[data-picker-date]').forEach(btn=>btn.addEventListener('click',()=>{
+        if(Date.now()<pickerSuppressClickUntil)return;
         const picked=btn.dataset.pickerDate;
         if(target==='range'){
           // Mesmas regras do calendário de cadastro:
@@ -582,12 +884,15 @@ async function reservationsView(){
         draftStart=null;draftEnd=null;editingId='';
         openReservationEditor(current?.id||null,fromSelection,{checkIn:nextIn,checkOut:nextOut,...preserved});
       }));
+
+
+
     };
     document.body.append(dialog);
     const close=()=>{if(dialog.open)dialog.close();dialog.remove();unlockReservationScroll()};
     dialog.addEventListener('click',event=>{
       if(target!=='range')return;
-      if(event.target.closest('[data-picker-close],[data-picker-date],[data-picker-confirm]'))return;
+      if(event.target.closest('[data-picker-close],[data-picker-date],[data-picker-confirm],[data-picker-prev],[data-picker-next]'))return;
       if(!rangeStart&&!rangeEnd)return;
       rangeStart='';rangeEnd='';pickerHolidayKey='';render();
     });
@@ -628,18 +933,49 @@ async function reservationsView(){
       }catch(error){button.disabled=false;button.textContent='Salvar data';if(error.message==='Há outra reserva ou bloqueio dentro deste período. Escolha outras datas.')showReservationConflict();else alert(error.message)}
     };
     dialog.querySelector('[data-delete]')?.addEventListener('click',async()=>{const button=dialog.querySelector('[data-delete]');if(!await confirmReservationRemoval(checkIn,checkOut))return;button.disabled=true;button.textContent='Excluindo…';try{const idx=records.findIndex(r=>r.id===id);if(idx>=0)records.splice(idx,1);await persist();draftStart=null;draftEnd=null;dialog.close();renderReservationCalendar()}catch(error){button.disabled=false;button.textContent='Excluir reserva';alert(error.message)}});
-    lockReservationScroll();dialog.showModal();
+    bindPhoneMask(dialog);lockReservationScroll();dialog.showModal();
   };
   const persist=async()=>{
     const reservations=[...expiredRecords,...records].filter(r=>r.status&&r.status!=='available').map(r=>({id:r.id,check_in:r.check_in,check_out:r.check_out,status:r.status,name:r.name,phone:r.phone,note:r.note})).sort((a,b)=>a.check_in.localeCompare(b.check_in));
     const reservedDates=reservations.filter(r=>r.status==='reserved'||r.status==='blocked').flatMap(r=>daysBetweenKeys(r.check_in,r.check_out));
     const next={...availability,enabled:true,reservations,reservedDates:[...new Set(reservedDates)].sort()};
+    if(window.__casaTour?.sandbox)return; // Tutorial guiado: simulação, nada é gravado.
     await saveLinkPage({...record,availability:next});
   };
-  $('#view').innerHTML=`<div class="view reservations-view"><div class="view-head"><div><p class="eyebrow">PÁGINA DE LINKS</p><h1>Reservas.</h1><p>Selecione entrada e saída no calendário. Depois, escolha o estado e os dados da estadia.</p></div></div><div class="reservation-layout"><section class="reservation-panel"><div id="reservationRangeError" class="reservation-range-error" role="alert" hidden></div><div class="reservation-calendar-section"><div class="reservation-toolbar"><button type="button" id="reservationPrev" aria-label="Mês anterior">‹</button><strong id="reservationMonth"></strong><button type="button" id="reservationNext" aria-label="Próximo mês">›</button></div><div class="reservation-week"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div><div class="reservation-grid" id="reservationGrid"></div><div class="reservation-holiday-info" id="reservationHolidayInfo" hidden></div><div class="reservation-summary"><span><i></i> reservado</span><span class="reservation-legend-pre">pré-reserva</span><span class="reservation-legend-blocked">bloqueado</span><span>1º entrada · 2º saída</span><b id="reservationCount">0 reservas</b></div><button type="button" class="primary reservation-register-button" data-register-reservation disabled>Cadastrar reserva</button></div><div class="reservation-cards-section"><div class="reservation-cards-title"><span>RESERVAS CADASTRADAS</span><small>Por entrada</small></div><div class="reservation-cards" id="reservationCards"></div></div></section><aside class="reservation-settings reservation-howto"><p class="eyebrow">GUIA RÁPIDO</p><h2>Como cadastrar um período</h2><ol><li><b>Escolha as datas</b><span>No calendário, selecione o dia de entrada e depois o de saída. O intervalo fica destacado.</span></li><li><b>Inicie o cadastro</b><span>Com as duas datas marcadas, use o botão <strong>Cadastrar reserva</strong>.</span></li><li><b>Preencha a estadia</b><span>Escolha o estado. Se quiser, informe o nome, o telefone e uma observação.</span></li><li><b>Salve ou ajuste depois</b><span>Toque em <strong>Salvar reserva</strong>. Para mudar ou liberar datas, use <strong>Editar</strong> no card da reserva.</span></li></ol><p class="reservation-howto-note">O calendário avisa se o período escolhido conflitar com outro já cadastrado.</p></aside></div></div>`;
-  $('#reservationPrev').onclick=()=>{const currentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);if(reservationMonth<=currentMonth)return;reservationMonth=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth()-1,1);draftStart=draftEnd=null;renderReservationCalendar()};
-  $('#reservationNext').onclick=()=>{reservationMonth=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth()+1,1);draftStart=draftEnd=null;renderReservationCalendar()};
+  // Estado reversível do tutorial: permite que o botão "Voltar" desfaça a ação do passo anterior
+  // sem tocar no Supabase. O tutorial inteiro continua isolado em memória.
+  window.__casaTourSandboxController={
+    snapshot:()=>({
+      records:records.map(item=>({...item})),
+      draftStart,
+      draftEnd,
+      editingId,
+      reservationMonth: `${reservationMonth.getFullYear()}-${String(reservationMonth.getMonth()+1).padStart(2,'0')}`
+    }),
+    restore:snapshot=>{
+      if(!snapshot)return;
+      document.querySelectorAll('dialog.reservation-dialog, dialog.reservation-date-picker-dialog, dialog.reservation-preview-dialog').forEach(dialog=>{
+        try{dialog.close()}catch{}
+        dialog.remove();
+      });
+      unlockReservationScroll();
+      records.splice(0,records.length,...(snapshot.records||[]).map(item=>({...item})));
+      draftStart=snapshot.draftStart||null;
+      draftEnd=snapshot.draftEnd||null;
+      editingId=snapshot.editingId||'';
+      if(/^\d{4}-\d{2}$/.test(snapshot.reservationMonth)){const [yy,mm]=snapshot.reservationMonth.split('-').map(Number);reservationMonth=new Date(yy,mm-1,1)}
+      clearSelectionError();
+      renderReservationCalendar();
+    },
+    openEditor:(id=null, fromSelection=true, overrides={})=>openReservationEditor(id,fromSelection,overrides)
+  };
+  $('#view').innerHTML=`<div class="view reservations-view"><div class="view-head"><div><p class="eyebrow">PÁGINA DE LINKS</p><h1>Reservas.</h1><p>Selecione entrada e saída no calendário. Depois, escolha o estado e os dados da estadia.</p></div><div class="view-head-actions"><button type="button" class="tour-replay" data-tour-start>▶ Tutorial guiado</button></div></div><div class="reservation-layout"><section class="reservation-panel"><div id="reservationRangeError" class="reservation-range-error" role="alert" hidden></div><div class="reservation-calendar-section"><div class="reservation-toolbar"><button type="button" id="reservationPrev" aria-label="Mês anterior">‹</button><strong id="reservationMonth"></strong><button type="button" id="reservationNext" aria-label="Próximo mês">›</button></div><div class="reservation-week"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div><div class="reservation-grid" id="reservationGrid"></div><div class="reservation-holiday-info" id="reservationHolidayInfo" hidden></div>${calendarLegendHtml('<div class="cal-legend-foot"><span>1º toque: entrada · 2º toque: saída</span><b id="reservationCount">0 reservas</b></div>')}<button type="button" class="primary reservation-register-button" data-register-reservation disabled>Cadastrar reserva</button></div><div class="reservation-cards-section"><div class="reservation-cards-title"><span>RESERVAS CADASTRADAS</span><small>Por entrada</small></div><div class="reservation-cards" id="reservationCards"></div></div></section><aside class="reservation-settings reservation-howto"><p class="eyebrow">GUIA RÁPIDO</p><h2>Como cadastrar um período</h2><ol><li><b>Escolha as datas</b><span>No calendário, selecione o dia de entrada e depois o de saída. O intervalo fica destacado.</span></li><li><b>Inicie o cadastro</b><span>Com as duas datas marcadas, use o botão <strong>Cadastrar reserva</strong>.</span></li><li><b>Preencha a estadia</b><span>Escolha o estado. Se quiser, informe o nome, o telefone e uma observação.</span></li><li><b>Salve ou ajuste depois</b><span>Toque em <strong>Salvar reserva</strong>. Para mudar ou liberar datas, use <strong>Editar</strong> no card da reserva.</span></li></ol><p class="reservation-howto-note">O calendário avisa se o período escolhido conflitar com outro já cadastrado.</p></aside></div></div>`;
+  $('#reservationPrev').onclick=()=>{const currentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);if(reservationMonth<=currentMonth)return;reservationMonth=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth()-1,1);renderReservationCalendar()};
+  $('#reservationNext').onclick=()=>{reservationMonth=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth()+1,1);renderReservationCalendar()};
+  $('#view [data-tour-start]')?.addEventListener('click',()=>startAdminTour({force:true}));
   $('#view [data-register-reservation]').onclick=()=>{if(draftStart)openReservationEditor(null,true,{checkIn:draftStart,checkOut:draftEnd||draftStart})};
+  bindReservationInteractions();
+  bindReservationGestures();
   renderReservationCalendar();
 }
 async function editStaySettings(record){

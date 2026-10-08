@@ -9,7 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./css/links.css?v=20261006-6">
+  <link rel="stylesheet" href="./css/links.css?v=20261008-1">
+  <link rel="stylesheet" href="./css/calendar.css?v=20261008-1">
 </head>
 <body>
   <main class="links-shell">
@@ -85,13 +86,21 @@
       <div class="calendar-week" aria-hidden="true"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div>
       <div class="calendar-grid" id="calendarGrid"></div>
       <div class="calendar-holiday-info" id="calendarHolidayInfo" role="status" aria-live="polite" hidden></div>
-      <div class="calendar-error" id="calendarError" role="alert" aria-live="assertive" hidden></div>
-      <div class="calendar-legend"><span><i class="available-dot"></i> disponível</span><span><i class="pre-dot"></i> pré-reserva</span><span><i class="reserved-dot"></i> reservado</span><span><i class="holiday-national-dot"></i> nacional</span><span><i class="holiday-rj-dot"></i> RJ</span><span>1º toque · entrada</span><span>2º toque · saída</span></div>
+      <div class="cal-legend" role="list"><span role="listitem"><i class="cal-dot is-available"></i>disponível</span><span role="listitem"><i class="cal-dot is-pre"></i>pré-reserva</span><span role="listitem"><i class="cal-dot is-reserved"></i>reservado</span><span role="listitem"><i class="cal-dot is-blocked"></i>bloqueado</span><span role="listitem"><i class="cal-dot is-holiday"></i>feriado</span><span role="listitem"><i class="cal-dot is-holiday-rj"></i>feriado RJ</span></div><div class="cal-legend-foot"><span>1º toque: entrada · 2º toque: saída</span></div>
       <a class="calendar-whatsapp" id="calendarWhatsapp" href="https://wa.me/5521986362770" target="_blank" rel="noopener">Consultar esta data pelo WhatsApp <span>↗</span></a>
     </div>
   </dialog>
 
+  <dialog class="calendar-conflict-dialog" id="calendarConflictDialog" aria-labelledby="calendarConflictTitle">
+    <div class="calendar-conflict-inner">
+      <span class="calendar-conflict-close" data-close-calendar-conflict role="button" tabindex="0" aria-label="Fechar mensagem">×</span>
+      <h2 id="calendarConflictTitle">Período indisponível</h2>
+      <p>Há uma data reservada entre a entrada e a saída selecionada. Escolha outro período.</p>
+      <button type="button" class="calendar-conflict-ok" data-ok-calendar-conflict>OK</button>
+    </div>
+  </dialog>
+
   <div class="toast" id="shareToast" role="status" aria-live="polite"></div>
-  <script type="module" src="./js/links.js?v=20261006-8"></script>
+  <script type="module" src="./js/links.js?v=20261008-1"></script>
 </body>
 </html>

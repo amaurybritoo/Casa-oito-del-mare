@@ -23,3 +23,6 @@ function holidayMapForYear(year){
   return holidays;
 }
 export function holidayForKey(key){return holidayMapForYear(Number(String(key).slice(0,4))).get(key)||null}
+// Título do mês igual nos três calendários: "Outubro de 2026" (sem o "De" maiúsculo do text-transform).
+const monthFmt=new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'});
+export function monthTitle(date){const text=monthFmt.format(date);return text.charAt(0).toUpperCase()+text.slice(1)}

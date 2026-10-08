@@ -1,1 +1,1 @@
-import './admin/admin.js?v=20261006-4';
+import './admin/admin.js?v=20261008-1';

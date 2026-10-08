@@ -305,6 +305,12 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(lightbox.classList
 function runSlideshow(el,images,modal=false){const layers=[...el.querySelectorAll('.ambient-photo')];if(!layers.length||!images.length)return;let current=0,next=1;layers[0].src=images[0];layers[0].classList.add('is-visible');if(images.length===1){layers[1]?.classList.remove('is-visible');return}if(layers.length<2)return;layers[1].src=images[1];if(modal&&modalSlideshowTimer)clearInterval(modalSlideshowTimer);const timer=setInterval(()=>{next=(current+1)%2;current=(current+1)%images.length;layers[next].src=images[current];layers[next].classList.add('is-visible');layers[1-next].classList.remove('is-visible')},6500);if(modal)modalSlideshowTimer=timer;else el.dataset.timer=String(timer)}
 async function initializeCarousels(){const media=document.querySelector('.hero-media');media.classList.add('is-carousel-loading');let chosen=slidePhotos.slice(),selectionLoaded=false;if(supabase){try{const result=await supabase.from('gallery').select('image_url').eq('active',true).eq('in_carousel',true).order('position');if(!result.error){chosen=(result.data||[]).map(row=>row.image_url).filter(Boolean);selectionLoaded=true}}catch{}}if(selectionLoaded && chosen.length){slidePhotos.splice(0,slidePhotos.length,...chosen);media.replaceChildren(...chosen.map((src,index)=>{const image=document.createElement('img');image.className=`hero-image${index===0?' is-current':''}`;image.src=src;image.alt='';return image}))}const heroImages=[...media.querySelectorAll('.hero-image')];if(heroImages.length){try{await heroImages[0].decode()}catch{}}media.classList.remove('is-carousel-loading');if(heroCarouselTimer){clearInterval(heroCarouselTimer);heroCarouselTimer=null}if(heroImages.length>1){let heroIndex=0;heroCarouselTimer=setInterval(()=>{heroImages[heroIndex].classList.remove('is-current');heroIndex=(heroIndex+1)%heroImages.length;heroImages[heroIndex].classList.add('is-current')},7300)}const intro=document.querySelector('.intro');const layers=[...intro.querySelectorAll('.ambient-photo')];if(selectionLoaded && chosen.length)runSlideshow(intro.querySelector('.intro-photo'),slidePhotos);else runSlideshow(intro.querySelector('.intro-photo'),slidePhotos)}
 function observeReveals(){const revealItems=document.querySelectorAll('.reveal:not(.visible)');if(!('IntersectionObserver' in window)){revealItems.forEach(el=>el.classList.add('visible'));return}const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{threshold:.1});revealItems.forEach(el=>observer.observe(el))}
+// Mídia pesada do rodapé só começa a baixar quando o rodapé está perto da tela (não disputa banda com o topo da página).
+function whenNearViewport(el,run){
+  if(!el||!('IntersectionObserver' in window)){run();return}
+  const io=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){io.disconnect();run()}},{rootMargin:'600px 0px'});
+  io.observe(el);
+}
 function initFooterVideo(){
   const video=document.querySelector('#footerVideo');
   const gif=document.querySelector('#footerVideoGif');
@@ -320,11 +326,12 @@ function initFooterVideo(){
     video.querySelector('source')?.removeAttribute('src');
     toggle?.setAttribute('hidden','');
     gif?.removeAttribute('aria-hidden');
+    if(gif?.dataset.src)whenNearViewport(gif,()=>{gif.src=gif.dataset.src});
     return;
   }
 
   const source=video.querySelector('source[data-src]');
-  if(source && !source.src){source.src=source.dataset.src||'';video.load()}
+  const loadVideo=()=>{if(source && !source.src){source.src=source.dataset.src||'';video.load()}};
   let userPaused=false;
   video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;
   video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');video.setAttribute('autoplay','');
@@ -346,9 +353,7 @@ function initFooterVideo(){
     }else{userPaused=true;video.pause()}
     update();
   });
-  video.load();
-  requestAnimationFrame(tryPlay);
-  setTimeout(tryPlay,150);
+  whenNearViewport(video,()=>{loadVideo();requestAnimationFrame(tryPlay);setTimeout(tryPlay,150)});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)tryPlay()});
 }
 
