@@ -1,7 +1,7 @@
 import { trackPageVisit, trackWhatsappLinks } from './analytics.js';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js';
 import { CARD_ICONS, cardIconSvg, resolveCardIcon } from './card-icons.js';
-import { holidayForKey, monthTitle } from './holidays.js?v=20261008-1';
+import { holidayForKey, monthTitle, monthCrossKey } from './holidays.js?v=20261008-2';
 
 const WAVE_SVG = '<svg viewBox="0 0 1200 40" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M0 20C75 0 225 0 300 20S525 40 600 20 825 0 900 20 1125 40 1200 20V40H0Z"/></svg>';
 const SEA_HTML = `<span class="sea" aria-hidden="true"><span class="sea-body"></span><i class="sea-w w3">${WAVE_SVG}</i><i class="sea-w w2">${WAVE_SVG}</i><i class="sea-w w1">${WAVE_SVG}</i></span>`;
@@ -601,8 +601,28 @@ $('#calendarNext')?.addEventListener('click',()=>{calendarMonth=new Date(calenda
     if(pointerId!==null)try{grid.releasePointerCapture(pointerId)}catch{}
     pointerId=null;dragging=false;swiping=false;dragStartKey='';dragLastKey='';tapKey='';
   };
+  // Durante o arraste, não dá para trocar de mês se houver data reservada/bloqueada entre o início da seleção e o outro mês.
+  const pathReserved=(a,b)=>{
+    const map=availabilityStatusMap();
+    const d=new Date(+a.slice(0,4),+a.slice(5,7)-1,+a.slice(8,10)),end=new Date(+b.slice(0,4),+b.slice(5,7)-1,+b.slice(8,10));
+    for(let n=0;d<=end&&n<400;n++,d.setDate(d.getDate()+1)){const st=map.get(dateKey(d));if(st&&st!=='available')return true}
+    return false;
+  };
+  const pathBlocked=dir=>{
+    if(!dragStartKey)return false;
+    const dest=monthCrossKey(calendarMonth,dir),a=dragStartKey;
+    return pathReserved(a<dest?a:dest,a<dest?dest:a);
+  };
+  let edgeHintUntil=0;
+  // Bloqueio silencioso: sem aviso na tela, só um toque de vibração discreto (onde o aparelho suporta).
+  const edgeBlockedHint=()=>{
+    if(Date.now()<edgeHintUntil)return;edgeHintUntil=Date.now()+1800;
+    try{navigator.vibrate?.(18)}catch{}
+  };
   const edgeStep=dir=>{
-    if(!dragging||!shiftMonth(dir))return;
+    if(!dragging)return;
+    if(pathBlocked(dir)){edgeBlockedHint();return}
+    if(!shiftMonth(dir))return;
     const boundary=firstAvailable(dir);
     if(boundary)applyDragKey(boundary);
   };

@@ -148,7 +148,7 @@ function featureMarkup(item) {
 }
 
 function carouselMarkup() {
-  const layers=slidePhotos.length?`<img class="ambient-photo is-visible" src="${esc(slidePhotos[0])}" alt="">${slidePhotos.length>1?`<img class="ambient-photo" src="${esc(slidePhotos[1])}" alt="">`:''}`:'';
+  const layers=slidePhotos.length?`<img class="ambient-photo is-visible" src="${esc(slidePhotos[0])}" alt="" decoding="async">${slidePhotos.length>1?`<img class="ambient-photo" src="${esc(slidePhotos[1])}" alt="" loading="lazy" decoding="async">`:''}`:'';
   return `<div class="info-carousel" data-slideshow><div class="slideshow-layer" aria-hidden="true">${layers}</div><div class="info-carousel-copy"><blockquote>“A manhã pede uma caminhada na praia em frente — mar calmo, quase sem ondas, perfeito para começar o dia.”</blockquote><small>O RITMO DA CASA OITO</small></div></div>`;
 }
 function videoMarkup(item,index) {
@@ -319,14 +319,34 @@ function initFooterVideo(){
 
   const isMobile=window.matchMedia?.('(max-width: 700px)').matches;
   if(isMobile){
-    // No mobile usamos um GIF real: ele inicia e repete sozinho, inclusive no Safari/iPhone,
-    // sem depender das políticas de autoplay do elemento <video>.
-    video.pause();
-    video.removeAttribute('src');
-    video.querySelector('source')?.removeAttribute('src');
+    // Celular: vídeo H.264 leve (480x854, 30 fps), pausado fora da tela para poupar bateria.
+    // Se o navegador bloquear o autoplay (ex.: Modo de Pouca Energia do iPhone), cai para a imagem animada WebP.
     toggle?.setAttribute('hidden','');
-    gif?.removeAttribute('aria-hidden');
-    if(gif?.dataset.src)whenNearViewport(gif,()=>{gif.src=gif.dataset.src});
+    const showcase=video.closest('.footer-showcase');
+    const mSource=video.querySelector('source[data-src]');
+    video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;
+    video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
+    let fellBack=false;
+    const useImage=()=>{
+      if(fellBack)return;fellBack=true;video.pause();
+      showcase?.classList.add('is-image-fallback');
+      if(gif?.dataset.src){gif.src=gif.dataset.src;gif.removeAttribute('aria-hidden')}
+    };
+    const startMobile=()=>{
+      video.poster='./assets/videos/buzios-footer-loop-poster.jpg';
+      if(mSource&&!mSource.src){mSource.src=mSource.dataset.srcMobile||mSource.dataset.src||'';video.load()}
+      video.play().catch(useImage);
+      setTimeout(()=>{if(video.paused&&!fellBack)useImage()},2600);
+    };
+    video.addEventListener('error',useImage);mSource?.addEventListener('error',useImage);   // formato/arquivo indisponível
+    whenNearViewport(video,startMobile);
+    if('IntersectionObserver' in window){
+      new IntersectionObserver(entries=>entries.forEach(e=>{
+        if(fellBack||!mSource?.src)return;
+        if(e.isIntersecting){if(video.paused)video.play().catch(()=>{})}else video.pause();
+      }),{threshold:.12}).observe(video);
+    }
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!fellBack&&mSource?.src&&video.paused)video.play().catch(()=>{})});
     return;
   }
 
@@ -405,7 +425,39 @@ const checkin=quickContact.elements.checkin,checkout=quickContact.elements.check
 const today=new Date(),todayISO=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
 const followingDay=value=>{const [year,month,day]=value.split('-').map(Number),date=new Date(year,month-1,day);date.setDate(date.getDate()+1);return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`};
 checkin.min=todayISO;checkout.min=todayISO;
-quickContact.querySelectorAll('.date-input-wrap').forEach(wrap=>wrap.addEventListener('click',event=>{if(event.target.closest('input'))return;const input=wrap.querySelector('input');try{input.showPicker()}catch{}}));
+// Seletor próprio de datas: mostra as datas reservadas/bloqueadas (o calendário nativo do navegador não permite isso).
+let stayPickerPromise=null,stayPickerBusyUntil=0;
+const loadStayPicker=()=>stayPickerPromise||(stayPickerPromise=import('./stay-picker.js?v=20261008-2').then(mod=>mod.initStayPicker({checkin,checkout,getAvailability:async()=>{
+  try{await supabaseModulePromise}catch{return null}
+  initializeSupabaseClient();if(!supabase)return null;
+  const {data}=await supabase.from('link_page_settings').select('availability').eq('id',1).maybeSingle();
+  return data?.availability||null;
+}})));
+// Se o seletor não carregar, volta a dois campos de data nativos (calendário do navegador).
+const useNativeDates=()=>{quickContact.classList.add('native-dates');[checkin,checkout].forEach(input=>{input.type='date'})};
+const openStayPicker=()=>{if(Date.now()<stayPickerBusyUntil)return;stayPickerBusyUntil=Date.now()+500;loadStayPicker().then(picker=>picker.open('checkin')).catch(useNativeDates)};
+// Barra única de data: mostra "Diária" (1 data) ou "Entrada → Saída" (período) e abre o calendário ao tocar.
+const stayBar=quickContact.querySelector('#stayDateBar'),stayBarBody=quickContact.querySelector('#stayDateBody');
+const brDay=value=>value.split('-').reverse().join('/');
+const renderStayBar=()=>{
+  if(!stayBar||!stayBarBody)return;
+  const start=checkin.value,end=checkout.value;
+  stayBar.classList.toggle('has-value',!!start);
+  if(!start){
+    stayBarBody.innerHTML='<span class="stay-date-placeholder">Escolha a data ou o período</span>';
+    stayBar.setAttribute('aria-label','Escolher a data ou o período da estadia');
+  }else if(!end){
+    stayBarBody.innerHTML=`<span class="stay-date-seg"><small>Diária</small><b>${brDay(start)}</b></span>`;
+    stayBar.setAttribute('aria-label',`Diária em ${brDay(start)}. Toque para alterar.`);
+  }else{
+    const nights=Math.round((new Date(`${end}T12:00:00`)-new Date(`${start}T12:00:00`))/86400000);
+    stayBarBody.innerHTML=`<span class="stay-date-seg"><small>Entrada</small><b>${brDay(start)}</b></span><span class="stay-date-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h16M14 6l6 6-6 6"></path></svg><small>${nights} ${nights===1?'noite':'noites'}</small></span><span class="stay-date-seg"><small>Saída</small><b>${brDay(end)}</b></span>`;
+    stayBar.setAttribute('aria-label',`Entrada ${brDay(start)}, saída ${brDay(end)}, ${nights} ${nights===1?'noite':'noites'}. Toque para alterar.`);
+  }
+};
+stayBar?.addEventListener('click',openStayPicker);
+checkin.addEventListener('change',renderStayBar);checkout.addEventListener('change',renderStayBar);
+setTimeout(()=>{loadStayPicker().catch(()=>{})},2500);   // carrega o seletor em segundo plano
 checkin.addEventListener('change',()=>{checkin.setCustomValidity('');checkout.min=checkin.value?followingDay(checkin.value):todayISO;if(checkout.value&&checkin.value&&checkout.value<=checkin.value)checkout.setCustomValidity('A saída precisa ser pelo menos um dia depois da entrada.');else checkout.setCustomValidity('')});
 checkout.addEventListener('change',()=>{checkin.setCustomValidity('');if(checkin.value&&checkout.value&&checkout.value<=checkin.value)checkout.setCustomValidity('A saída precisa ser depois da entrada.');else checkout.setCustomValidity('')});
 quickContact.addEventListener('submit',event=>{event.preventDefault();const form=new FormData(quickContact);const recipient=form.get('contact')==='monica'?'5521986362770':'5521986357913';const start=checkin.value,end=checkout.value;if(start&&end&&end<=start){checkout.setCustomValidity('A saída precisa ser depois da entrada.');checkout.reportValidity();return}checkout.setCustomValidity('');const dateLabel=value=>new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'}).format(new Date(`${value}T12:00:00`));let stay='';if(start&&end)stay=`Tenho interesse em me hospedar de ${dateLabel(start)} a ${dateLabel(end)}.`;else if(start)stay=`Gostaria de consultar uma diária em ${dateLabel(start)}.`;const message=[`Olá! Meu nome é ${form.get('name')} e gostaria de falar sobre a Casa Oito Del Mare.`,stay,form.get('message')].filter(Boolean).join('\n');recordSiteEvent('whatsapp_click','home');window.open(`https://wa.me/${recipient}?text=${encodeURIComponent(message)}`,'_blank','noopener')});

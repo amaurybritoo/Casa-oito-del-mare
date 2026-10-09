@@ -68,3 +68,22 @@ V4: visual premium clean na página de links, sem bordas decorativas e carrossel
 **Tela de boas-vindas.** Redesenhada em `admin/welcome.css` (arquivo único; as cinco camadas de CSS antigas foram removidas do `admin.css`): cabeçalho centralizado com emblema, as três áreas lado a lado no desktop, cartão do tutorial, opção "não mostrar" e botões num rodapé fixo (a parte de cima rola; os botões ficam sempre visíveis). No celular os botões ficam empilhados.
 
 **Importante para publicar.** Em `admin/index.html` os CSS são carregados por caminho absoluto (`/admin/admin.css`, `/admin/overview.css`, `/admin/welcome.css`, `/css/calendar.css`). Não troque por `./...`: em hospedagens com URLs limpas o painel abre em `/admin` (sem barra final) e um caminho relativo vira `/admin.css`, que não existe — o painel fica sem CSS (só aparece o estilo embutido no HTML). Por isso também existe o `admin.js` na raiz (ele repassa para `admin/admin.js`). Ao publicar, envie a pasta inteira, incluindo os arquivos novos `css/calendar.css` e `admin/welcome.css`.
+
+## v29 (ajustes finais) — arraste entre meses, boas-vindas e tutorial no celular, mobile
+- **Arrastar para escolher período:** durante o arraste (calendário do painel, seletor de período da edição de reserva e página de links) o mês **não troca** se houver data reservada, pré-reservada ou bloqueada entre o início da seleção e o outro mês. O celular vibra de leve (sem aviso na tela). Sem reserva no caminho, a troca de mês continua funcionando.
+- **Boas-vindas no celular:** folha ancorada embaixo, compacta (cabeçalho em linha, três áreas em colunas, cartão do tutorial, botão grande "Começar tutorial" e "Pular por agora" como link). Tudo cabe sem rolar na maioria dos aparelhos.
+- **Tutorial no celular:** o bloco "Entenda o passo" fica recolhido (toque para abrir), então o cartão ocupa bem menos tela e deixa o calendário visível; botões maiores; animação do destaque mais leve.
+- **Mobile em geral:** sem atraso de toque nos botões; desfoque de fundo (caro no celular) desligado em janelas e menus; SDK do Supabase começa a baixar mais cedo na página de links; mídia pesada do rodapé da home só baixa quando perto da tela.
+
+## v29 (rodada final) — confete, datas da home, vídeo mobile, WhatsApp
+- **Tutorial:** o fundo escurece em **todo** cartão de "Próximo passo" (antes não escurecia nos passos sem janela aberta). Confete refeito: arco com gravidade e arrasto, giro em 3D, peças variadas (retângulos, fitas, círculos, estrelas, faíscas), clarão ao redor do cartão e uma segunda leva; leve no celular (menos peças) e desligado se o aparelho pedir menos animação.
+- **Aviso "Não dá para trocar de mês" removido** (o bloqueio continua; só a vibração discreta no Android).
+- **Home — datas da estadia:** os campos Entrada/Saída agora abrem um calendário próprio (`js/stay-picker.js`), igual ao do painel e da página de links, com datas reservadas, pré-reservadas e bloqueadas marcadas e não selecionáveis; período com data ocupada no meio é recusado. Se o seletor não carregar, volta ao calendário nativo do navegador. A disponibilidade vem da mesma tabela `link_page_settings` da página de links.
+- **Rodapé no celular:** o GIF de 3,7 MB (8 fps) foi trocado por vídeo leve de 536 KB a 30 fps (`assets/videos/buzios-footer-loop-mobile.mp4`), que só baixa perto do rodapé e pausa fora da tela. Se o autoplay for bloqueado (ex.: Modo de Pouca Energia do iPhone), entra um WebP animado (`assets/gif/buzios-footer-loop-mobile.webp`, 24 fps). O GIF antigo foi removido.
+- **Botão do WhatsApp:** anéis que se expandem, "respiração" e balanço periódico do ícone (só transform/opacidade, leve no celular).
+
+## v29 (home) — barra única de data/período
+No formulário da home, os campos Entrada e Saída viraram **uma única barra de largura total** (`#stayDateBar`). Tocar nela abre o calendário (`js/stay-picker.js`, mesmo visual do painel e da página de links; datas reservadas/pré-reservadas/bloqueadas marcadas e não selecionáveis):
+- **1 toque** em uma data = **diária**; a barra mostra "DIÁRIA 16/10/2026".
+- **2 toques** = **período**; a barra mostra "ENTRADA 16/10/2026 → SAÍDA 19/10/2026" com o número de noites.
+- Os campos `checkin`/`checkout` continuam existindo (ocultos) e a mensagem do WhatsApp segue igual. Se o seletor não carregar, a página volta a usar dois campos de data nativos.

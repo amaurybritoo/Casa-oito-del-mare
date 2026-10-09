@@ -26,3 +26,5 @@ export function holidayForKey(key){return holidayMapForYear(Number(String(key).s
 // Título do mês igual nos três calendários: "Outubro de 2026" (sem o "De" maiúsculo do text-transform).
 const monthFmt=new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'});
 export function monthTitle(date){const text=monthFmt.format(date);return text.charAt(0).toUpperCase()+text.slice(1)}
+// Dia do OUTRO mês que um arraste alcançaria ao trocar de mês: 1º dia do próximo (dir>0) ou último do anterior (dir<0).
+export function monthCrossKey(visibleMonth,dir){const d=dir>0?new Date(visibleMonth.getFullYear(),visibleMonth.getMonth()+1,1):new Date(visibleMonth.getFullYear(),visibleMonth.getMonth(),0);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}

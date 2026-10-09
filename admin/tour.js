@@ -42,7 +42,14 @@ const css = `
 .tour-say:before{content:'';flex:none;width:26px;height:26px;border-radius:50%;background:#c9965f url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 3l12 8.5-5.2 1.2 3 5.6-2.6 1.4-3-5.6L6 18z' fill='%23fff'/%3E%3C/svg%3E") center/15px no-repeat}
 .tour-card.is-done .tour-say{background:#e2f1e6;border-color:#b6dcc0;color:#1d6a3a}
 .tour-card.is-done .tour-say:before{background:#2f9e5b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/15px no-repeat}
-.tour-actions .tour-next{position:relative;isolation:isolate;overflow:hidden;min-width:170px;background:linear-gradient(135deg,#16834b,#2f9e5b);color:#fff;border:1px solid #147343;box-shadow:0 10px 22px rgba(47,158,91,.25),inset 0 1px 0 rgba(255,255,255,.18);font-weight:800;letter-spacing:.01em;transition:transform .2s ease,box-shadow .2s ease,filter .2s ease}.tour-actions .tour-next:before{content:'';position:absolute;inset:-40% auto -40% -35%;width:34%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent);transform:skewX(-18deg) translateX(-180%);animation:tourNextShine 2.6s ease-in-out infinite;pointer-events:none;z-index:-1}.tour-actions .tour-next:after{content:'→';margin-left:9px;font-size:17px;display:inline-block;transition:transform .2s ease}.tour-actions .tour-next:hover{transform:translateY(-2px);filter:saturate(1.08);box-shadow:0 15px 30px rgba(47,158,91,.34),inset 0 1px 0 rgba(255,255,255,.22)}.tour-actions .tour-next:hover:after{transform:translateX(4px)}.tour-actions .tour-next:active{transform:translateY(0) scale(.98)}.tour-actions .tour-next:focus-visible{outline:3px solid rgba(47,158,91,.28);outline-offset:3px}@keyframes tourNextShine{0%,55%{transform:skewX(-18deg) translateX(-180%)}75%,100%{transform:skewX(-18deg) translateX(430%)}}.tour-card.is-done{animation:tourDoneIn .34s cubic-bezier(.18,.8,.24,1) both}.tour-card.is-done .tour-actions{justify-content:center}.tour-card.is-done .tour-next{animation:tourNextPop .42s .08s cubic-bezier(.18,.85,.25,1) both}@keyframes tourDoneIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.90)}65%{opacity:1;transform:translate(-50%,-50%) scale(1.025)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}@keyframes tourNextPop{0%{opacity:0;transform:translateY(10px) scale(.9)}100%{opacity:1;transform:translateY(0) scale(1)}}.tour-confetti{position:fixed;z-index:2147483005;left:0;top:0;width:100vw;height:100vh;pointer-events:none;overflow:hidden}.tour-confetti i{position:absolute;left:var(--cx);top:var(--cy);width:var(--w);height:var(--h);border-radius:2px;background:var(--c);transform:translate(-50%,-50%) rotate(var(--r)) scale(.45);animation:tourConfetti var(--dur) cubic-bezier(.08,.72,.2,1) forwards;animation-delay:var(--d);will-change:transform,opacity}.tour-confetti i.star{width:13px;height:13px;background:transparent}.tour-confetti i.star:before{content:'✦';position:absolute;inset:0;color:var(--c);font-size:17px;line-height:13px;text-align:center;text-shadow:0 0 8px rgba(255,255,255,.5)}.tour-confetti i.ribbon{width:4px;height:25px;border-radius:99px}.tour-confetti i.dot{width:9px;height:9px;border-radius:50%}@keyframes tourConfetti{0%{opacity:0;transform:translate(-50%,-50%) translate(0,0) rotate(0) scale(.45)}10%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) translate(var(--x),var(--fall)) rotate(var(--rot)) scale(1)}}
+.tour-actions .tour-next{position:relative;isolation:isolate;overflow:hidden;min-width:170px;background:linear-gradient(135deg,#16834b,#2f9e5b);color:#fff;border:1px solid #147343;box-shadow:0 10px 22px rgba(47,158,91,.25),inset 0 1px 0 rgba(255,255,255,.18);font-weight:800;letter-spacing:.01em;transition:transform .2s ease,box-shadow .2s ease,filter .2s ease}.tour-actions .tour-next:before{content:'';position:absolute;inset:-40% auto -40% -35%;width:34%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent);transform:skewX(-18deg) translateX(-180%);animation:tourNextShine 2.6s ease-in-out infinite;pointer-events:none;z-index:-1}.tour-actions .tour-next:after{content:'→';margin-left:9px;font-size:17px;display:inline-block;transition:transform .2s ease}.tour-actions .tour-next:hover{transform:translateY(-2px);filter:saturate(1.08);box-shadow:0 15px 30px rgba(47,158,91,.34),inset 0 1px 0 rgba(255,255,255,.22)}.tour-actions .tour-next:hover:after{transform:translateX(4px)}.tour-actions .tour-next:active{transform:translateY(0) scale(.98)}.tour-actions .tour-next:focus-visible{outline:3px solid rgba(47,158,91,.28);outline-offset:3px}@keyframes tourNextShine{0%,55%{transform:skewX(-18deg) translateX(-180%)}75%,100%{transform:skewX(-18deg) translateX(430%)}}.tour-card.is-done{animation:tourDoneIn .34s cubic-bezier(.18,.8,.24,1) both}.tour-card.is-done .tour-actions{justify-content:center}.tour-card.is-done .tour-next{animation:tourNextPop .42s .08s cubic-bezier(.18,.85,.25,1) both}@keyframes tourDoneIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.90)}65%{opacity:1;transform:translate(-50%,-50%) scale(1.025)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}@keyframes tourNextPop{0%{opacity:0;transform:translateY(10px) scale(.9)}100%{opacity:1;transform:translateY(0) scale(1)}}.tour-confetti{position:fixed;z-index:2147483005;left:0;top:0;width:100vw;height:100vh;pointer-events:none;overflow:hidden;contain:layout paint style}
+.tour-confetti i{position:absolute;left:0;top:0;display:block;width:var(--w);height:var(--h);margin:calc(var(--h)/-2) 0 0 calc(var(--w)/-2);border-radius:2px;background:var(--c);opacity:0;will-change:transform,opacity}
+.tour-confetti i.dot{border-radius:50%}
+.tour-confetti i.ribbon{border-radius:99px}
+.tour-confetti i.spark{border-radius:50%;box-shadow:0 0 9px 2px var(--c)}
+.tour-confetti i.star{background:transparent;overflow:visible}
+.tour-confetti i.star:before{content:'✦';position:absolute;inset:0;color:var(--c);font-size:var(--h);line-height:var(--h);text-align:center;text-shadow:0 0 9px rgba(255,255,255,.55)}
+.tour-confetti-flash{position:absolute;border-radius:24px;opacity:0;pointer-events:none;box-shadow:0 0 0 2px rgba(240,196,138,.95),0 0 56px 12px rgba(240,196,138,.5),inset 0 0 40px rgba(240,196,138,.25);will-change:transform,opacity}
 .tour-body{color:#445c5a;font-size:12.5px}.tour-body p{margin:0 0 6px}.tour-body p:last-child{margin-bottom:0}
 .tour-body.is-tip{padding:10px 12px;border-radius:12px;background:#f0f3ee}
 .tour-body.is-tip:before{content:'Entenda';display:block;margin-bottom:3px;font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#8b7a5f}
@@ -65,7 +72,22 @@ const css = `
   .tour-say{font-size:13px;margin-bottom:8px;padding:9px 10px}
   .tour-actions .tour-next{min-width:164px}
   .tour-card.is-done{width:calc(100vw - 24px)!important;max-width:none!important}
+  .tour-card{max-height:min(46dvh,380px)!important;touch-action:manipulation}
+  .tour-back{width:40px;height:40px;border-radius:12px}
+  .tour-skip{padding:10px 6px;font-size:12px}
+  .tour-body.is-tip{position:relative;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .tour-body.is-tip:before{display:flex;align-items:center;margin:0;padding:11px 36px 11px 12px;font-size:10px}
+  .tour-body.is-tip:after{content:'';position:absolute;right:15px;top:13px;width:7px;height:7px;border-right:2px solid #8b7a5f;border-bottom:2px solid #8b7a5f;transform:rotate(45deg);transition:transform .2s}
+  .tour-body.is-tip>*{display:none}
+  .tour-body.is-tip.is-open{padding:0 12px 10px}
+  .tour-body.is-tip.is-open:before{padding:11px 24px 6px 0}
+  .tour-body.is-tip.is-open:after{top:16px;transform:rotate(-135deg)}
+  .tour-body.is-tip.is-open>*{display:block}
+  .tour-actions button{min-height:48px}
+  .tour-ring{box-shadow:0 0 0 5px rgba(240,196,138,.28),0 0 14px rgba(240,196,138,.5);animation:tourPulseM 1.6s ease-in-out infinite;will-change:opacity}
+  .tour-shade.is-completion{backdrop-filter:none;-webkit-backdrop-filter:none}
 }
+@keyframes tourPulseM{0%,100%{opacity:1}50%{opacity:.55}}
 
 `;
 function ensureStyle() {
@@ -255,46 +277,76 @@ function scrollByDelta(el, delta, dlg) {
 }
 
 function burstConfetti(origin, host=document.body){
-  const old=document.querySelector('.tour-confetti'); old?.remove();
-  const layer=document.createElement('div'); layer.className='tour-confetti';
-  const colors=['#2f9e5b','#16834b','#f0c48a','#c9965f','#173b3d','#e9d9bd','#7fcf9e','#fff4d8'];
-  const rect=origin || {left:window.innerWidth/2,top:window.innerHeight/2,width:0,height:0};
-  const left=rect.left, top=rect.top, right=rect.left+(rect.width||0), bottom=rect.top+(rect.height||0);
-  const width=Math.max(1,rect.width||0), height=Math.max(1,rect.height||0);
-  const origins=[
-    {side:'top',    x:left+width*(.08+Math.random()*.84), y:top-3,     dx:0,  dy:-1},
-    {side:'right',  x:right+3, y:top+height*(.08+Math.random()*.84), dx:1,  dy:0},
-    {side:'bottom', x:left+width*(.08+Math.random()*.84), y:bottom+3,  dx:0,  dy:1},
-    {side:'left',   x:left-3, y:top+height*(.08+Math.random()*.84),  dx:-1, dy:0}
-  ];
-  const total=Math.min(120,Math.max(80,Math.round(window.innerWidth/11)));
-  for(let i=0;i<total;i++){
-    const p=document.createElement('i');
-    const o=origins[i%origins.length];
-    const tangent=(Math.random()-.5)*Math.max(80,Math.min(width,height)*.9);
-    const outward=120+Math.random()*Math.min(560,Math.max(360,window.innerHeight*.62));
-    let x=o.dx*outward, fall=o.dy*outward;
-    if(o.side==='top'||o.side==='bottom') x+=tangent;
-    else fall+=tangent;
-    // Um pequeno componente diagonal deixa a explosão sair em leque, não em quatro linhas rígidas.
-    x += (Math.random()-.5)*150;
-    fall += (Math.random()-.5)*130;
-    p.className=Math.random()<.18?'star':Math.random()<.2?'ribbon':Math.random()<.22?'dot':'';
-    p.style.setProperty('--cx',`${Math.round(o.x)}px`);
-    p.style.setProperty('--cy',`${Math.round(o.y)}px`);
-    p.style.setProperty('--x',`${Math.round(x)}px`);
-    p.style.setProperty('--fall',`${Math.round(fall)}px`);
-    p.style.setProperty('--r',`${Math.round(Math.random()*360-180)}deg`);
-    p.style.setProperty('--rot',`${Math.round(360+Math.random()*1080)}deg`);
-    p.style.setProperty('--d',`${Math.round(Math.random()*35)}ms`);
-    p.style.setProperty('--dur',`${Math.round(1050+Math.random()*850)}ms`);
-    p.style.setProperty('--c',colors[i%colors.length]);
-    p.style.setProperty('--w',`${4+Math.round(Math.random()*6)}px`);
-    p.style.setProperty('--h',`${7+Math.round(Math.random()*13)}px`);
-    layer.appendChild(p);
+  document.querySelectorAll('.tour-confetti').forEach(n => n.remove());
+  const layer = document.createElement('div'); layer.className = 'tour-confetti';
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const rect = origin || { left: vw / 2, top: vh / 2, width: 0, height: 0 };
+  const w = Math.max(1, rect.width || 0), h = Math.max(1, rect.height || 0);
+  const cx = rect.left + w / 2, cy = rect.top + h / 2;
+  const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const small = vw <= 700;
+  const colors = ['#2f9e5b','#16834b','#7fcf9e','#f0c48a','#c9965f','#fff4d8','#ffd27a','#e9d9bd','#ffffff','#9ad8b4'];
+  const anims = [];
+
+  // clarão que sai do próprio card
+  const flash = document.createElement('b'); flash.className = 'tour-confetti-flash';
+  Object.assign(flash.style, { left: rect.left + 'px', top: rect.top + 'px', width: w + 'px', height: h + 'px' });
+  layer.appendChild(flash);
+  if (flash.animate) anims.push(flash.animate(
+    [{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, offset: .18, transform: 'scale(1.02)' }, { opacity: 0, transform: 'scale(1.22)' }],
+    { duration: 760, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'forwards' }));
+
+  if (!reduce && layer.animate !== undefined) {
+    const total = small ? 84 : Math.min(150, Math.max(100, Math.round(vw / 9)));
+    const G = 1500;                       // gravidade (px/s²)
+    const STEPS = 14;                     // pontos da trajetória (interpolação linear entre eles)
+    for (let i = 0; i < total; i++) {
+      const wave = i < total * .72 ? 0 : 1;                 // segunda leva menor, um instante depois
+      const p = document.createElement('i');
+      const r = Math.random();
+      p.className = r < .10 ? 'star' : r < .24 ? 'ribbon' : r < .40 ? 'dot' : r < .50 ? 'spark' : '';
+      const base = 5 + Math.random() * 6;
+      const wd = p.className === 'ribbon' ? 4 : p.className === 'star' ? 14 : p.className === 'spark' ? 4 + Math.random() * 3 : base;
+      const ht = p.className === 'ribbon' ? 20 + Math.random() * 12 : p.className === 'star' ? 14 + Math.random() * 6 : p.className === 'spark' ? wd : base * (1.1 + Math.random() * .9);
+      p.style.setProperty('--w', wd.toFixed(1) + 'px'); p.style.setProperty('--h', ht.toFixed(1) + 'px');
+      p.style.setProperty('--c', colors[i % colors.length]);
+      layer.appendChild(p);
+
+      // sai do contorno do card, para fora (com leve viés para cima, como um estouro de festa)
+      const ang = Math.random() * Math.PI * 2;
+      const ex = cx + Math.cos(ang) * (w / 2 + 2) * (.55 + Math.random() * .45);
+      const ey = cy + Math.sin(ang) * (h / 2 + 2) * (.55 + Math.random() * .45);
+      const speed = small ? (wave ? 260 : 340) + Math.random() * 380 : (wave ? 380 : 520) + Math.random() * 760;  // px/s
+      const vx0 = Math.cos(ang) * speed * (small ? .8 : 1);
+      const vy0 = Math.sin(ang) * speed - 340 - Math.random() * 220;
+      const drag = 1.7 + Math.random() * 1.3;               // arrasto do ar
+      const dur = (wave ? 1500 : 1800) + Math.random() * 1100;
+      const delay = wave ? 170 + Math.random() * 120 : Math.random() * 60;
+      const spin = (Math.random() < .5 ? -1 : 1) * (360 + Math.random() * 1000);
+      const flip = (Math.random() < .5 ? -1 : 1) * (360 + Math.random() * 900);
+      const flipFreq = 1 + Math.random() * 2;
+      const rz0 = Math.random() * 360;
+      const frames = [];
+      for (let k = 0; k <= STEPS; k++) {
+        const f = k / STEPS, t = f * dur / 1000;
+        const decay = (1 - Math.exp(-drag * t)) / drag;      // deslocamento com arrasto
+        const x = vx0 * decay;
+        const y = vy0 * decay + .5 * G * t * t * .55;
+        const sc = f < .08 ? .5 + f / .08 * .5 : 1 - Math.max(0, f - .75) * .5;
+        const sway = p.className === 'ribbon' ? Math.sin(f * Math.PI * 4 * flipFreq) * 12 : 0;
+        frames.push({
+          offset: f,
+          opacity: f < .05 ? f / .05 : f > .72 ? Math.max(0, 1 - (f - .72) / .28) : 1,
+          transform: `translate3d(${(ex + x + sway).toFixed(1)}px,${(ey + y).toFixed(1)}px,0) rotateZ(${(rz0 + spin * f).toFixed(0)}deg) rotateX(${(flip * f * flipFreq).toFixed(0)}deg) scale(${sc.toFixed(2)})`
+        });
+      }
+      anims.push(p.animate(frames, { duration: dur, delay, easing: 'linear', fill: 'both' }));
+    }
   }
   host.appendChild(layer);
-  window.setTimeout(()=>layer.remove(),2300);
+  const done = () => layer.remove();
+  if (anims.length && window.Promise) Promise.all(anims.map(a => a.finished.catch(() => {}))).then(done); 
+  window.setTimeout(done, 4200);   // garantia
 }
 
 function runTour() {
@@ -369,7 +421,15 @@ function runTour() {
     card.innerHTML = `<div class="tour-top"><button type="button" class="tour-back" ${i===0?'disabled':''} aria-label="Voltar um passo" title="Voltar um passo">‹</button><span class="tour-count" aria-label="Passo ${i + 1} de ${steps.length}">${i + 1}/${steps.length}</span><div class="tour-steps">${dots}</div><button type="button" class="tour-skip">Pular</button></div><h3></h3><p class="tour-say" hidden></p><div class="tour-body"></div><div class="tour-actions"></div>`;
     card.querySelector('h3').textContent = step.title;
     setInfo(step.html);
-    card.querySelector('.tour-body').classList.toggle('is-tip', !!step.phase);
+    const tipEl = card.querySelector('.tour-body');
+    tipEl.classList.toggle('is-tip', !!step.phase);
+    // No celular a explicação ("Entenda o passo") fica recolhida; a ação a fazer continua sempre visível.
+    if (step.phase && window.innerWidth <= 700) {
+      tipEl.setAttribute('role', 'button'); tipEl.tabIndex = 0; tipEl.setAttribute('aria-expanded', 'false');
+      const toggleTip = () => { const open = tipEl.classList.toggle('is-open'); tipEl.setAttribute('aria-expanded', String(open)); };
+      tipEl.onclick = toggleTip;
+      tipEl.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggleTip(); } };
+    }
     card.querySelector('.tour-skip').onclick = () => finish(true);
     card.querySelector('.tour-back').onclick = () => {
       if (index <= 0 || advancing) return;
@@ -561,7 +621,7 @@ function runTour() {
       return;
     }
     if (step.center || !r) {
-      shades.forEach((s, k) => { s.style.display = k === 0 && step.center ? 'block' : 'none'; });
+      shades.forEach((s, k) => { s.style.display = k === 0 && (step.center || advancing) ? 'block' : 'none'; });
       Object.assign(shades[0].style, { left: '0px', top: '0px', width: vw + 'px', height: vh + 'px' });
       cover.style.display = 'none'; return;
     }

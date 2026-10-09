@@ -1,6 +1,6 @@
 import { markLoaderHtml } from './loader.js';
-import { holidayForKey, monthTitle } from '../js/holidays.js?v=20261008-1';
-import { initAdminTour, startAdminTour } from './tour.js?v=17';
+import { holidayForKey, monthTitle, monthCrossKey } from '../js/holidays.js?v=20261008-2';
+import { initAdminTour, startAdminTour } from './tour.js?v=19';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '../js/config.js';
 import { CARD_ICONS, cardIconSvg, resolveCardIcon } from '../js/card-icons.js';
@@ -62,7 +62,7 @@ function showWelcome(){
   const dialog=document.createElement('dialog');dialog.className='admin-dialog welcome-dialog'+(withTour?' has-tour':'');dialog.setAttribute('aria-labelledby','welcomeTitle');
   const tourPanel=withTour?`<section class="welcome-tour" aria-label="Tutorial guiado"><div class="welcome-tour-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3l12 8.5-5.2 1.2 3 5.6-2.6 1.4-3-5.6L6 18z" fill="#fff" stroke="#173b3d" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="welcome-tour-text"><span class="welcome-tour-tag">TUTORIAL GUIADO · 2 MIN</span><h3>Aprenda fazendo</h3><p>Um passo a passo curto para você dominar a agenda: <b>criar uma diária</b>, reservar um período, editar, usar a pré-reserva e excluir.</p><p class="welcome-tour-safe"><b>Ambiente de simulação:</b> nada é salvo no sistema e nenhuma reserva real é alterada.</p></div></section>`:'';
   const guideItem=(n,title,text)=>`<li class="welcome-guide-item"><span aria-hidden="true">${n}</span><div><b>${title}</b><small>${text}</small></div></li>`;
-  dialog.innerHTML=`<form class="welcome-content"><div class="welcome-scroll"><header class="welcome-head"><div class="welcome-mark" aria-hidden="true">8</div><p class="eyebrow">CASA OITO DEL MARE · PAINEL</p><h2 id="welcomeTitle">Boas-vindas.</h2><p class="welcome-intro">Seu painel para cuidar da casa, publicar o conteúdo e manter a agenda sob controle — com tudo organizado em poucos passos.</p></header><ol class="welcome-guide">${guideItem('01','Conteúdo do site','Fotos, vídeos, comodidades, textos e cards que apresentam a casa aos visitantes.')}${guideItem('02','Reservas e agenda','Cadastre diárias, períodos, hóspedes e disponibilidade sem perder o histórico.')}${guideItem('03','Publicação','Defina o que fica visível no site e ajuste as informações quando quiser.')}</ol>${tourPanel}</div><footer class="welcome-footer"><label class="welcome-optout"><input type="checkbox" id="welcomeNever"><span>${withTour?'Não mostrar esta mensagem nem o tutorial novamente':'Não exibir novamente esta mensagem'}</span></label><div class="welcome-actions">${withTour?'<button type="button" class="ghost" data-welcome-close>Pular por agora</button><button type="button" class="primary welcome-start" data-welcome-start>Começar tutorial</button>':'<button type="button" class="primary welcome-start" data-welcome-close>Fechar</button>'}</div></footer></form>`;
+  dialog.innerHTML=`<form class="welcome-content"><div class="welcome-scroll"><header class="welcome-head"><div class="welcome-mark" aria-hidden="true">8</div><p class="eyebrow">CASA OITO DEL MARE · PAINEL</p><h2 id="welcomeTitle" tabindex="-1" autofocus>Boas-vindas.</h2><p class="welcome-intro">Seu painel para cuidar da casa, publicar o conteúdo e manter a agenda sob controle — com tudo organizado em poucos passos.</p></header><ol class="welcome-guide">${guideItem('01','Conteúdo do site','Fotos, vídeos, comodidades, textos e cards que apresentam a casa aos visitantes.')}${guideItem('02','Reservas e agenda','Cadastre diárias, períodos, hóspedes e disponibilidade sem perder o histórico.')}${guideItem('03','Publicação','Defina o que fica visível no site e ajuste as informações quando quiser.')}</ol>${tourPanel}</div><footer class="welcome-footer"><label class="welcome-optout"><input type="checkbox" id="welcomeNever"><span>${withTour?'Não mostrar esta mensagem nem o tutorial novamente':'Não exibir novamente esta mensagem'}</span></label><div class="welcome-actions">${withTour?'<button type="button" class="ghost" data-welcome-close>Pular por agora</button><button type="button" class="primary welcome-start" data-welcome-start>Começar tutorial</button>':'<button type="button" class="primary welcome-start" data-welcome-close>Fechar</button>'}</div></footer></form>`;
   const scrollLock={html:'',body:'',bodyClass:false};
   const lockPageScroll=()=>{
     if(scrollLock.bodyClass)return;
@@ -614,6 +614,18 @@ async function reservationsView(){
     };
     const keyUnder=(x,y)=>document.elementFromPoint(x,y)?.closest?.('#reservationGrid button[data-res-date]')?.dataset.resDate||'';
     const canUse=key=>!!key&&validDateKey(key)&&key>=adminTodayKey()&&!reservationAt(records,key);
+    // Durante o arraste, não dá para trocar de mês se houver data reservada/bloqueada entre o início da seleção e o outro mês.
+    let edgeHintUntil=0;
+    // Bloqueio silencioso: sem aviso na tela, só um toque de vibração discreto (onde o aparelho suporta).
+    const edgeBlockedHint=()=>{
+      if(Date.now()<edgeHintUntil)return;edgeHintUntil=Date.now()+1800;
+      try{navigator.vibrate?.(18)}catch{}
+    };
+    const pathBlocked=dir=>{
+      if(!dragStartKey)return false;
+      const dest=monthCrossKey(reservationMonth,dir),a=dragStartKey;
+      return !!rangeConflict(records,a<dest?a:dest,a<dest?dest:a,'');
+    };
     const applyDragKey=key=>{
       if(!canUse(key)||key===dragLastKey)return;
       dragLastKey=key;
@@ -629,6 +641,7 @@ async function reservationsView(){
     };
     const edgeStep=dir=>{
       if(!dragging)return;
+      if(pathBlocked(dir)){edgeBlockedHint();return}
       if(!shiftMonth(dir))return;
       // Ao cruzar a borda do mês, o primeiro/último dia selecionável do novo mês
       // entra imediatamente no período. Assim o gesto não “salta” para uma data intermediária.
@@ -790,6 +803,17 @@ async function reservationsView(){
           pickerMonth=next;render();return true;
         };
         const pickerKeyUnder=(x,y)=>document.elementFromPoint(x,y)?.closest?.('button[data-picker-date]')?.dataset.pickerDate||'';
+        let pHintUntil=0;
+        const pickerEdgeStep=dir=>{
+          if(pStartKey){
+            const dest=monthCrossKey(pickerMonth,dir),a=pStartKey;
+            if(rangeConflict(records,a<dest?a:dest,a<dest?dest:a,current?.id||'')){
+              if(Date.now()>=pHintUntil){pHintUntil=Date.now()+1800;try{navigator.vibrate?.(18)}catch{}}
+              return;
+            }
+          }
+          if(pickerShift(dir)){const k=pickerKeyUnder(pLastX,pLastY);if(k)applyPickerDrag(k)}
+        };
         const applyPickerDrag=key=>{
           if(!validDateKey(key)||key<adminTodayKey())return;
           const occupied=reservationAt(records,key);
@@ -838,8 +862,8 @@ async function reservationsView(){
           const key=pickerKeyUnder(event.clientX,event.clientY);if(key)applyPickerDrag(key);
           const grid=dialog.querySelector('.reservation-date-picker-grid');if(!grid)return;
           const r=grid.getBoundingClientRect(),edge=34;
-          if(event.clientX>r.right-edge){if(!pEdge)pEdge=setInterval(()=>{if(pickerShift(1)){const k=pickerKeyUnder(pLastX,pLastY);if(k)applyPickerDrag(k)}},320)}
-          else if(event.clientX<r.left+edge){if(!pEdge)pEdge=setInterval(()=>{if(pickerShift(-1)){const k=pickerKeyUnder(pLastX,pLastY);if(k)applyPickerDrag(k)}},320)}
+          if(event.clientX>r.right-edge){if(!pEdge)pEdge=setInterval(()=>pickerEdgeStep(1),320)}
+          else if(event.clientX<r.left+edge){if(!pEdge)pEdge=setInterval(()=>pickerEdgeStep(-1),320)}
           else{clearInterval(pEdge);pEdge=null}
         });
         dialog.addEventListener('pointerup',event=>{

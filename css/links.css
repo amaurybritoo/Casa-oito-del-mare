@@ -530,3 +530,9 @@ body.stay-modal-open{position:fixed;left:0;right:0;width:100%}
   a,button,.link-card{-webkit-touch-callout:none}
   #contactDialog a,#contactDialog button{-webkit-touch-callout:default}
 }
+
+/* ---- Otimizações para celular ---- */
+a,button,[role="button"],label,summary{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+@media(max-width:800px){
+  .contact-dialog::backdrop,.stay-dialog::backdrop,.calendar-conflict-dialog::backdrop,.tourism-dialog::backdrop,.cover-arrow,.page-top .share-button,.tourism-image-wrap span{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+}

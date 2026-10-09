@@ -1208,3 +1208,10 @@ html{min-height:100%;background:#173b3d}\nbody{min-height:100%;background:#f5f0e
 .tour-replay:active{transform:translateY(0) scale(.985)}
 .tour-replay:focus-visible{outline:3px solid rgba(240,196,138,.38);outline-offset:3px}
 @media(max-width:700px){.tour-replay{min-height:40px;padding:0 14px;font-size:10.5px}.tour-replay:before{width:21px;height:21px}}
+
+/* ---- Otimizações para celular ---- */
+a,button,[role="button"],label,select,summary,input[type="checkbox"],input[type="radio"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+@media(max-width:850px){
+  /* desfoque do fundo atrás de janelas/menus é caro no celular e quase não muda o visual */
+  .admin-dialog::backdrop,.reservation-dialog::backdrop,.reservation-conflict-dialog::backdrop,.reservation-confirm-dialog::backdrop,.reservation-preview-dialog::backdrop,.reservation-date-picker-dialog::backdrop,.calendar-error-popup::backdrop,#adminMenuBackdrop,.tour-card,.crop-hint,#app .photo-upload .crop-hint{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+}

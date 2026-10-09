@@ -76,6 +76,7 @@ dialog.welcome-dialog::backdrop {
   font: 800 9.5px/1 'DM Sans', Arial, sans-serif;
   letter-spacing: .27em;
 }
+.welcome-dialog h2:focus { outline: 0; }
 .welcome-dialog h2 {
   margin: 0;
   color: var(--w-ink);
@@ -237,32 +238,70 @@ dialog.welcome-dialog::backdrop {
   .welcome-guide-item small { font-size: 11.5px; line-height: 1.55; }
 }
 
-/* ---- Celular ---- */
+/* ---- Celular: folha ancorada embaixo, compacta, com área de toque grande ---- */
 @media (max-width: 520px) {
-  dialog.admin-dialog.welcome-dialog { width: calc(100vw - 20px); max-width: none; max-height: calc(100dvh - 20px); border-radius: 26px; }
-  .welcome-scroll { padding: 30px 20px 12px; }
-  .welcome-mark { width: 50px; height: 50px; font-size: 29px; }
-  .welcome-dialog h2 { font-size: 42px; }
-  .welcome-intro { font-size: 13px; }
-  .welcome-guide { margin-top: 18px; }
-  .welcome-guide-item { grid-template-columns: 38px minmax(0, 1fr); gap: 10px; padding: 11px 0; }
-  .welcome-guide-item small { font-size: 11.5px; line-height: 1.5; }
-  .welcome-guide-item > span { font-size: 24px; }
-  .welcome-tour { grid-template-columns: 46px minmax(0, 1fr); gap: 14px; margin-top: 16px; padding: 16px 15px; border-radius: 20px; }
-  .welcome-tour-icon { width: 46px; height: 46px; }
-  .welcome-tour-icon svg { width: 22px; height: 22px; }
-  .welcome-tour h3 { font-size: 25px; }
-  .welcome-tour p { font-size: 12px; }
-  .welcome-footer { padding: 14px 20px calc(18px + env(safe-area-inset-bottom, 0px)); }
-  .welcome-actions { flex-direction: column; }
-  .welcome-actions .welcome-start { order: 1; }
-  .welcome-actions .ghost { order: 2; min-height: 46px; }
+  dialog.admin-dialog.welcome-dialog {
+    width: 100%;
+    max-width: none;
+    max-height: 94dvh;
+    max-height: 94vh;
+    max-height: 94dvh;
+    margin: auto 0 0;
+    border-radius: 28px 28px 0 0;
+    border-bottom: 0;
+    box-shadow: 0 -20px 60px rgba(6, 24, 25, .4);
+  }
+  dialog.admin-dialog.welcome-dialog[open] { animation: welcomeSheetIn .42s cubic-bezier(.2, .8, .2, 1) both; }
+  dialog.welcome-dialog::backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(8, 32, 33, .7); }
+  .welcome-dialog .welcome-content::before {
+    content: "";
+    flex: none;
+    display: block;
+    width: 38px;
+    height: 4px;
+    margin: 10px auto 0;
+    border-radius: 4px;
+    background: rgba(23, 59, 61, .18);
+  }
+  .welcome-dialog .admin-dialog-close { top: 14px; right: 14px; width: 40px; height: 40px; }
+  .welcome-scroll { padding: 14px 20px 10px; }
+  .welcome-head { grid-template-columns: auto minmax(0, 1fr); justify-items: start; align-items: center; column-gap: 14px; text-align: left; padding-right: 44px; }
+  .welcome-mark { grid-row: 1 / span 2; width: 52px; height: 52px; font-size: 30px; box-shadow: 0 8px 18px rgba(192, 138, 88, .2), inset 0 0 0 4px #fbf8f1; }
+  .welcome-dialog .eyebrow { grid-column: 2; margin: 0 0 4px; font-size: 9px; letter-spacing: .22em; }
+  .welcome-dialog h2 { grid-column: 2; font-size: 38px; }
+  .welcome-intro { grid-column: 1 / -1; max-width: none; margin: 12px -44px 0 0; font-size: 13px; line-height: 1.6; }
+
+  /* três áreas em colunas: só número e título (a descrição já está no texto de abertura) */
+  .welcome-guide { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 16px; border-bottom: 1px solid var(--w-line); }
+  .welcome-guide-item { grid-template-columns: 1fr; gap: 3px; padding: 12px 8px 12px 0; border-bottom: 0; }
+  .welcome-guide-item + .welcome-guide-item { padding-left: 12px; border-left: 1px solid var(--w-line); }
+  .welcome-guide-item > span { text-align: left; font-size: 22px; }
+  .welcome-guide-item b { font-size: 12.5px; line-height: 1.25; }
+  .welcome-guide-item small { display: none; }
+
+  .welcome-tour { grid-template-columns: 42px minmax(0, 1fr); gap: 13px; margin: 14px 0 6px; padding: 15px 15px 14px; border-radius: 20px; }
+  .welcome-tour-icon { width: 42px; height: 42px; border-width: 1.5px; }
+  .welcome-tour-icon svg { width: 20px; height: 20px; }
+  .welcome-tour-tag { margin-bottom: 4px; font-size: 8.5px; }
+  .welcome-tour h3 { margin-bottom: 5px; font-size: 24px; }
+  .welcome-tour p { font-size: 12px; line-height: 1.55; }
+  .welcome-tour .welcome-tour-safe { margin-top: 9px; padding-top: 8px; font-size: 11px; line-height: 1.45; }
+
+  .welcome-footer { gap: 10px; padding: 12px 20px calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .welcome-optout { min-height: 36px; font-size: 12px; }
+  .welcome-optout input { width: 22px; height: 22px; border-radius: 7px; }
+  .welcome-actions { flex-direction: column; gap: 6px; }
   .welcome-actions button { flex: none; width: 100%; }
+  .welcome-actions .welcome-start { order: 1; min-height: 52px; border-radius: 16px; font-size: 14.5px; }
+  .welcome-actions .ghost { order: 2; min-height: 44px; border: 0; background: transparent; color: #5a6f66; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+  .welcome-actions .ghost:hover { background: transparent; }
 }
-@media (max-height: 640px) {
-  .welcome-scroll { padding-top: 26px; }
-  .welcome-guide-item { padding: 11px 0; }
+@keyframes welcomeSheetIn { from { opacity: .4; transform: translateY(36px); } to { opacity: 1; transform: none; } }
+@media (max-width: 520px) and (max-height: 640px) {
+  .welcome-intro { display: none; }
+  .welcome-guide { margin-top: 12px; }
 }
+
 @media (prefers-reduced-motion: reduce) {
   dialog.admin-dialog.welcome-dialog[open], .welcome-tour-icon::before, .welcome-tour-icon svg { animation: none; }
 }

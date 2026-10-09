@@ -235,6 +235,7 @@
 :is(.reservation-holiday-info, .calendar-holiday-info) small { display: block; margin-top: 2px; color: #71817a; font-size: 10px; }
 :is(.reservation-holiday-info, .calendar-holiday-info) em { flex: none; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #b66d59; }
 :is(.reservation-holiday-info, .calendar-holiday-info) em.rj { background: #7a699a; }
+:is(.reservation-holiday-info, .calendar-holiday-info) em.warn { background: #d49a3d; box-shadow: 0 0 0 3px rgba(212, 154, 61, .22); }
 
 /* ---- Legenda única ---- */
 .cal-legend {
