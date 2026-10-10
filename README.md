@@ -87,3 +87,7 @@ No formulário da home, os campos Entrada e Saída viraram **uma única barra de
 - **1 toque** em uma data = **diária**; a barra mostra "DIÁRIA 16/10/2026".
 - **2 toques** = **período**; a barra mostra "ENTRADA 16/10/2026 → SAÍDA 19/10/2026" com o número de noites.
 - Os campos `checkin`/`checkout` continuam existindo (ocultos) e a mensagem do WhatsApp segue igual. Se o seletor não carregar, a página volta a usar dois campos de data nativos.
+
+## v29 (home) — calendário da barra de data e cards
+- **Calendário da barra de data (home):** 1 toque seleciona entrada/diária; **2º toque na mesma data reseta** (tocar a saída de novo remove só a saída); **clicar fora das datas limpa a seleção**; **segurar e arrastar seleciona o período** (também para trás), com as mesmas regras dos outros calendários: não atravessa data reservada/pré-reservada/bloqueada e, durante o arraste, o mês só troca se não houver data ocupada no caminho. Deslizar para o lado troca o mês.
+- **Cards da home:** cada card agora tem um **selo** que identifica o conteúdo (Galeria de fotos · Estrutura e comodidades · Vídeos e mapa · Reservas e contato), **tags** do que há dentro (ex.: Sala, Cozinha, Quartos, Jardim), uma **seta** no canto e um **botão de ação** bem visível ("Ver as fotos da casa", "Ver o que a casa oferece", "Explorar Búzios", "Falar com as proprietárias"), com realce no hover/foco e efeito ao tocar. Os textos de identificação ficam em `cardMeta` no `js/app.js`; título e descrição continuam vindo do painel.

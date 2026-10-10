@@ -56,6 +56,15 @@ const featureCards = [
   {title:'Búzios em movimento',description:'Sol, mar e um horizonte que pede mais um dia.',image_url:'./assets/gallery/detalhe-13.jpg',url:'buzios',sort_order:3},
   {title:'Sua estadia começa aqui',description:'Consulte datas e converse diretamente com as proprietárias.',image_url:'./assets/gallery/casa-01.jpg',url:'reserva',sort_order:4}
 ];
+// O que cada card abre (usado para identificar o conteúdo e deixar claro que o card é clicável).
+const cardMeta = {
+  casa:{badge:'Galeria de fotos',cta:'Ver as fotos da casa',tags:['Sala','Cozinha','Quartos','Jardim']},
+  estrutura:{badge:'Estrutura e comodidades',cta:'Ver o que a casa oferece',tags:['4 quartos','Piscina e sauna','Churrasqueira','Pets']},
+  buzios:{badge:'Vídeos e mapa',cta:'Explorar Búzios',tags:['Vídeos','Mapa','Praia em frente']},
+  reserva:{badge:'Reservas e contato',cta:'Falar com as proprietárias',tags:['WhatsApp','Camila e Mônica','Instagram']}
+};
+const cardArrowSvg='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>';
+const cardOpenSvg='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"></path></svg>';
 const photos = [
   ['Sala de estar','./assets/gallery/casa-04.jpg'],['Sala de jantar','./assets/gallery/casa-01.jpg'],['Cozinha','./assets/gallery/casa-02.jpg'],
   ['Quarto','./assets/gallery/casa-03.jpg'],['Jardim e fachada','./assets/gallery/casa-05.jpg'],['Quarto','./assets/gallery/casa-06.jpg'],
@@ -128,7 +137,9 @@ function renderCard(card,index) {
   const large = index === 0 ? ' card-featured' : pageName==='reserva' ? ' card-reserve' : '';
   const icon = icons[pageName] || '☼';
   const image = card.image_url || featureCards[index % featureCards.length].image_url;
-  return `<button class="card reveal${large}" data-page="${esc(pageName)}" aria-label="${esc(card.title || 'Conheça a casa')}"><img src="${esc(image)}" alt="" loading="lazy"><span class="card-symbol" aria-hidden="true">${icon}</span><span class="card-caption"><small>CASA OITO DEL MARE · BÚZIOS</small><strong>${esc(card.title || 'Conheça a casa')}</strong><span class="card-deck">${esc(card.subtitle||card.description || 'Dias tranquilos à beira-mar.')}</span><span class="card-link">${['casa','estrutura'].includes(pageName)?'Descubra mais':pageName==='reserva'?'Consulte disponibilidade':'Explore Búzios'} </span></span></button>`;
+  const meta = cardMeta[pageName] || cardMeta.casa;
+  const title = card.title || 'Conheça a casa';
+  return `<button type="button" class="card reveal card-${esc(pageName)}${large}" data-page="${esc(pageName)}" aria-label="${esc(title)}. ${esc(meta.cta)}"><img src="${esc(image)}" alt="" loading="lazy" decoding="async"><span class="card-badge"><span class="card-badge-icon" aria-hidden="true">${icon}</span>${esc(meta.badge)}</span><span class="card-open" aria-hidden="true">${cardOpenSvg}</span><span class="card-caption"><strong>${esc(title).replace(/([\wÀ-ÿ]+-[\wÀ-ÿ]+)/g,'<span class="nb">$1</span>')}</strong><span class="card-deck">${esc(card.subtitle||card.description||'Dias tranquilos à beira-mar.')}</span><span class="card-tags" aria-hidden="true">${meta.tags.map(tag=>`<i>${esc(tag)}</i>`).join('')}</span><span class="card-cta">${esc(meta.cta)}${cardArrowSvg}</span></span></button>`;
 }
 async function renderHomeCards() {
   // Renderiza o conteúdo-base imediatamente. O Supabase só substitui depois
@@ -427,7 +438,7 @@ const followingDay=value=>{const [year,month,day]=value.split('-').map(Number),d
 checkin.min=todayISO;checkout.min=todayISO;
 // Seletor próprio de datas: mostra as datas reservadas/bloqueadas (o calendário nativo do navegador não permite isso).
 let stayPickerPromise=null,stayPickerBusyUntil=0;
-const loadStayPicker=()=>stayPickerPromise||(stayPickerPromise=import('./stay-picker.js?v=20261008-2').then(mod=>mod.initStayPicker({checkin,checkout,getAvailability:async()=>{
+const loadStayPicker=()=>stayPickerPromise||(stayPickerPromise=import('./stay-picker.js?v=20261008-3').then(mod=>mod.initStayPicker({checkin,checkout,getAvailability:async()=>{
   try{await supabaseModulePromise}catch{return null}
   initializeSupabaseClient();if(!supabase)return null;
   const {data}=await supabase.from('link_page_settings').select('availability').eq('id',1).maybeSingle();
@@ -435,7 +446,7 @@ const loadStayPicker=()=>stayPickerPromise||(stayPickerPromise=import('./stay-pi
 }})));
 // Se o seletor não carregar, volta a dois campos de data nativos (calendário do navegador).
 const useNativeDates=()=>{quickContact.classList.add('native-dates');[checkin,checkout].forEach(input=>{input.type='date'})};
-const openStayPicker=()=>{if(Date.now()<stayPickerBusyUntil)return;stayPickerBusyUntil=Date.now()+500;loadStayPicker().then(picker=>picker.open('checkin')).catch(useNativeDates)};
+const openStayPicker=()=>{if(Date.now()<stayPickerBusyUntil)return;stayPickerBusyUntil=Date.now()+500;loadStayPicker().then(picker=>picker.open()).catch(useNativeDates)};
 // Barra única de data: mostra "Diária" (1 data) ou "Entrada → Saída" (período) e abre o calendário ao tocar.
 const stayBar=quickContact.querySelector('#stayDateBar'),stayBarBody=quickContact.querySelector('#stayDateBody');
 const brDay=value=>value.split('-').reverse().join('/');

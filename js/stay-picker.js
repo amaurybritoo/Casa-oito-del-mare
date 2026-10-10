@@ -1,7 +1,7 @@
 // Seletor de datas da home (campos "Entrada" e "Saída" do formulário de contato).
 // Mesmo calendário e mesma legenda do painel e da página de links; datas reservadas,
 // pré-reservadas e bloqueadas aparecem marcadas e não podem ser escolhidas.
-import { holidayForKey, monthTitle } from './holidays.js?v=20261008-2';
+import { holidayForKey, monthTitle, monthCrossKey } from './holidays.js?v=20261008-2';
 
 const pad = n => String(n).padStart(2, '0');
 const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -42,7 +42,8 @@ export function initStayPicker({ checkin, checkout, getAvailability }) {
 
   let dialog = null, grid = null, titleEl = null, summaryEl = null, infoEl = null, confirmBtn = null, prevBtn = null;
   let map = new Map(), loaded = false, loading = null;
-  let month = new Date(firstMonth), start = '', end = '', field = 'checkin';
+  let month = new Date(firstMonth), start = '', end = '';
+  let suppressUntil = 0;
 
   const statusOf = k => map.get(k) || 'available';
   const isFree = k => k >= todayKey && statusOf(k) === 'available';
@@ -77,28 +78,115 @@ export function initStayPicker({ checkin, checkout, getAvailability }) {
     prevBtn = dialog.querySelector('[data-prev]');
 
     dialog.querySelector('.stay-picker-close').addEventListener('click', () => dialog.close());
-    dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
+    // Clicar no fundo escuro fecha; clicar fora das datas (espaço vazio da janela) limpa a seleção.
+    dialog.addEventListener('click', e => {
+      if (e.target === dialog) { resetSelection(); dialog.close(); return; }
+      if (Date.now() < suppressUntil) return;
+      if (!e.target.closest('button, .calendar-day:not(.empty), .calendar-holiday-info, .cal-legend')) resetSelection();
+    });
     prevBtn.addEventListener('click', () => shift(-1));
     dialog.querySelector('[data-next]').addEventListener('click', () => shift(1));
-    dialog.querySelector('[data-clear]').addEventListener('click', () => { start = ''; end = ''; field = 'checkin'; hideInfo(); render(); });
+    dialog.querySelector('[data-clear]').addEventListener('click', resetSelection);
     confirmBtn.addEventListener('click', confirm);
     grid.addEventListener('click', onPick);
 
-    // deslizar para o lado troca o mês
-    let sx = 0, sy = 0, tracking = false;
-    grid.addEventListener('touchstart', e => { if (e.touches.length !== 1) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; tracking = true; }, { passive: true });
-    grid.addEventListener('touchend', e => {
-      if (!tracking) return; tracking = false;
-      const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-      if (Math.abs(dx) > 55 && Math.abs(dy) < 40) shift(dx < 0 ? 1 : -1);
-    }, { passive: true });
+    bindGestures();
+  }
+
+  // ===== Gestos (iguais aos do painel e da página de links) =====
+  // Segurar numa data livre e arrastar seleciona o período; deslizar para o lado troca o mês.
+  // Durante o arraste, o mês só troca se não houver data ocupada entre o início da seleção e o outro mês.
+  function bindGestures() {
+    let holdTimer = null, edgeTimer = null, pointerId = null, dragging = false, swiping = false;
+    let startX = 0, startY = 0, dragStartKey = '', dragLastKey = '', edgeHintUntil = 0;
+    const stopTimers = () => { clearTimeout(holdTimer); holdTimer = null; clearInterval(edgeTimer); edgeTimer = null; };
+    const keyUnder = (x, y) => document.elementFromPoint(x, y)?.closest?.('.stay-picker .calendar-day[data-date]')?.dataset.date || '';
+    const firstFree = dir => {
+      const free = [...grid.querySelectorAll('.calendar-day[data-date]')].filter(b => isFree(b.dataset.date));
+      return free.length ? (dir > 0 ? free[0] : free[free.length - 1]).dataset.date : '';
+    };
+    const pathBlocked = dir => {
+      if (!dragStartKey) return false;
+      const dest = monthCrossKey(month, dir), a = dragStartKey;
+      return pathReserved(a < dest ? a : dest, a < dest ? dest : a);
+    };
+    const applyDragKey = key => {
+      if (!dragging || !isFree(key) || key === dragLastKey) return;
+      const a = dragStartKey, lo = a <= key ? a : key, hi = a <= key ? key : a;
+      if (pathReserved(lo, hi)) return;                      // não atravessa data ocupada
+      dragLastKey = key; start = lo; end = hi > lo ? hi : '';
+      hideInfo(); render();
+    };
+    const edgeStep = dir => {
+      if (!dragging) return;
+      if (pathBlocked(dir)) {                                // bloqueio silencioso (só vibração onde houver)
+        if (Date.now() >= edgeHintUntil) { edgeHintUntil = Date.now() + 1800; try { navigator.vibrate?.(18); } catch { /* sem vibração */ } }
+        return;
+      }
+      if (!shift(dir)) return;
+      const boundary = firstFree(dir);
+      if (boundary) applyDragKey(boundary);
+    };
+    const moveSelection = (x, y) => {
+      if (!dragging) return;
+      const key = keyUnder(x, y); if (key) applyDragKey(key);
+      const r = grid.getBoundingClientRect(), edge = 44;
+      if (x > r.right - edge) { if (!edgeTimer) edgeTimer = setInterval(() => edgeStep(1), 300); }
+      else if (x < r.left + edge) { if (!edgeTimer) edgeTimer = setInterval(() => edgeStep(-1), 300); }
+      else { clearInterval(edgeTimer); edgeTimer = null; }
+    };
+    const beginLongPress = () => {
+      if (!dragStartKey || swiping) return;
+      holdTimer = null; dragging = true;
+      start = dragStartKey; end = ''; hideInfo();
+      if (pointerId !== null) { try { grid.setPointerCapture(pointerId); } catch { /* ok */ } }
+      render();
+    };
+    const finish = () => {
+      stopTimers();
+      if (pointerId !== null) { try { grid.releasePointerCapture(pointerId); } catch { /* ok */ } }
+      pointerId = null; dragging = false; swiping = false; dragStartKey = ''; dragLastKey = '';
+    };
+    grid.style.touchAction = 'none';
+    grid.addEventListener('pointerdown', e => {
+      if (pointerId !== null) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      const btn = e.target.closest?.('.calendar-day[data-date]');
+      if (!btn) return;
+      pointerId = e.pointerId; startX = e.clientX; startY = e.clientY; dragging = false; swiping = false; dragStartKey = ''; dragLastKey = '';
+      const key = btn.dataset.date || '';
+      // Sem captura aqui: capturar no pointerdown redireciona o clique e o toque simples deixa de selecionar.
+      if (key && isFree(key)) { dragStartKey = key; dragLastKey = key; holdTimer = setTimeout(beginLongPress, 450); }
+    });
+    grid.addEventListener('pointermove', e => {
+      if (pointerId !== e.pointerId) return;
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      if (!dragging && !swiping && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+        if (Math.abs(dx) > Math.abs(dy) * 1.12 && Math.abs(dx) > 26) { swiping = true; clearTimeout(holdTimer); holdTimer = null; }
+        else if (Math.abs(dy) > Math.abs(dx)) { clearTimeout(holdTimer); holdTimer = null; }
+      }
+      if (swiping || dragging) { moveSelection(e.clientX, e.clientY); e.preventDefault(); if (!grid.hasPointerCapture(pointerId)) { try { grid.setPointerCapture(pointerId); } catch { /* ok */ } } }
+    });
+    grid.addEventListener('pointerup', e => {
+      if (pointerId !== e.pointerId) return;
+      const dx = e.clientX - startX, dy = e.clientY - startY, wasDrag = dragging, wasSwipe = swiping;
+      stopTimers();
+      if (wasDrag) { suppressUntil = Date.now() + 700; render(); finish(); return; }
+      if (wasSwipe || (Math.abs(dx) >= 52 && Math.abs(dx) > Math.abs(dy) * 1.12)) { if (shift(dx < 0 ? 1 : -1)) suppressUntil = Date.now() + 700; }
+      finish();
+    });
+    grid.addEventListener('pointercancel', e => { if (pointerId === e.pointerId) finish(); });
+    grid.addEventListener('lostpointercapture', () => { if (pointerId !== null && !dragging && !swiping) finish(); });
+    grid.addEventListener('contextmenu', e => { if (dragging) e.preventDefault(); });
+    grid.addEventListener('click', e => { if (Date.now() < suppressUntil) { e.preventDefault(); e.stopPropagation(); } }, true);
   }
 
   function shift(dir) {
     const next = new Date(month.getFullYear(), month.getMonth() + dir, 1);
-    if (next < firstMonth) return;
-    month = next; hideInfo(); render();
+    if (next < firstMonth) return false;
+    month = next; hideInfo(); render(); return true;
   }
+  function resetSelection() { start = ''; end = ''; hideInfo(); if (grid) render(); }
   function hideInfo() { if (infoEl) { infoEl.hidden = true; infoEl.innerHTML = ''; } }
   function showInfo(key, holiday) {
     const scope = holiday.scope === 'rj' ? 'Feriado estadual · Rio de Janeiro' : 'Feriado nacional';
@@ -145,17 +233,13 @@ export function initStayPicker({ checkin, checkout, getAvailability }) {
     if (!btn) return;
     const key = btn.dataset.date;
     const holiday = holidayForKey(key);
-    if (!isFree(key)) { if (holiday) { showInfo(key, holiday); } else hideInfo(); return; }
+    if (!isFree(key)) { if (holiday) showInfo(key, holiday); else hideInfo(); return; }
     hideInfo();
-    if (field === 'checkout' && start && key > start && !pathReserved(start, key)) {
-      end = key;                                            // só trocando a saída
-    } else if (!start || end || key <= start) {
-      start = key; end = ''; field = 'checkin';             // nova entrada
-    } else if (pathReserved(start, key)) {
-      showConflict(); return;                               // tem data ocupada no meio
-    } else {
-      end = key;
-    }
+    if (key === start) { resetSelection(); return; }          // 2º toque na entrada/diária: limpa tudo
+    if (key === end) { end = ''; render(); return; }          // 2º toque na saída: fica só a entrada (diária)
+    if (!start || end || key < start) { start = key; end = ''; }            // nova entrada (ou diária)
+    else if (pathReserved(start, key)) { showConflict(); return; }          // tem data ocupada no meio
+    else end = key;                                                         // saída: período
     if (holiday) showInfo(key, holiday);
     render();
   }
@@ -180,9 +264,8 @@ export function initStayPicker({ checkin, checkout, getAvailability }) {
     await loading;
   }
 
-  async function open(which = 'checkin') {
+  async function open() {
     if (!dialog) build();
-    field = which === 'checkout' ? 'checkout' : 'checkin';
     start = checkin.value || ''; end = checkout.value || '';
     if (start && start < todayKey) { start = ''; end = ''; }
     if (end && end <= start) end = '';
@@ -195,7 +278,7 @@ export function initStayPicker({ checkin, checkout, getAvailability }) {
       summaryEl.textContent = 'Carregando disponibilidade…';
       await ensureAvailability();
       // se a pessoa já tinha escolhido datas que agora aparecem ocupadas, limpa
-      if (start && pathReserved(start, end || start)) { start = ''; end = ''; field = 'checkin'; }
+      if (start && pathReserved(start, end || start)) { start = ''; end = ''; }
       render();
     }
   }

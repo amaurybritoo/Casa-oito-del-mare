@@ -245,3 +245,40 @@ body:has(.stay-picker[open]){overflow:hidden}
   .stay-date-arrow{min-width:30px}
   .stay-date-bar.has-value .stay-date-chevron{display:none}
 }
+
+/* ---- Cards da home: identificam o conteúdo e deixam claro que são clicáveis ---- */
+.card{min-height:430px;-webkit-tap-highlight-color:transparent;transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s}
+.card-featured{min-height:560px}
+.card:before{background:linear-gradient(0deg,#041f22f2 0%,#062c30d6 36%,#0b353438 66%,#092f3430 100%)}
+.card-symbol,.card-link,.card-arrow{display:none}
+.card-badge{position:absolute;left:20px;top:20px;z-index:2;display:inline-flex;align-items:center;gap:8px;max-width:calc(100% - 96px);padding:6px 13px 6px 6px;border-radius:999px;background:#fff6e4f0;color:#173b3d;font:800 9px/1.2 var(--sans);letter-spacing:.13em;text-transform:uppercase;box-shadow:0 8px 20px #04191b40}
+.card-badge-icon{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#173b3d;color:#ffe9c4;font:14px/1 var(--serif);letter-spacing:0}
+.card-open{position:absolute;right:20px;top:18px;z-index:2;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#fff6e4;color:#173b3d;box-shadow:0 10px 24px #04191b4d;transition:transform .35s cubic-bezier(.2,.8,.2,1),background .25s}
+.card-open svg,.card-cta svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.card:hover .card-open{transform:translate(3px,-3px);background:#ffd9b0}
+.card-caption{right:clamp(20px,3vw,32px);gap:9px}
+.card-caption strong{max-width:14ch}
+.card-featured .card-caption strong{max-width:16ch}
+.card-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.card-tags i{padding:6px 11px;border:1px solid #ffffff52;border-radius:999px;background:#ffffff1f;color:#fff;font:600 10px/1 var(--sans);font-style:normal;letter-spacing:.02em}
+.card-cta{justify-self:start;display:inline-flex;align-items:center;gap:10px;margin-top:8px;padding:13px 14px 13px 20px;border-radius:999px;background:#fff6e4;color:#173b3d;font:800 11.5px/1 var(--sans);letter-spacing:.03em;box-shadow:0 12px 26px #04191b4d;transition:gap .3s cubic-bezier(.2,.8,.2,1),background .25s,transform .25s}
+.card-cta svg{flex:none;width:18px;height:18px;padding:4px;box-sizing:content-box;border-radius:50%;background:#173b3d;color:#ffe9c4;stroke-width:2.4}
+.card:hover .card-cta{gap:15px;background:#ffd9b0}
+.card:active{transform:scale(.985)}
+.card:active .card-cta{transform:scale(.97)}
+.card:focus-visible{outline:3px solid #ffd9b0;outline-offset:3px}
+.card-featured .card-caption{right:clamp(26px,5vw,66px)}
+.card-featured .card-cta{padding:15px 16px 15px 24px;font-size:12.5px}
+@media(max-width:700px){
+  .card{min-height:450px}
+  .card-featured{min-height:520px}
+  .card-badge{left:16px;top:16px;font-size:8.5px}
+  .card-open{right:16px;top:14px;width:42px;height:42px}
+  .card-tags i:nth-child(n+4){display:none}
+  .card-caption{left:20px;right:20px;bottom:22px}
+  .card-cta{width:100%;justify-content:space-between;padding:15px 16px 15px 22px;font-size:12.5px}
+  .card-featured .card-caption{left:20px;right:20px}
+}
+@media(prefers-reduced-motion:reduce){.card,.card-open,.card-cta{transition:none}}
+.card-caption .nb{white-space:nowrap}
+.card-caption strong{text-wrap:balance}
