@@ -1,0 +1,45 @@
+/* Bottom navigation (celular/tablet ≤ 850px). No desktop a barra lateral continua igual. */
+.bn,.bn-backdrop,.bn-sheet{display:none}
+
+@media(max-width:850px){
+  /* Sai a gaveta lateral e o botão ☰ */
+  #app #menu,#app>aside,#adminMenuBackdrop{display:none!important}
+  #app .mobile-head>b{text-align:left!important;padding-left:2px}
+  #app>main{padding-bottom:calc(78px + env(safe-area-inset-bottom,0px))}
+  .ml-pill{bottom:calc(88px + env(safe-area-inset-bottom,0px))!important}
+  html.bn-lock,body.bn-lock{overflow:hidden!important;overscroll-behavior:none}
+
+  /* Barra inferior */
+  .bn{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;z-index:140;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:rgba(23,59,61,.97);border-top:1px solid rgba(239,196,158,.18);box-shadow:0 -10px 30px rgba(6,31,32,.22);transition:transform .25s ease}
+  .bn.is-hidden{transform:translateY(115%)}
+  .bn button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:54px;padding:7px 2px 5px;border:0;border-radius:14px;background:transparent;color:rgba(255,255,255,.62);font:600 10px/1.1 'DM Sans',Arial,sans-serif;letter-spacing:.02em;white-space:nowrap;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:color .2s,background .2s}
+  .bn button:active{background:rgba(255,255,255,.07)}
+  .bn svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+  .bn svg .dot{fill:currentColor;stroke:none}
+  .bn button.on{color:#efc49e}
+  .bn button.on svg{transform:translateY(-1px) scale(1.08)}
+  .bn button.on::before{content:"";position:absolute;top:-6px;left:50%;width:24px;height:3px;margin-left:-12px;border-radius:0 0 4px 4px;background:#efc49e}
+
+  /* Folha "Mais" */
+  .bn-backdrop{display:block;position:fixed;inset:0;z-index:175;background:rgba(6,31,32,.55);opacity:0;pointer-events:none;transition:opacity .25s}
+  .bn-backdrop.show{opacity:1;pointer-events:auto}
+  .bn-sheet{display:block;position:fixed;left:0;right:0;bottom:0;z-index:180;max-height:84dvh;overflow-y:auto;overscroll-behavior:contain;padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px));border-radius:24px 24px 0 0;background:#f7f2e7;color:#173b3d;box-shadow:0 -20px 60px rgba(6,31,32,.35);transform:translateY(105%);visibility:hidden;transition:transform .3s cubic-bezier(.2,.8,.2,1),visibility 0s .3s}
+  .bn-sheet.open{transform:none;visibility:visible;transition:transform .3s cubic-bezier(.2,.8,.2,1),visibility 0s}
+  .bn-sheet.is-dragging{transition:none}
+  .bn-grab{width:40px;height:4px;margin:0 auto 6px;border-radius:4px;background:#173b3d26}
+  .bn-group{margin:16px 4px 8px;font:600 9px 'DM Sans',Arial,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#9b775d}
+  .bn-item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:52px;margin:0 0 7px;padding:0 16px;border:1px solid #173b3d12;border-radius:14px;background:#fffdf8;color:#173b3d;font:500 14px 'DM Sans',Arial,sans-serif;text-align:left;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .2s,color .2s}
+  .bn-item::after{content:"›";color:#b67950;font-size:20px;line-height:1}
+  .bn-item:active{background:#efe7d6}
+  .bn-item.on{background:#173b3d;border-color:#173b3d;color:#fff}
+  .bn-item.on::after{color:#efc49e}
+  .bn-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .bn-pair .bn-item{margin:0;padding:0 14px;font-size:13px}
+  .bn-pair .bn-item::after{content:"↗";font-size:15px}
+  .bn-item.bn-out{justify-content:center;margin:16px 0 0;border-color:#a9483f33;background:#f6e6e2;color:#a9483f;font-weight:600}
+  .bn-item.bn-out::after{content:none}
+}
+
+@media(max-width:850px) and (prefers-reduced-motion:reduce){
+  .bn,.bn svg,.bn-backdrop,.bn-sheet,.bn-sheet.open{transition:none!important}
+}

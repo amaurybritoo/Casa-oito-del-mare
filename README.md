@@ -91,3 +91,33 @@ No formulário da home, os campos Entrada e Saída viraram **uma única barra de
 ## v29 (home) — calendário da barra de data e cards
 - **Calendário da barra de data (home):** 1 toque seleciona entrada/diária; **2º toque na mesma data reseta** (tocar a saída de novo remove só a saída); **clicar fora das datas limpa a seleção**; **segurar e arrastar seleciona o período** (também para trás), com as mesmas regras dos outros calendários: não atravessa data reservada/pré-reservada/bloqueada e, durante o arraste, o mês só troca se não houver data ocupada no caminho. Deslizar para o lado troca o mês.
 - **Cards da home:** cada card agora tem um **selo** que identifica o conteúdo (Galeria de fotos · Estrutura e comodidades · Vídeos e mapa · Reservas e contato), **tags** do que há dentro (ex.: Sala, Cozinha, Quartos, Jardim), uma **seta** no canto e um **botão de ação** bem visível ("Ver as fotos da casa", "Ver o que a casa oferece", "Explorar Búzios", "Falar com as proprietárias"), com realce no hover/foco e efeito ao tocar. Os textos de identificação ficam em `cardMeta` no `js/app.js`; título e descrição continuam vindo do painel.
+
+
+## Acesso ao painel por código
+
+O formulário do painel aceita somente um código. A validação é feita pela Edge Function `admin-code-login`; os códigos e as credenciais da conta administrativa **não ficam no JavaScript público**.
+
+Antes de publicar:
+1. Configure os secrets no projeto Supabase. Substitua `EMAIL_ATUAL_DO_ADMIN` e `SENHA_ATUAL_DO_ADMIN` pelos dados da conta Supabase que já tem acesso administrativo ao painel:
+   ```bash
+   supabase secrets set \
+     ADMIN_CODE_FERNANDA=fernandoc8 \
+     ADMIN_CODE_MONICA=monicac8 \
+     ADMIN_CODE_CAMILA=camilac8 \
+     ADMIN_CODE_ADMIN=adminc8 \
+     ADMIN_AUTH_EMAIL="EMAIL_ATUAL_DO_ADMIN" \
+     ADMIN_AUTH_PASSWORD="SENHA_ATUAL_DO_ADMIN"
+   ```
+2. Publique a função sem exigir JWT na entrada (a própria função valida o código e emite a sessão Supabase):
+   ```bash
+   supabase functions deploy admin-code-login --no-verify-jwt
+   ```
+3. Teste os quatro códigos e confirme que o logout encerra a sessão.
+
+Os quatro códigos dão acesso à mesma conta administrativa existente; eles não criam quatro perfis/permissões diferentes. Para separar permissões por pessoa, será necessário associar cada código a um usuário/role distinto no Supabase. Como a função é uma porta de entrada pública, configure também proteção contra tentativas automatizadas/rate limiting no gateway antes de colocar em produção. Não publique os secrets em arquivos `.js`, `.html` ou no repositório.
+
+## Histórico administrativo (LOG)
+
+Para ativar o histórico detalhado de alterações, execute `supabase/migrations/20261105_admin_audit_log.sql` no SQL Editor do Supabase. A migração cria `admin_audit_log`, restringe a leitura a usuários autenticados e instala gatilhos nas tabelas de conteúdo existentes (`gallery`, `videos`, `links`, `activities`, `site_content`, `tourist_points` e `link_page_settings`). As reservas são registradas como alterações no objeto `availability` de `link_page_settings`.
+
+O painel mostra os 250 eventos mais recentes, com filtro por área, busca e comparação dos dados anteriores e posteriores. O histórico começa a ser preenchido após a migração; não reconstrói alterações antigas. O acesso ao LOG exige uma sessão autenticada.

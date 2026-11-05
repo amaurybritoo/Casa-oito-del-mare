@@ -36,10 +36,12 @@ pill.className = 'ml-pill'; pill.setAttribute('role', 'status');
 pill.innerHTML = `<div class="ml-orb"><span class="ml-disc"><i class="ml-sea">${ML_WAVE}</i></span><span class="ml-ring"></span><span class="ml-8">8</span></div><span class="ml-label">Carregando</span>`;
 document.body.appendChild(pill);
 
-let pending = 0, showTimer = 0, shownAt = 0;
+let pending = 0, pendingWrites = 0, showTimer = 0, shownAt = 0;
+const setPillLabel = label => { const node=pill.querySelector('.ml-label'); if(node) node.textContent=label; };
 const brand = () => document.querySelector('.admin-brand');
 const busyOn = () => {
   brand()?.classList.add('is-busy');
+  setPillLabel(pendingWrites > 0 ? 'Salvando' : 'Carregando');
   if (!document.querySelector('.mark-loader.is-view')) { pill.classList.add('on'); shownAt = Date.now(); }
 };
 const busyOff = () => {
@@ -50,6 +52,8 @@ const nativeFetch = window.fetch.bind(window);
 window.fetch = (input, init) => {
   const url = String(input?.url || input || '');
   if (/grant_type=refresh_token|\/auth\/v1\/(user|logout)/.test(url)) return nativeFetch(input, init);
-  pending++; if (pending === 1) { clearTimeout(showTimer); showTimer = window.setTimeout(() => { if (pending > 0) busyOn(); }, 350); }
-  return nativeFetch(input, init).finally(() => { pending = Math.max(0, pending - 1); if (pending === 0) { clearTimeout(showTimer); busyOff(); } });
+  const method = String(init?.method || input?.method || 'GET').toUpperCase();
+  const isWrite = ['POST','PUT','PATCH','DELETE'].includes(method) && /\/rest\/v1\//.test(url);
+  pending++; if (isWrite) pendingWrites++; if (pending === 1) { clearTimeout(showTimer); showTimer = window.setTimeout(() => { if (pending > 0) busyOn(); }, 350); }
+  return nativeFetch(input, init).finally(() => { pending = Math.max(0, pending - 1); if (isWrite) pendingWrites = Math.max(0, pendingWrites - 1); if (pending === 0) { clearTimeout(showTimer); busyOff(); setPillLabel('Carregando'); } else if (pill.classList.contains('on')) setPillLabel(pendingWrites > 0 ? 'Salvando' : 'Carregando'); });
 };
