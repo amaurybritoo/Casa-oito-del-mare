@@ -16,8 +16,8 @@
   .bn button:active{background:rgba(255,255,255,.07)}
   .bn svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
   .bn svg .dot{fill:currentColor;stroke:none}
-  .bn button.on{color:#efc49e}
-  .bn button.on svg{transform:translateY(-1px) scale(1.08)}
+  .bn button.on{color:#efc49e!important;background:rgba(239,196,158,.10)!important}
+  .bn button.on svg{stroke:#efc49e!important;transform:translateY(-1px) scale(1.08)}
   .bn button.on::before{content:"";position:absolute;top:-6px;left:50%;width:24px;height:3px;margin-left:-12px;border-radius:0 0 4px 4px;background:#efc49e}
 
   /* Folha "Mais" */

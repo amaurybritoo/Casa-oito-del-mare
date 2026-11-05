@@ -204,7 +204,21 @@ const closeAdminMenu=()=>{if(!adminAside?.classList.contains('open'))return;admi
 adminMenuButton.onclick=()=>{const open=!adminAside.classList.contains('open');if(open){adminPageScrollY=window.scrollY||document.documentElement.scrollTop||0;document.body.style.position='fixed';document.body.style.top=`-${adminPageScrollY}px`;document.body.style.left='0';document.body.style.right='0';document.body.style.width='100%';document.documentElement.classList.add('admin-menu-open');document.body.classList.add('admin-menu-open');adminAside.classList.add('open');adminMenuButton.setAttribute('aria-expanded','true');adminMenuButton.setAttribute('aria-label','Fechar menu');adminMenuBackdrop.classList.add('show')}else closeAdminMenu();};
 adminMenuBackdrop.onclick=closeAdminMenu;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAdminMenu();});
-document.querySelectorAll('nav button[data-view]').forEach(button=>button.onclick=()=>{current=button.dataset.view;document.querySelectorAll('nav button[data-view]').forEach(item=>item.classList.toggle('active',item===button));const inSettings=!!adminSettingsNav?.contains(button);adminSettingsToggle?.classList.toggle('has-active',inSettings);if(adminSettingsNav&&!adminSettingsNav.hidden){adminSettingsNav.hidden=true;adminSettingsToggle.setAttribute('aria-expanded','false');adminSettingsToggle.setAttribute('aria-label','Abrir configurações');adminAside?.classList.remove('settings-open')}closeAdminMenu();render(current)});
+function navigateAdminView(view){
+  const button=document.querySelector(`#app>aside nav button[data-view="${CSS.escape(String(view))}"]`);
+  if(!button)return false;
+  current=String(view);
+  document.querySelectorAll('#app>aside nav button[data-view]').forEach(item=>item.classList.toggle('active',item.dataset.view===current));
+  const inSettings=!!adminSettingsNav?.contains(button);
+  adminSettingsToggle?.classList.toggle('has-active',inSettings);
+  if(adminSettingsNav&&!adminSettingsNav.hidden){adminSettingsNav.hidden=true;adminSettingsToggle.setAttribute('aria-expanded','false');adminSettingsToggle.setAttribute('aria-label','Abrir configurações');adminAside?.classList.remove('settings-open')}
+  closeAdminMenu();
+  render(current);
+  return true;
+}
+// API única de navegação: usada pelo menu desktop, pelos atalhos e pela bottom navigation mobile.
+window.__adminNavigate=navigateAdminView;
+document.querySelectorAll('#app>aside nav button[data-view]').forEach(button=>button.addEventListener('click',()=>navigateAdminView(button.dataset.view)));
 async function rows(table){const result=await supabase.from(table).select('*');if(result.error)throw result.error;return result.data||[]}
 function reloadAfterMigration(){const button=$('#reloadView');if(button){button.disabled=true;button.textContent='Recarregando…';}sessionStorage.setItem('adminViewAfterReload',current);window.location.href='/admin/?refresh='+Date.now()}
 function migrationHelp(){return `<section class="migration-help"><h2>Carregar o conteúdo inicial</h2><p>As fotos e os vídeos estão incluídos nos arquivos do site. Para listá-los neste painel, é preciso cadastrar seus nomes, endereços e textos no Supabase uma vez.</p><ol><li>Abra o projeto Supabase usado pelo site e entre em <b>SQL Editor</b>.</li><li>Abra o arquivo <a href="../supabase/migrations/20261001_links_page_and_tourism.sql" target="_blank" rel="noopener">20261001_links_page_and_tourism.sql</a>, copie o conteúdo inteiro e cole numa consulta nova.</li><li>Pressione <b>Run</b> e aguarde a mensagem de sucesso. A migração usa os nomes das colunas do seu esquema: cards em <code>subtitle</code>/<code>target_section</code>/<code>position</code>, vídeos em <code>video_url</code>/<code>position</code> e ordem de fotos e comodidades em <code>position</code>.</li><li>Volte ao painel e escolha <b>Atualizei o banco · recarregar</b>. Esta migração pode ser executada novamente sem duplicar os conteúdos iniciais.</li></ol><p class="migration-small">Use o arquivo atualizado completo. Ele cria/atualiza as tabelas da página de links, pontos turísticos, calendário e também <code>public.site_content</code>, além de habilitar edição pelo painel para usuários autenticados.</p><button class="primary" id="reloadView">Atualizei o banco · recarregar</button></section>`}

@@ -52,10 +52,16 @@
   }
 
   function go(view) {
+    closeSheet();
+    // Não depende de clicar programaticamente em um botão escondido pelo CSS mobile.
+    // A função central atualiza o estado e chama render() diretamente.
+    if (typeof window.__adminNavigate === 'function') {
+      const navigated = window.__adminNavigate(view);
+      if (navigated) { window.scrollTo({ top: 0, behavior: 'auto' }); sync(); return; }
+    }
+    // Fallback compatível com versões anteriores do painel.
     const btn = sideBtn(view);
     if (!btn) return;
-    closeSheet();
-    if (btn.classList.contains('active')) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     btn.click();
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
