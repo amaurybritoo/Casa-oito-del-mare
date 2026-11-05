@@ -1,6 +1,5 @@
-// Bottom navigation do painel (celular/tablet). Reaproveita os botões da barra lateral:
-// cada toque aqui "clica" no botão equivalente do <aside>, então render(), estado ativo e tutorial seguem iguais.
-(() => {
+// Navegação inferior mobile. Inicializada pelo módulo principal após registrar a navegação central.
+export function initBottomNavigation(navigate) {
   const bar = document.getElementById('bottomNav');
   const sheet = document.getElementById('bnSheet');
   const backdrop = document.getElementById('bnBackdrop');
@@ -11,7 +10,6 @@
   const tabs = [...bar.querySelectorAll('[data-tab]')];
   const items = [...sheet.querySelectorAll('[data-go]')];
   const mq = window.matchMedia('(max-width:850px)');
-  const sideBtn = view => aside.querySelector(`nav button[data-view="${view}"]`);
   const initialView = () => sessionStorage.getItem('adminViewAfterReload') || new URLSearchParams(location.search).get('view') || 'overview';
 
   const activeView = () => aside.querySelector('nav button[data-view].active')?.dataset.view || initialView();
@@ -53,17 +51,19 @@
 
   function go(view) {
     closeSheet();
-    // Não depende de clicar programaticamente em um botão escondido pelo CSS mobile.
-    // A função central atualiza o estado e chama render() diretamente.
-    if (typeof window.__adminNavigate === 'function') {
-      const navigated = window.__adminNavigate(view);
-      if (navigated) { window.scrollTo({ top: 0, behavior: 'auto' }); sync(); return; }
+    // Usa exclusivamente a navegação central do painel. Não simula cliques em
+    // elementos da sidebar, que fica oculta no mobile.
+    if (typeof navigate !== 'function') {
+      console.error('[BottomNav] Navegação central não foi inicializada.');
+      return;
     }
-    // Fallback compatível com versões anteriores do painel.
-    const btn = sideBtn(view);
-    if (!btn) return;
-    btn.click();
+    const navigated = navigate(view);
+    if (!navigated) {
+      console.warn(`[BottomNav] A tela "${view}" não foi encontrada.`);
+      return;
+    }
     window.scrollTo({ top: 0, behavior: 'auto' });
+    sync();
   }
 
   tabs.forEach(t => t.addEventListener('click', () => go(t.dataset.tab)));
@@ -106,4 +106,4 @@
   // Mantém a aba marcada igual ao botão ativo da barra lateral (inclui os atalhos da Visão geral e o tutorial).
   new MutationObserver(sync).observe(aside, { subtree: true, attributes: true, attributeFilter: ['class'] });
   sync();
-})();
+}

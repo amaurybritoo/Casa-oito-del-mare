@@ -4,6 +4,7 @@ import { initAdminTour, startAdminTour } from './tour.js?v=19';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '../js/config.js';
 import { CARD_ICONS, cardIconSvg, resolveCardIcon } from '../js/card-icons.js';
+import { initBottomNavigation } from './bottomnav.js?v=20261105-4';
 
 const $=selector=>document.querySelector(selector);
 let supabase=null;
@@ -218,11 +219,54 @@ function navigateAdminView(view){
 }
 // API única de navegação: usada pelo menu desktop, pelos atalhos e pela bottom navigation mobile.
 window.__adminNavigate=navigateAdminView;
+initBottomNavigation(navigateAdminView);
 document.querySelectorAll('#app>aside nav button[data-view]').forEach(button=>button.addEventListener('click',()=>navigateAdminView(button.dataset.view)));
 async function rows(table){const result=await supabase.from(table).select('*');if(result.error)throw result.error;return result.data||[]}
 function reloadAfterMigration(){const button=$('#reloadView');if(button){button.disabled=true;button.textContent='Recarregando…';}sessionStorage.setItem('adminViewAfterReload',current);window.location.href='/admin/?refresh='+Date.now()}
 function migrationHelp(){return `<section class="migration-help"><h2>Carregar o conteúdo inicial</h2><p>As fotos e os vídeos estão incluídos nos arquivos do site. Para listá-los neste painel, é preciso cadastrar seus nomes, endereços e textos no Supabase uma vez.</p><ol><li>Abra o projeto Supabase usado pelo site e entre em <b>SQL Editor</b>.</li><li>Abra o arquivo <a href="../supabase/migrations/20261001_links_page_and_tourism.sql" target="_blank" rel="noopener">20261001_links_page_and_tourism.sql</a>, copie o conteúdo inteiro e cole numa consulta nova.</li><li>Pressione <b>Run</b> e aguarde a mensagem de sucesso. A migração usa os nomes das colunas do seu esquema: cards em <code>subtitle</code>/<code>target_section</code>/<code>position</code>, vídeos em <code>video_url</code>/<code>position</code> e ordem de fotos e comodidades em <code>position</code>.</li><li>Volte ao painel e escolha <b>Atualizei o banco · recarregar</b>. Esta migração pode ser executada novamente sem duplicar os conteúdos iniciais.</li></ol><p class="migration-small">Use o arquivo atualizado completo. Ele cria/atualiza as tabelas da página de links, pontos turísticos, calendário e também <code>public.site_content</code>, além de habilitar edição pelo painel para usuários autenticados.</p><button class="primary" id="reloadView">Atualizei o banco · recarregar</button></section>`}
-async function render(view){if(view!=='reservations')window.__casaTour?.stop?.();const root=$('#view');root.innerHTML=`<div class="view">${markLoaderHtml('Carregando')}</div>`;try{if(view==='overview')await overview();else if(view==='gallery')await gallery();else if(view==='link_page')await linkPageView();else if(view==='tourist')await touristView();else if(view==='reservations')await reservationsView();else if(view==='audit_log')await auditLogView();else await contentTable(view)}catch(error){const missing=/site_content|schema cache|PGRST205|42P01/i.test(`${error.code||''} ${error.message||''}`);root.innerHTML=`<div class="view"><div class="view-head"><div><p class="eyebrow">PAINEL DA CASA</p><h1>${missing?'Preparar o painel.':'Não foi possível abrir esta seção.'}</h1><p>${missing?'O Supabase ainda não encontrou a tabela de textos ou as tabelas do conteúdo inicial.':esc(error.message||'Confira a conexão com o Supabase e tente novamente.')}</p></div></div>${migrationHelp()}</div>`;$('#reloadView').onclick=reloadAfterMigration}}
+// Evita que uma consulta lenta de uma tela antiga sobrescreva a tela que a pessoa acabou de abrir.
+// Mantém apenas o pedido mais recente enquanto uma renderização assíncrona termina.
+let renderRequestedView = null;
+let renderWorkerRunning = false;
+let renderWorkerPromise = Promise.resolve();
+function render(view){
+  renderRequestedView = String(view || 'overview');
+  if (!renderWorkerRunning) {
+    renderWorkerRunning = true;
+    renderWorkerPromise = (async()=>{
+      try {
+        while (renderRequestedView !== null) {
+          const nextView = renderRequestedView;
+          renderRequestedView = null;
+          await renderViewNow(nextView);
+        }
+      } finally {
+        renderWorkerRunning = false;
+        // Fecha a pequena janela entre a última verificação e o encerramento do worker.
+        if (renderRequestedView !== null) render(renderRequestedView);
+      }
+    })();
+  }
+  return renderWorkerPromise;
+}
+async function renderViewNow(view){
+  if(view!=='reservations')window.__casaTour?.stop?.();
+  const root=$('#view');
+  root.innerHTML=`<div class="view">${markLoaderHtml('Carregando')}</div>`;
+  try{
+    if(view==='overview')await overview();
+    else if(view==='gallery')await gallery();
+    else if(view==='link_page')await linkPageView();
+    else if(view==='tourist')await touristView();
+    else if(view==='reservations')await reservationsView();
+    else if(view==='audit_log')await auditLogView();
+    else await contentTable(view);
+  }catch(error){
+    const missing=/site_content|schema cache|PGRST205|42P01/i.test(`${error.code||''} ${error.message||''}`);
+    root.innerHTML=`<div class="view"><div class="view-head"><div><p class="eyebrow">PAINEL DA CASA</p><h1>${missing?'Preparar o painel.':'Não foi possível abrir esta seção.'}</h1><p>${missing?'O Supabase ainda não encontrou a tabela de textos ou as tabelas do conteúdo inicial.':esc(error.message||'Confira a conexão com o Supabase e tente novamente.')}</p></div></div>${migrationHelp()}</div>`;
+    $('#reloadView').onclick=reloadAfterMigration;
+  }
+}
 async function auditLogView(){
   const root=$('#view');
   root.innerHTML=`<div class="view audit-view"><div class="view-head"><div><p class="eyebrow">SEGURANÇA E TRANSPARÊNCIA</p><h1>Histórico de alterações.</h1><p>Veja quem fez cada alteração, quando aconteceu e quais informações foram modificadas.</p></div><button class="secondary" id="refreshAudit">Atualizar</button></div><div class="audit-toolbar"><label>Filtrar por área<select id="auditFilter"><option value="">Todas as áreas</option><option value="gallery">Galeria</option><option value="videos">Vídeos</option><option value="links">Cards da home</option><option value="activities">Comodidades</option><option value="site_content">Textos do site</option><option value="tourist_points">Pontos turísticos</option><option value="link_page_settings">Página de links e reservas</option></select></label><label>Buscar<input id="auditSearch" type="search" placeholder="Nome, ação ou informação…"></label></div><div id="auditResults"><div class="audit-loading">Carregando histórico…</div></div></div>`;

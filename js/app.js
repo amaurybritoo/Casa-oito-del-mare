@@ -406,6 +406,20 @@ const nav=document.querySelector('.site-nav');const syncNav=()=>nav.classList.to
 
 // Navegação principal: não depende da navegação nativa por hash, evitando que
 // o Safari/iOS volte ao topo. Cada ação leva exatamente ao destino esperado.
+// Link "Conheça cada cantinho": rola diretamente até o título da seção de cards.
+// O cálculo manual evita saltos para o topo no Safari/iOS e respeita a navegação fixa.
+document.querySelectorAll('.intro-discover-link[href="#cards-heading"]').forEach(link=>link.addEventListener('click',event=>{
+  const target=document.querySelector('#cards-heading');
+  if(!target)return;
+  event.preventDefault();
+  event.stopPropagation();
+  const nav=document.querySelector('.site-nav');
+  const navHeight=nav ? nav.getBoundingClientRect().height : 0;
+  const top=window.scrollY + target.getBoundingClientRect().top - navHeight - 18;
+  history.replaceState(history.state,'',`${location.pathname}${location.search}#cards-heading`);
+  window.scrollTo({top:Math.max(0,top),left:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+}));
+
 document.querySelectorAll('.hero-button[href="#cards"]').forEach(link=>link.addEventListener('click',event=>{
   const target=document.querySelector('#cards');
   if(!target)return;
