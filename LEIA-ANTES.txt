@@ -1,0 +1,22 @@
+CASA OITO DEL MARE — CORREÇÃO DO LOG E DO MENU MAIS
+
+1) Supabase
+- Abra o projeto Casa Oito Del Mare: https://supabase.com/dashboard/project/jkrexqaroxbcjvqiaggm/sql/new
+- Abra o arquivo:
+  supabase/migrations/20261106_fix_admin_purge_permissions.sql
+- Copie todo o conteúdo e execute no SQL Editor.
+- Esta migração não apaga os registros do LOG. Ela corrige a permissão da função de limpeza, usa DELETE com WHERE true (exigido pela proteção do editor) e mantém a validação do código Administrador no servidor.
+
+2) Vercel
+- Substitua os arquivos do projeto pelos arquivos deste ZIP.
+- Publique um novo deploy.
+- O HTML e o admin.js usam nova versão de cache do bottomnav para evitar que o navegador continue carregando o menu antigo.
+
+3) Teste
+- Saia completamente do painel.
+- Entre novamente usando o código de Administrador (adminc8).
+- Teste a limpeza do histórico segurando o botão por 20 segundos.
+- Abra e feche Mais; a barra inferior deve continuar visível, sem ser coberta ou escurecida.
+- Role a lista dentro de Mais; somente a folha deve rolar. O fundo da página deve permanecer parado.
+
+Se o Supabase ainda retornar erro de permissão, confirme que o SQL foi executado no projeto jkrexqaroxbcjvqiaggm, não em outro projeto.

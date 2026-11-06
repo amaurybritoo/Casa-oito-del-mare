@@ -7,6 +7,17 @@ export function initBottomNavigation(navigate) {
   const aside = document.querySelector('#app>aside');
   if (!bar || !sheet || !backdrop || !moreBtn || !aside) return;
 
+  // Mede a altura real da barra (incluindo safe-area do iPhone) para manter
+  // a folha Mais sempre acima dela, sem cobrir os cinco atalhos.
+  const measureBottomBar = () => {
+    const height = Math.ceil(bar.getBoundingClientRect().height);
+    document.documentElement.style.setProperty('--bn-bar-height', `${height}px`);
+  };
+  measureBottomBar();
+  if ('ResizeObserver' in window) new ResizeObserver(measureBottomBar).observe(bar);
+  window.addEventListener('resize', measureBottomBar, { passive: true });
+  window.addEventListener('orientationchange', () => setTimeout(measureBottomBar, 120), { passive: true });
+
   const tabs = [...bar.querySelectorAll('[data-tab]')];
   const items = [...sheet.querySelectorAll('[data-go]')];
   const mq = window.matchMedia('(max-width:850px)');
@@ -52,10 +63,14 @@ export function initBottomNavigation(navigate) {
     document.body.style.overflow = 'hidden';
     document.addEventListener('touchmove', preventBackgroundTouch, { capture: true, passive: false });
     sheet.style.transform = '';
+    measureBottomBar();
     sheet.classList.add('open');
     sheet.setAttribute('aria-hidden', 'false');
+    sheet.setAttribute('aria-modal', 'true');
     backdrop.classList.add('show');
+    backdrop.setAttribute('aria-hidden', 'false');
     moreBtn.setAttribute('aria-expanded', 'true');
+    requestAnimationFrame(() => sheet.querySelector('[data-sheet-close]')?.focus({ preventScroll: true }));
     document.documentElement.classList.add('bn-lock');
     document.body.classList.add('bn-lock');
   }
@@ -65,7 +80,9 @@ export function initBottomNavigation(navigate) {
     sheet.style.transform = '';
     sheet.classList.remove('open', 'is-dragging');
     sheet.setAttribute('aria-hidden', 'true');
+    sheet.removeAttribute('aria-modal');
     backdrop.classList.remove('show');
+    backdrop.setAttribute('aria-hidden', 'true');
     moreBtn.setAttribute('aria-expanded', 'false');
     document.documentElement.classList.remove('bn-lock');
     document.body.classList.remove('bn-lock');
@@ -75,6 +92,7 @@ export function initBottomNavigation(navigate) {
       previousBodyStyles = null;
     }
     window.scrollTo(0, lockedScrollY);
+    if (mq.matches) requestAnimationFrame(() => moreBtn.focus({ preventScroll: true }));
   }
 
   function go(view) {
@@ -97,33 +115,37 @@ export function initBottomNavigation(navigate) {
   tabs.forEach(t => t.addEventListener('click', () => go(t.dataset.tab)));
   items.forEach(i => i.addEventListener('click', () => go(i.dataset.go)));
   moreBtn.addEventListener('click', () => (sheetOpen ? closeSheet() : openSheet()));
+  sheet.querySelectorAll('[data-sheet-close]').forEach(button => button.addEventListener('click', closeSheet));
   backdrop.addEventListener('click', closeSheet);
   document.getElementById('bnLogout')?.addEventListener('click', () => { closeSheet(); document.getElementById('logout')?.click(); });
   sheet.querySelectorAll('a').forEach(a => a.addEventListener('click', closeSheet));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
   mq.addEventListener?.('change', e => { if (!e.matches) closeSheet(); });
 
-  // Arrastar a folha para baixo fecha.
+  // Só o puxador fecha a folha por gesto. Rolar a lista nunca arrasta o painel.
+  const grab = sheet.querySelector('.bn-grab');
   let startY = 0, dy = 0, dragging = false;
-  sheet.addEventListener('touchstart', e => {
-    if (sheet.scrollTop > 0) return;
+  grab?.addEventListener('touchstart', e => {
+    if (!e.touches.length) return;
     startY = e.touches[0].clientY; dy = 0; dragging = true;
   }, { passive: true });
-  sheet.addEventListener('touchmove', e => {
-    if (!dragging) return;
-    dy = e.touches[0].clientY - startY;
-    if (dy <= 0) { sheet.style.transform = ''; return; }
-    sheet.classList.add('is-dragging');
-    sheet.style.transform = `translateY(${dy}px)`;
+  grab?.addEventListener('touchmove', e => {
+    if (!dragging || !e.touches.length) return;
+    dy = Math.max(0, e.touches[0].clientY - startY);
+    if (dy > 0) {
+      sheet.classList.add('is-dragging');
+      sheet.style.transform = `translateY(${dy}px)`;
+    }
   }, { passive: true });
   const endDrag = () => {
     if (!dragging) return;
     dragging = false;
     sheet.classList.remove('is-dragging');
-    if (dy > 90) closeSheet(); else sheet.style.transform = '';
+    if (dy > 90) closeSheet();
+    else sheet.style.transform = '';
   };
-  sheet.addEventListener('touchend', endDrag);
-  sheet.addEventListener('touchcancel', endDrag);
+  grab?.addEventListener('touchend', endDrag);
+  grab?.addEventListener('touchcancel', endDrag);
 
   // Teclado aberto: esconde a barra para ela não subir junto com o teclado.
   const typing = el => el && (el.tagName === 'TEXTAREA' ||

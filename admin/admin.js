@@ -4,7 +4,7 @@ import { initAdminTour, startAdminTour } from './tour.js?v=19';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '../js/config.js';
 import { CARD_ICONS, cardIconSvg, resolveCardIcon } from '../js/card-icons.js';
-import { initBottomNavigation } from './bottomnav.js?v=20261106-1';
+import { initBottomNavigation } from './bottomnav.js?v=20261106-3';
 
 const $=selector=>document.querySelector(selector);
 let supabase=null;
@@ -390,7 +390,18 @@ async function auditLogView(){
   $('#auditFilter').onchange=paint;$('#auditActorFilter').onchange=paint;$('#auditSearch').oninput=paint;$('#refreshAudit').onclick=()=>{if(holdTriggered){holdTriggered=false;return}load()};
   const hold=$('#refreshAudit');let holdTimer=null,holdStarted=0,holdTriggered=false;
   const cancelHold=()=>{if(holdTimer)clearInterval(holdTimer);holdTimer=null;holdStarted=0;hold.textContent='↻ Atualizar histórico';hold.classList.remove('holding');};
-  hold.addEventListener('pointerdown',event=>{if(event.button!==undefined&&event.button!==0)return;event.preventDefault();cancelHold();holdStarted=Date.now();hold.classList.add('holding');hold.textContent='Segure… 20 segundos';holdTimer=setInterval(async()=>{const left=Math.max(0,20-Math.floor((Date.now()-holdStarted)/1000));hold.textContent=`Segure… ${left} segundos`;if(left===0){cancelHold();holdTriggered=true;if(!await brandedConfirm('Apagar todo o histórico?','Esta ação remove os registros exibidos no LOG e não pode ser desfeita. O registro de segurança da limpeza será preservado.','Apagar histórico'))return;hold.textContent='LIMPANDO…';supabase.rpc('admin_purge_audit_log').then(async({error})=>{if(error){await brandedNotice('Não foi possível limpar o histórico.','Confira se a migração de segurança foi aplicada no Supabase e se você entrou com o acesso de Administrador. Detalhe técnico: '+(error.message||'erro não informado'),'error');hold.textContent='Atualizar histórico';return}await brandedNotice('Histórico limpo.','Os registros anteriores foram apagados. O registro de segurança da limpeza foi preservado.');hold.textContent='Atualizar histórico';load()})}},250);});
+  hold.addEventListener('pointerdown',event=>{if(event.button!==undefined&&event.button!==0)return;event.preventDefault();cancelHold();holdStarted=Date.now();hold.classList.add('holding');hold.textContent='Segure… 20 segundos';holdTimer=setInterval(async()=>{const left=Math.max(0,20-Math.floor((Date.now()-holdStarted)/1000));hold.textContent=`Segure… ${left} segundos`;if(left===0){cancelHold();holdTriggered=true;if(!await brandedConfirm('Apagar todo o histórico?','Esta ação remove os registros exibidos no LOG e não pode ser desfeita. O registro de segurança da limpeza será preservado.','Apagar histórico'))return;hold.textContent='LIMPANDO…';supabase.rpc('admin_purge_audit_log').then(async({error})=>{if(error){
+  const detail=String(error.message||'');
+  const permissionIssue=/permission denied for function admin_purge_audit_log|42501/i.test(detail);
+  await brandedNotice(
+    permissionIssue?'Permissão de limpeza ainda não configurada.':'Não foi possível limpar o histórico.',
+    permissionIssue
+      ?'O Supabase ainda não liberou a função de limpeza para usuários autenticados ou a sessão não reconheceu o acesso Administrador. Execute a migração 20261106_fix_admin_purge_permissions.sql no projeto Casa Oito Del Mare e entre novamente com o código adminc8. Detalhe: '+detail
+      :'Confira se você está no projeto correto e se entrou com o acesso Administrador. Detalhe técnico: '+detail,
+    'error'
+  );
+  hold.textContent='Atualizar histórico';return
+}await brandedNotice('Histórico limpo.','Os registros anteriores foram apagados. O registro de segurança da limpeza foi preservado.');hold.textContent='Atualizar histórico';load()})}},250);});
   ['pointerup','pointercancel','pointerleave','blur'].forEach(name=>hold.addEventListener(name,cancelHold));window.addEventListener('pointerup',cancelHold);
   await load();
 }
