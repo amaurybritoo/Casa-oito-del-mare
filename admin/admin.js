@@ -4,7 +4,7 @@ import { initAdminTour, startAdminTour } from './tour.js?v=19';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '../js/config.js';
 import { CARD_ICONS, cardIconSvg, resolveCardIcon } from '../js/card-icons.js';
-import { initBottomNavigation } from './bottomnav.js?v=20261105-4';
+import { initBottomNavigation } from './bottomnav.js?v=20261106-1';
 
 const $=selector=>document.querySelector(selector);
 let supabase=null;
@@ -269,13 +269,114 @@ async function renderViewNow(view){
 }
 async function auditLogView(){
   const root=$('#view');
-  root.innerHTML=`<div class="view audit-view"><div class="view-head"><div><p class="eyebrow">SEGURANÇA E TRANSPARÊNCIA</p><h1>Histórico de alterações.</h1><p>Veja quem fez cada alteração, quando aconteceu e quais informações foram modificadas.</p></div><button class="secondary" id="refreshAudit">Atualizar</button></div><div class="audit-toolbar"><label>Filtrar por área<select id="auditFilter"><option value="">Todas as áreas</option><option value="gallery">Galeria</option><option value="videos">Vídeos</option><option value="links">Cards da home</option><option value="activities">Comodidades</option><option value="site_content">Textos do site</option><option value="tourist_points">Pontos turísticos</option><option value="link_page_settings">Página de links e reservas</option></select></label><label>Buscar<input id="auditSearch" type="search" placeholder="Nome, ação ou informação…"></label></div><div id="auditResults"><div class="audit-loading">Carregando histórico…</div></div></div>`;
+  root.innerHTML=`<div class="view audit-view"><div class="view-head"><div><p class="eyebrow">SEGURANÇA E TRANSPARÊNCIA</p><h1>Histórico de alterações.</h1><p>Veja quem fez cada mudança, quando aconteceu e o que mudou.</p></div><button class="secondary audit-refresh" id="refreshAudit" type="button">↻ Atualizar histórico</button></div><div class="audit-toolbar"><label>Área<select id="auditFilter"><option value="">Todas as áreas</option><option value="gallery">Galeria de fotos</option><option value="videos">Vídeos</option><option value="links">Cards da página inicial</option><option value="activities">Comodidades</option><option value="site_content">Textos do site</option><option value="tourist_points">Pontos turísticos</option><option value="link_page_settings">Página de links e reservas</option></select></label><label>Responsável<select id="auditActorFilter"><option value="">Todas as pessoas</option><option value="fernanda">Fernando</option><option value="monica">Monica</option><option value="camila">Camila</option></select></label><label>Pesquisar<input id="auditSearch" type="search" placeholder="Ex.: reserva, foto, exclusão…"></label></div><div id="auditResults"><div class="audit-loading">Carregando histórico…</div></div><p class="audit-hint">Dica: mantenha o botão “Atualizar histórico” pressionado por 20 segundos para abrir a confirmação de limpeza. Somente o código de Administrador pode concluir essa ação.</p></div>`;
   const results=$('#auditResults');let entries=[];
-  async function load(){results.innerHTML='<div class="audit-loading" role="status">Carregando histórico…</div>';const {data,error}=await supabase.from('admin_audit_log').select('*').order('created_at',{ascending:false}).limit(250);if(error){results.innerHTML=`<div class="panel-tip"><b>Histórico ainda não disponível</b><p>${esc(error.message||'Não foi possível carregar o histórico.')}</p><p>Execute a migração <code>20261105_admin_audit_log.sql</code> no SQL Editor do Supabase e atualize esta tela.</p></div>`;return}entries=data||[];paint()}
-  const areaNames={gallery:'Galeria',videos:'Vídeos',links:'Cards da home',activities:'Comodidades',site_content:'Textos do site',tourist_points:'Pontos turísticos',link_page_settings:'Página de links e reservas'};
-  const actionNames={INSERT:'Criou',UPDATE:'Alterou',DELETE:'Excluiu'};
-  function paint(){const filter=$('#auditFilter').value,query=$('#auditSearch').value.trim().toLocaleLowerCase('pt-BR');const list=entries.filter(item=>(!filter||item.table_name===filter)&&(!query||[item.actor_email,item.action,item.table_name,item.record_label,JSON.stringify(item.old_data||{}),JSON.stringify(item.new_data||{})].join(' ').toLocaleLowerCase('pt-BR').includes(query)));if(!list.length){results.innerHTML='<div class="empty audit-empty">Nenhuma alteração encontrada para esse filtro.</div>';return}results.innerHTML=`<div class="audit-count">${list.length} registro(s)${entries.length===250?' · mostrando os 250 mais recentes':''}</div><div class="audit-list">${list.map(item=>{const label=item.record_label||item.record_id||'Registro sem identificação';const date=new Date(item.created_at);const dateText=Number.isNaN(date.getTime())?'Data indisponível':new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(date);const details=item.action==='UPDATE'?`<div class="audit-diff"><section><b>Antes</b><pre>${esc(JSON.stringify(item.old_data||{},null,2))}</pre></section><section><b>Depois</b><pre>${esc(JSON.stringify(item.new_data||{},null,2))}</pre></section></div>`:`<div class="audit-diff"><section><b>${item.action==='DELETE'?'Dados removidos':'Dados criados'}</b><pre>${esc(JSON.stringify(item.action==='DELETE'?item.old_data:item.new_data||{},null,2))}</pre></section></div>`;return `<details class="audit-entry"><summary><span class="audit-action action-${String(item.action||'').toLowerCase()}">${esc(actionNames[item.action]||item.action)}</span><span class="audit-entry-main"><b>${esc(areaNames[item.table_name]||item.table_name)}</b><small>${esc(label)} · ${esc(item.actor_email||'Usuário autenticado')}</small></span><time>${esc(dateText)}</time><span class="audit-chevron" aria-hidden="true">⌄</span></summary><div class="audit-entry-details"><div class="audit-meta"><span><b>Responsável:</b> ${esc(item.actor_email||'Usuário autenticado')}</span><span><b>Data:</b> ${esc(dateText)}</span><span><b>Registro:</b> ${esc(String(item.record_id||'—'))}</span></div>${details}</div></details>`}).join('')}</div>`}
-  $('#auditFilter').onchange=paint;$('#auditSearch').oninput=paint;$('#refreshAudit').onclick=load;await load();
+  const areaNames={gallery:'Galeria de fotos',videos:'Vídeos',links:'Cards da página inicial',activities:'Comodidades da casa',site_content:'Textos do site',tourist_points:'Pontos turísticos',link_page_settings:'Página de links e reservas'};
+  const actorNames={fernanda:{name:'Fernando',code:'Código Fernando'},monica:{name:'Monica',code:'Código Monica'},camila:{name:'Camila',code:'Código Camila'},admin:{name:'Administrador',code:'Código administrador'}};
+  const fieldNames={title:'Título',name:'Nome',description:'Descrição',subtitle:'Subtítulo',position:'Ordem de exibição',visible:'Visibilidade',is_visible:'Visibilidade',active:'Ativo',url:'Endereço/link',image_url:'Imagem',video_url:'Vídeo',target_section:'Destino',availability:'Disponibilidade e reservas',check_in:'Entrada',check_out:'Saída',status:'Situação',phone:'Telefone',note:'Observação',guest_name:'Hóspede',price:'Preço',text:'Texto',content:'Conteúdo',key:'Identificação'};
+  const actionText={INSERT:'adicionou um novo item',UPDATE:'alterou informações',DELETE:'removeu um item'};
+  const humanize=value=>String(value||'').replace(/[_-]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  const pretty=value=>{if(value===null||value===undefined||value==='')return 'Não informado';if(typeof value==='boolean')return value?'Sim':'Não';if(Array.isArray(value))return value.length?`${value.length} item(ns)`:'Nenhum';if(typeof value==='object')return Object.entries(value).map(([k,v])=>`${fieldNames[k]||humanize(k)}: ${pretty(v)}`).join(' · ');return String(value)};
+  function summarizeAvailability(value){
+    if(!value||typeof value!=='object')return 'Informações de disponibilidade não detalhadas.';
+    const reservations=Array.isArray(value.reservations)?value.reservations:[];
+    const reservedDates=Array.isArray(value.reservedDates)?value.reservedDates:[];
+    const confirmed=reservations.filter(r=>r?.status==='reserved').length;
+    const pre=reservations.filter(r=>r?.status==='pre').length;
+    const blocked=reservations.filter(r=>r?.status==='blocked').length;
+    const n=reservedDates.length;
+    return `${n} ${n===1?'data indisponível':'datas indisponíveis'}; ${confirmed} ${confirmed===1?'reserva confirmada':'reservas confirmadas'}; ${pre} ${pre===1?'pré-reserva':'pré-reservas'}; ${blocked} ${blocked===1?'bloqueio manual':'bloqueios manuais'}`;
+  }
+  function formatReservationDate(key){
+    if(!key||!/^\d{4}-\d{2}-\d{2}$/.test(key))return 'data não informada';
+    const [y,m,d]=key.split('-').map(Number);
+    return new Intl.DateTimeFormat('pt-BR',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,d,12)));
+  }
+  function reservationRange(r){
+    const start=formatReservationDate(r.check_in||r.checkIn||r.date);
+    const endKey=r.check_out||r.checkOut||r.check_in||r.checkIn||r.date;
+    const end=formatReservationDate(endKey);
+    return start===end?`em ${start}`:`de ${start} até ${end}`;
+  }
+  function reservationKind(r){
+    const status=r.status||((r.reserved===false)?'available':'reserved');
+    return status==='pre'?'pré-reserva':status==='blocked'?'bloqueio de agenda':status==='available'?'período disponível':'reserva';
+  }
+  function reservationLabel(r){
+    const who=String(r.name||r.guest_name||'').trim();
+    return `${reservationKind(r)}${who?` de ${who}`:''}`;
+  }
+  function compareReservationChanges(oldValue,newValue){
+    const oldRows=Array.isArray(oldValue?.reservations)?oldValue.reservations:[];
+    const newRows=Array.isArray(newValue?.reservations)?newValue.reservations:[];
+    const used=new Set(),messages=[];
+    const identity=r=>r.id?`id:${r.id}`:`person:${String(r.phone||'').replace(/\D/g,'')}|${String(r.name||r.guest_name||'').trim().toLocaleLowerCase('pt-BR')}`;
+    for(const oldRow of oldRows){
+      let matchIndex=-1;
+      if(oldRow.id)matchIndex=newRows.findIndex((r,i)=>!used.has(i)&&r.id&&String(r.id)===String(oldRow.id));
+      if(matchIndex<0){
+        const key=identity(oldRow);
+        if(!key.endsWith('|'))matchIndex=newRows.findIndex((r,i)=>!used.has(i)&&identity(r)===key);
+      }
+      if(matchIndex<0){
+        messages.push(`Foi removida ${reservationLabel(oldRow)} marcada ${reservationRange(oldRow)}.`);
+        continue;
+      }
+      used.add(matchIndex);
+      const next=newRows[matchIndex];
+      const oldStart=oldRow.check_in||oldRow.checkIn||oldRow.date||'';
+      const oldEnd=oldRow.check_out||oldRow.checkOut||oldStart;
+      const newStart=next.check_in||next.checkIn||next.date||'';
+      const newEnd=next.check_out||next.checkOut||newStart;
+      const oldStatus=reservationKind(oldRow),newStatus=reservationKind(next);
+      if(oldStart!==newStart||oldEnd!==newEnd||oldStatus!==newStatus){
+        const person=String(next.name||next.guest_name||oldRow.name||oldRow.guest_name||'').trim();
+        messages.push(`${person?`A reserva de ${person}`:'A reserva'} que estava ${reservationRange(oldRow)} foi alterada para ${reservationRange(next)}${oldStatus!==newStatus?`, passando de ${oldStatus} para ${newStatus}`:''}.`);
+      }
+    }
+    newRows.forEach((row,i)=>{if(!used.has(i)){
+      messages.push(`Foi adicionada ${reservationLabel(row)} para ${reservationRange(row)}.`);
+    }});
+    return messages;
+  }
+  function changesFor(item){
+    const before=item.old_data||{},after=item.new_data||{};
+    const keys=[...new Set([...Object.keys(before),...Object.keys(after)])].filter(k=>!['id','created_at','updated_at','user_id'].includes(k));
+    const rows=[];
+    for(const key of keys){
+      if(key==='availability'){
+        const oldSummary=summarizeAvailability(before[key]),newSummary=summarizeAvailability(after[key]);
+        const reservationChanges=compareReservationChanges(before[key],after[key]);
+        if(reservationChanges.length){
+          rows.push({label:'Alterações nas reservas e nas datas',value:reservationChanges.join(' ')});
+        }else if(item.action==='INSERT')rows.push({label:'Agenda e disponibilidade',value:`Configuração inicial: ${newSummary}.`});
+        else if(item.action==='DELETE')rows.push({label:'Agenda e disponibilidade',value:`Configuração removida. Antes: ${oldSummary}.`});
+        else if(JSON.stringify(before[key])!==JSON.stringify(after[key]))rows.push({label:'Agenda e disponibilidade',before:oldSummary,after:newSummary});
+        continue;
+      }
+      if((key==='reservedDates'||key==='reservations')&&Array.isArray(before[key])&&Array.isArray(after[key])){
+        if(JSON.stringify(before[key])!==JSON.stringify(after[key]))rows.push({label:key==='reservedDates'?'Datas indisponíveis':'Reservas cadastradas',before:`${before[key].length} ${key==='reservedDates'?'datas bloqueadas':'registros na agenda'}`,after:`${after[key].length} ${key==='reservedDates'?'datas bloqueadas':'registros na agenda'}`});
+        continue;
+      }
+      if(item.action==='INSERT'&&after[key]!==null&&after[key]!==undefined)rows.push({label:fieldNames[key]||humanize(key),value:pretty(after[key])});
+      else if(item.action==='DELETE'&&before[key]!==null&&before[key]!==undefined)rows.push({label:fieldNames[key]||humanize(key),value:pretty(before[key])});
+      else if(item.action==='UPDATE'&&JSON.stringify(before[key])!==JSON.stringify(after[key]))rows.push({label:fieldNames[key]||humanize(key),before:pretty(before[key]),after:pretty(after[key])});
+    }
+    return rows.slice(0,16);
+  }
+  function paint(){
+    const areaFilter=$('#auditFilter').value,actorFilter=$('#auditActorFilter').value,query=$('#auditSearch').value.trim().toLocaleLowerCase('pt-BR');
+    const list=entries.filter(item=>{const actor=item.actor_code_id||'unknown';const actorName=actorNames[actor]?.name||item.actor_name||'Identificação não disponível';const text=[actorName,item.action,item.table_name,item.record_label,JSON.stringify(item.old_data||{}),JSON.stringify(item.new_data||{})].join(' ').toLocaleLowerCase('pt-BR');return(!areaFilter||item.table_name===areaFilter)&&(!actorFilter||actor===actorFilter)&&(!query||text.includes(query))});
+    if(!list.length){results.innerHTML='<div class="empty audit-empty">Nenhuma alteração encontrada com esses filtros. Tente escolher “Todas as áreas” e “Todas as pessoas”.</div>';return}
+    results.innerHTML=`<div class="audit-count">${list.length} alterações encontradas</div><div class="audit-list">${list.map(item=>{const actor=actorNames[item.actor_code_id]||null;const actorName=actor?.name||item.actor_name||'Identificação não disponível';const codeLabel=actor?.code||'Acesso antigo ou não identificado';const area=areaNames[item.table_name]||humanize(item.table_name);const action=actionText[item.action]||'fez uma alteração';const label=item.record_label||'item sem nome';const date=new Date(item.created_at);const dateText=Number.isNaN(date.getTime())?'Data indisponível':new Intl.DateTimeFormat('pt-BR',{dateStyle:'full',timeStyle:'short'}).format(date);const changes=changesFor(item);const changeHtml=changes.length?changes.map(change=>change.value!==undefined?`<div class="audit-change"><b>${esc(change.label)}</b><p>${esc(change.value)}</p></div>`:item.action==='UPDATE'?`<div class="audit-change"><b>${esc(change.label)}</b><div class="audit-before-after"><span><small>ANTES</small>${esc(change.before)}</span><span><small>DEPOIS</small>${esc(change.after)}</span></div></div>`:`<div class="audit-change"><b>${esc(change.label)}</b><p>${esc(change.value)}</p></div>`).join(''):'<p class="audit-no-diff">Este registro antigo não guardou os detalhes de cada campo.</p>';return `<details class="audit-entry"><summary><span class="audit-action action-${String(item.action||'').toLowerCase()}">${esc(item.action==='INSERT'?'Adicionado':item.action==='DELETE'?'Removido':'Alterado')}</span><span class="audit-entry-main"><b>${esc(area)}: ${esc(label)}</b><small>${esc(actorName)} · ${esc(action)}</small></span><time>${esc(dateText)}</time><span class="audit-chevron" aria-hidden="true">⌄</span></summary><div class="audit-entry-details"><div class="audit-human-summary"><b>${esc(actorName)}</b> ${esc(action)} na seção <b>${esc(area)}</b>.<p>${esc(label)}</p></div><div class="audit-meta"><span><b>Responsável:</b> ${esc(actorName)}</span><span><b>Identificação:</b> ${esc(codeLabel)}</span><span><b>Quando:</b> ${esc(dateText)}</span><span><b>Onde:</b> ${esc(area)}</span></div><h3 class="audit-details-title">O que mudou</h3><div class="audit-readable-changes">${changeHtml}</div></div></details>`}).join('')}</div>`;
+  }
+  async function load(){results.innerHTML='<div class="audit-loading" role="status">Atualizando o histórico…</div>';const {data,error}=await supabase.from('admin_audit_log').select('*').order('created_at',{ascending:false}).limit(500);if(error){results.innerHTML=`<div class="panel-tip"><b>Não foi possível abrir o histórico</b><p>${esc(error.message||'Confira a conexão e a configuração do banco.')}</p><p>Verifique a migração do histórico no Supabase.</p></div>`;return}entries=data||[];paint()}
+  $('#auditFilter').onchange=paint;$('#auditActorFilter').onchange=paint;$('#auditSearch').oninput=paint;$('#refreshAudit').onclick=()=>{if(holdTriggered){holdTriggered=false;return}load()};
+  const hold=$('#refreshAudit');let holdTimer=null,holdStarted=0,holdTriggered=false;
+  const cancelHold=()=>{if(holdTimer)clearInterval(holdTimer);holdTimer=null;holdStarted=0;hold.textContent='↻ Atualizar histórico';hold.classList.remove('holding');};
+  hold.addEventListener('pointerdown',event=>{if(event.button!==undefined&&event.button!==0)return;event.preventDefault();cancelHold();holdStarted=Date.now();hold.classList.add('holding');hold.textContent='Segure… 20 segundos';holdTimer=setInterval(()=>{const left=Math.max(0,20-Math.floor((Date.now()-holdStarted)/1000));hold.textContent=`Segure… ${left} segundos`;if(left===0){cancelHold();holdTriggered=true;if(!confirm('Você concluiu a ação secreta. Deseja realmente apagar todos os registros do histórico? Esta ação não pode ser desfeita.'))return;supabase.rpc('admin_purge_audit_log').then(({error})=>{if(error){alert('Não foi possível limpar o histórico. Verifique se a migração de segurança foi aplicada e se você entrou como Administrador.');return}alert('Histórico limpo. O registro de segurança da limpeza foi preservado.');load()})}},250);});
+  ['pointerup','pointercancel','pointerleave','blur'].forEach(name=>hold.addEventListener(name,cancelHold));window.addEventListener('pointerup',cancelHold);
+  await load();
 }
 
 async function overview(){
@@ -776,7 +877,7 @@ async function reservationsView(){
       finish();
     };
     const reservationGrid=root.querySelector('#reservationGrid');
-    if(reservationGrid)reservationGrid.style.touchAction='none';
+    if(reservationGrid)reservationGrid.style.touchAction='pan-y';
     // Os eventos de toque continuam indo para o elemento onde o dedo encostou, mesmo que a grade seja redesenhada
     // (o que acontece ao iniciar o toque longo). Por isso move/end/cancel são ligados nesse elemento, e não na seção.
     reservationCalendarSection.addEventListener('touchstart',event=>{

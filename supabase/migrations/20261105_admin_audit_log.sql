@@ -9,6 +9,8 @@ create table if not exists public.admin_audit_log (
   record_label text,
   actor_id uuid,
   actor_email text,
+  actor_code_id text,
+  actor_name text,
   old_data jsonb,
   new_data jsonb,
   created_at timestamptz not null default now()
@@ -41,6 +43,9 @@ declare
   v_record_id text;
   v_label text;
   v_claims jsonb;
+  v_app_metadata jsonb;
+  v_actor_code_id text;
+  v_actor_name text;
 begin
   if tg_op = 'INSERT' then
     v_old := null;
@@ -69,12 +74,21 @@ begin
     v_claims := '{}'::jsonb;
   end;
 
+  v_app_metadata := coalesce(v_claims->'app_metadata', '{}'::jsonb);
+  v_actor_code_id := v_app_metadata->>'access_code_id';
+  v_actor_name := case v_actor_code_id
+    when 'fernanda' then 'Fernando'
+    when 'monica' then 'Monica'
+    when 'camila' then 'Camila'
+    when 'admin' then 'Administrador'
+    else null end;
+
   insert into public.admin_audit_log
-    (table_name, action, record_id, record_label, actor_id, actor_email, old_data, new_data)
+    (table_name, action, record_id, record_label, actor_id, actor_email, actor_code_id, actor_name, old_data, new_data)
   values
     (tg_table_name, tg_op, v_record_id, v_label, auth.uid(),
      coalesce(v_claims->>'email', current_setting('request.jwt.claim.email', true)),
-     v_old, v_new);
+     v_actor_code_id, v_actor_name, v_old, v_new);
 
   if tg_op = 'DELETE' then return old; end if;
   return new;
@@ -103,5 +117,9 @@ begin
   end loop;
 end;
 $$;
+
+-- Atualiza instalações existentes sem apagar o histórico anterior.
+alter table public.admin_audit_log add column if not exists actor_code_id text;
+alter table public.admin_audit_log add column if not exists actor_name text;
 
 notify pgrst, 'reload schema';

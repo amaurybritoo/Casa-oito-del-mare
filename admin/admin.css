@@ -1228,3 +1228,60 @@ a,button,[role="button"],label,select,summary,input[type="checkbox"],input[type=
 #view{min-width:0;overflow-x:clip}#view .view,#view .panel,#view .form-card,#view .form-grid{min-width:0;max-width:100%}#view table{width:100%;border-collapse:collapse}#view .table-wrap,#view .table-responsive{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}#view input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),#view select,#view textarea{max-width:100%;min-width:0}#view button{touch-action:manipulation}
 @media(max-width:700px){#view table{display:block;max-width:100%;overflow-x:auto;white-space:nowrap}#view th,#view td{padding:10px 9px}.audit-toolbar{grid-template-columns:1fr;padding:12px}.audit-entry summary{gap:8px;padding:12px}.audit-entry time{font-size:10px}.audit-action{font-size:9px;padding:5px 7px}.audit-diff{grid-template-columns:1fr}.audit-meta{display:grid;gap:6px}.audit-entry-details{padding:0 11px 12px}.admin-toast-host{top:calc(10px + env(safe-area-inset-top,0px));left:12px;right:12px;width:auto}.admin-toast{font-size:12px}.form-grid,.edit-inline,.reservation-fields{grid-template-columns:minmax(0,1fr)!important}.form-grid>label,.edit-inline>label,.reservation-fields>label{min-width:0;width:100%}.form-actions,.admin-dialog-actions,.reservation-dialog-actions{gap:9px;flex-wrap:wrap}.form-actions button,.admin-dialog-actions button,.reservation-dialog-actions button{min-height:46px}.reservation-calendar-section,.reservation-panel,.reservation-settings{min-width:0;max-width:100%}.reservation-cards{min-width:0}.reservation-card{min-width:0;overflow-wrap:anywhere}#view .stats{grid-template-columns:repeat(2,minmax(0,1fr))}#view .stats>*{min-width:0}#view .view-head{align-items:flex-start;gap:12px;flex-wrap:wrap}#view .view-head-actions{width:100%;display:flex;flex-wrap:wrap}#view .view-head-actions button{flex:1 1 auto;min-height:44px}}
 @media(max-width:390px){.audit-entry summary{flex-wrap:wrap}.audit-entry time{margin-left:auto}.audit-entry-main{flex-basis:calc(100% - 80px);order:2}.audit-action{order:1}.audit-chevron{order:3}.audit-diff pre{font-size:10px}#view .stats{gap:8px}}
+
+/* Histórico administrativo: leitura simples e confortável em telas pequenas. */
+.audit-human-summary{margin:14px 0 12px;padding:14px 16px;background:#f7f4ed;border-left:3px solid #b99662;border-radius:10px;color:#294846;font-size:14px;line-height:1.6}
+.audit-human-summary p{margin:5px 0 0;font-weight:700;color:#173b3d}
+.audit-details-title{margin:18px 0 9px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:#6b7771}
+.audit-readable-changes{display:grid;gap:9px}
+.audit-change{padding:12px 14px;background:#fff;border:1px solid #ece7dc;border-radius:11px;min-width:0}
+.audit-change>b{display:block;margin-bottom:7px;color:#294846;font-size:13px}
+.audit-change p{margin:0;color:#4f625d;font-size:13px;overflow-wrap:anywhere}
+.audit-before-after{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.audit-before-after>span{display:grid;gap:5px;min-width:0;padding:9px;background:#f8f7f3;border-radius:8px;color:#455953;font-size:12px;overflow-wrap:anywhere}
+.audit-before-after small{font-size:9px;font-weight:800;letter-spacing:.08em;color:#8b795e}
+.audit-no-diff{margin:0;color:#78847f;font-size:12px}
+@media(max-width:700px){
+  .reservation-calendar-section,#reservationGrid{touch-action:pan-y!important;-webkit-overflow-scrolling:touch}
+  .reservation-calendar-section{overscroll-behavior-y:auto}
+  .audit-human-summary{font-size:13px;padding:12px}
+  .audit-before-after{grid-template-columns:1fr}
+  .audit-entry summary{align-items:flex-start}
+  .audit-entry time{white-space:normal;text-align:right;max-width:115px}
+}
+
+/* Histórico: leitura confortável e identidade visual da Casa Oito */
+.audit-view .audit-toolbar{grid-template-columns:minmax(170px,1fr) minmax(170px,1fr) minmax(240px,2fr);gap:14px}
+.audit-view .audit-toolbar label{font-size:15px;font-weight:650;color:#234b49}
+.audit-view .audit-toolbar select,.audit-view .audit-toolbar input{min-height:50px;font-size:16px;border:1px solid #d8d0c2;border-radius:12px;padding:10px 14px;background:#fff}
+.audit-view .audit-refresh{background:#173b3d!important;color:#f0dfbd!important;border:1px solid #b99a65!important;border-radius:999px!important;padding:13px 22px!important;font-weight:700;letter-spacing:.02em;box-shadow:0 3px 10px #173b3d18}
+.audit-view .audit-refresh:hover{background:#245454!important}
+.audit-entry{border:1px solid #e3dccf;border-radius:16px;margin:12px 0;background:#fff;overflow:hidden}
+.audit-entry>summary{padding:18px;gap:14px;min-height:76px}
+.audit-entry-main b{font-size:16px;line-height:1.45}
+.audit-entry-main small,.audit-entry summary time{font-size:14px;line-height:1.5}
+.audit-entry-details{padding:18px 20px 22px}
+.audit-human-summary{font-size:17px;line-height:1.65;background:#f5f1e9;border-left:4px solid #b99a65;border-radius:12px;padding:18px}
+.audit-meta{font-size:14px;line-height:1.7;gap:12px 20px;margin:18px 0}
+.audit-details-title{font-size:17px;margin:20px 0 10px}
+.audit-change{padding:14px;border:1px solid #e7e0d5;border-radius:12px;margin:10px 0;font-size:15px;line-height:1.6}
+.audit-before-after{gap:12px}
+.audit-before-after>span{font-size:14px;background:#f7f5f1;padding:12px;border-radius:10px;overflow-wrap:anywhere}
+.audit-before-after small{display:block;font-size:12px;font-weight:800;letter-spacing:.08em;color:#6b756f;margin-bottom:5px}
+.audit-secret-zone{margin:28px 0 10px;display:flex;align-items:center;gap:12px;justify-content:flex-end;opacity:.82}
+.audit-secret-zone small{max-width:300px;color:#6e7771;font-size:12px;line-height:1.4}
+.audit-purge-hold{touch-action:pan-y;user-select:none;-webkit-user-select:none;min-width:190px}
+.audit-purge-hold.holding{background:#8b4b3f!important;color:white!important;outline:3px solid #d9b98b}
+@media(max-width:850px){.audit-view .audit-toolbar{grid-template-columns:1fr}.audit-entry>summary{display:grid;grid-template-columns:auto 1fr auto}.audit-entry summary time{grid-column:2/-1}.audit-before-after{grid-template-columns:1fr}.audit-secret-zone{align-items:flex-start;flex-direction:column}.audit-entry-details{padding:14px}.audit-human-summary{font-size:16px}}
+
+.audit-hint{font-size:12px;color:#7b817b;text-align:right;margin-top:12px}.audit-view .audit-refresh{touch-action:pan-y;user-select:none;-webkit-user-select:none}
+
+/* LOG: comparações explicadas para leitura fácil */
+.audit-change{font-size:16px;line-height:1.7}
+.audit-change>b{display:block;color:#173b3d;font-size:16px;margin-bottom:8px}
+.audit-before-after>span{display:block;min-width:0;line-height:1.7;font-size:15px;overflow-wrap:anywhere}
+.audit-before-after>span:first-child{border-left:3px solid #b6a28a}
+.audit-before-after>span:last-child{border-left:3px solid #789b82}
+.audit-before-after small{font-size:12px;letter-spacing:.1em}
+.audit-human-summary{font-size:18px;line-height:1.75}
+.audit-meta{font-size:15px}
