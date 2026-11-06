@@ -52,3 +52,33 @@
   #app .reservation-calendar-section{scroll-margin-bottom:calc(118px + env(safe-area-inset-bottom,0px))}
   #app .reservation-register-button{margin-bottom:8px;min-height:52px}
 }
+
+@media(max-width:850px){
+  /* A folha Mais fica acima da barra inferior; nada pode encobrir o botão Sair. */
+  .bn-backdrop{z-index:1100}
+  .bn-sheet{
+    z-index:1110;
+    max-height:calc(100dvh - env(safe-area-inset-top,0px) - 10px);
+    padding-bottom:calc(18px + env(safe-area-inset-bottom,0px));
+    overscroll-behavior-y:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin;
+  }
+  .bn-sheet .bn-out{
+    position:sticky;
+    bottom:0;
+    z-index:3;
+    min-height:58px;
+    margin:14px 0 0;
+    box-shadow:0 -10px 18px rgba(247,242,231,.95);
+  }
+  html.bn-lock,body.bn-lock{overscroll-behavior:none}
+  .bn-sheet {
+  bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important;
+  max-height: calc(
+    100dvh - 76px - env(safe-area-inset-bottom, 0px)
+    - env(safe-area-inset-top, 0px)
+  );
+  border-radius: 24px;
+}
+}

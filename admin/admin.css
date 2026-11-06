@@ -1338,3 +1338,27 @@ a,button,[role="button"],label,select,summary,input[type="checkbox"],input[type=
   #reservationGrid{touch-action:pan-y}
   #reservationGrid button.is-range-start:not(.is-range-end){touch-action:none;-webkit-user-select:none;user-select:none}
 }
+
+@media(max-width:850px){
+  /* O scroll normal continua disponível no calendário. Só o botão de entrada
+     selecionado captura o gesto que começa nele para escolher a saída. */
+  #app #view #reservationGrid{touch-action:pan-y!important}
+  #app #view #reservationGrid button.is-range-start:not(.is-range-end){
+    touch-action:none!important;
+    -webkit-user-select:none!important;
+    user-select:none!important;
+  }
+}
+
+@media(max-width:850px){
+  /* Pan-y deixa rolar verticalmente antes da escolha e entrega o arraste horizontal
+     ao seletor. A data inicial já marcada captura o gesto em qualquer direção. */
+  #app #view #reservationGrid button[data-res-date]{
+    touch-action:pan-y!important;
+    -webkit-user-select:none!important;
+    user-select:none!important;
+  }
+  #app #view #reservationGrid button.is-range-start:not(.is-range-end){
+    touch-action:none!important;
+  }
+}

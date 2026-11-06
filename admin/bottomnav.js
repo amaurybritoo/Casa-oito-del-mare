@@ -27,8 +27,30 @@ export function initBottomNavigation(navigate) {
   }
 
   let sheetOpen = false;
+  let lockedScrollY = 0;
+  let previousBodyStyles = null;
+  const preventBackgroundTouch = event => {
+    if (sheetOpen && !sheet.contains(event.target) && event.cancelable) event.preventDefault();
+  };
   function openSheet() {
+    if (sheetOpen) return;
     sheetOpen = true;
+    lockedScrollY = window.scrollY || window.pageYOffset || 0;
+    previousBodyStyles = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+      overflow: document.body.style.overflow
+    };
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${lockedScrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('touchmove', preventBackgroundTouch, { capture: true, passive: false });
     sheet.style.transform = '';
     sheet.classList.add('open');
     sheet.setAttribute('aria-hidden', 'false');
@@ -47,6 +69,12 @@ export function initBottomNavigation(navigate) {
     moreBtn.setAttribute('aria-expanded', 'false');
     document.documentElement.classList.remove('bn-lock');
     document.body.classList.remove('bn-lock');
+    document.removeEventListener('touchmove', preventBackgroundTouch, true);
+    if (previousBodyStyles) {
+      Object.assign(document.body.style, previousBodyStyles);
+      previousBodyStyles = null;
+    }
+    window.scrollTo(0, lockedScrollY);
   }
 
   function go(view) {

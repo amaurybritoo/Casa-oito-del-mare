@@ -842,112 +842,105 @@ async function reservationsView(){
   const bindReservationGestures=()=>{
     const root=$('#view');
     const section=root.querySelector('.reservation-calendar-section');
-    if(!section)return;
-    const grid=root.querySelector('#reservationGrid');
+    if(!section||section.dataset.rangeGestureBound==='1')return;
+    section.dataset.rangeGestureBound='1';
     const canUse=key=>!!key&&validDateKey(key)&&key>=adminTodayKey()&&!reservationAt(records,key);
-    const keyUnder=(x,y)=>document.elementFromPoint(x,y)?.closest?.('#view #reservationGrid button[data-res-date]')?.dataset.resDate||'';
-    const stopTouch=()=>{
-      document.removeEventListener('touchmove',onTouchMove,{capture:true});
-      document.removeEventListener('touchend',onTouchEnd,{capture:true});
-      document.removeEventListener('touchcancel',onTouchCancel,{capture:true});
-      touchCandidate=false;touchDragging=false;touchStartKey='';touchStartX=touchStartY=0;
+    const keyUnder=(x,y)=>document.elementFromPoint(x,y)?.closest?.('#reservationGrid button[data-res-date]')?.dataset.resDate||'';
+    let touchActive=false,touchDragging=false,touchExplicit=false,touchOrigin='',touchX=0,touchY=0,lastTouchKey='';
+    let mouseActive=false,mouseDragging=false,mouseOrigin='',mousePointer=null,lastMouseKey='';
+    const paintRange=()=>{
+      const grid=root.querySelector('#reservationGrid');
+      if(!grid)return;
+      grid.querySelectorAll('button[data-res-date]').forEach(btn=>{
+        const key=btn.dataset.resDate;
+        const inRange=!!draftStart&&!!draftEnd&&key>=draftStart&&key<=draftEnd;
+        btn.classList.toggle('is-range',inRange);
+        btn.classList.toggle('is-range-start',!!draftStart&&key===draftStart);
+        btn.classList.toggle('is-range-end',!!draftEnd&&key===draftEnd);
+      });
+      const register=root.querySelector('[data-register-reservation]');
+      if(register)register.disabled=!draftStart;
     };
-    let touchCandidate=false,touchDragging=false,touchStartKey='',touchStartX=0,touchStartY=0;
-    let mousePointer=null,mouseCandidate=false,mouseDragging=false,mouseStartKey='',mouseStartX=0,mouseStartY=0;
-    let swipeStartX=0,swipeStartY=0,swipeCandidate=false;
-    const updateRange=key=>{
-      if(!key||!canUse(key)||!touchStartKey&& !mouseStartKey)return;
-      const origin=touchStartKey||mouseStartKey;
+    const applyRange=(origin,key,source)=>{
+      if(!key||!canUse(key))return;
       const first=origin<=key?origin:key,last=origin<=key?key:origin;
       if(rangeConflict(records,first,last,editingId||''))return;
-      draftStart=first;draftEnd=last;editingId='';clearSelectionError();
-      renderReservationCalendar();
+      if(draftStart===first&&draftEnd===(first===last?'':last))return;
+      draftStart=first;draftEnd=first===last?'':last;editingId='';
+      clearSelectionError();paintRange();
+      if(source==='touch')lastTouchKey=key;else lastMouseKey=key;
     };
-    const completeDrag=()=>{
-      gestureSuppressClickUntil=Date.now()+850;
-      renderReservationCalendar();
+    const finishTouch=()=>{
+      document.removeEventListener('touchmove',onTouchMove,true);
+      document.removeEventListener('touchend',onTouchEnd,true);
+      document.removeEventListener('touchcancel',onTouchCancel,true);
+      if(touchDragging)gestureSuppressClickUntil=Date.now()+900;
+      touchActive=false;touchDragging=false;touchExplicit=false;touchOrigin='';touchX=touchY=0;lastTouchKey='';
     };
-    const onTouchMove=event=>{
-      if(!touchCandidate||!event.touches.length)return;
-      const touch=event.touches[0],dx=touch.clientX-touchStartX,dy=touch.clientY-touchStartY;
+    const onTouchMove=e=>{
+      if(!touchActive||!e.touches.length)return;
+      const t=e.touches[0],dx=t.clientX-touchX,dy=t.clientY-touchY;
+      const key=keyUnder(t.clientX,t.clientY);
       if(!touchDragging){
-        if(Math.hypot(dx,dy)<7)return;
+        if(Math.hypot(dx,dy)<7||!key||key===touchOrigin)return;
+        // Se a entrada ainda não estava marcada, só interpretamos movimento
+        // predominantemente horizontal como seleção de período. Movimento
+        // vertical continua sendo scroll normal da página.
+        if(!touchExplicit&&Math.abs(dy)>Math.abs(dx)*0.75)return;
         touchDragging=true;
       }
-      if(event.cancelable)event.preventDefault();
-      const key=keyUnder(touch.clientX,touch.clientY);
-      if(key)updateRange(key);
+      if(e.cancelable)e.preventDefault();
+      if(key&&key!==lastTouchKey)applyRange(touchOrigin,key,'touch');
     };
-    const onTouchEnd=event=>{
-      if(!touchCandidate)return;
+    const onTouchEnd=e=>{
+      if(!touchActive)return;
       if(touchDragging){
-        const touch=event.changedTouches?.[0];
-        if(touch){const key=keyUnder(touch.clientX,touch.clientY);if(key)updateRange(key)}
-        completeDrag();
+        const t=e.changedTouches?.[0];
+        if(t){const key=keyUnder(t.clientX,t.clientY);if(key)applyRange(touchOrigin,key,'touch')}
+        paintRange();
       }
-      stopTouch();
+      finishTouch();
     };
-    const onTouchCancel=()=>stopTouch();
-    // O toque simples escolhe a entrada pelo click normal. Depois disso, somente
-    // um gesto iniciado exatamente na entrada selecionada vira arraste de período.
-    section.addEventListener('touchstart',event=>{
-      if(touchCandidate||!event.touches.length)return;
-      const btn=event.target.closest?.('#reservationGrid button[data-res-date]');
+    const onTouchCancel=()=>finishTouch();
+    section.addEventListener('touchstart',e=>{
+      if(touchActive||!e.touches.length)return;
+      const btn=e.target.closest?.('#reservationGrid button[data-res-date]');
       const key=btn?.dataset.resDate||'';
-      if(!draftStart||draftEnd||key!==draftStart||!canUse(key))return;
-      const touch=event.touches[0];
-      touchCandidate=true;touchDragging=false;touchStartKey=key;
-      touchStartX=touch.clientX;touchStartY=touch.clientY;
+      if(!canUse(key))return;
+      // Funciona nos dois gestos: tocar+arrastar numa única passada ou arrastar
+      // novamente a partir da entrada que já estava selecionada.
+      const alreadySelected=!!draftStart&&!draftEnd&&key===draftStart;
+      const t=e.touches[0];
+      touchActive=true;touchDragging=false;touchOrigin=key;touchX=t.clientX;touchY=t.clientY;
+      touchExplicit=alreadySelected;lastTouchKey=key;
       document.addEventListener('touchmove',onTouchMove,{capture:true,passive:false});
       document.addEventListener('touchend',onTouchEnd,{capture:true,passive:false});
       document.addEventListener('touchcancel',onTouchCancel,{capture:true,passive:true});
     },{passive:true});
 
-    // Desktop: o mesmo gesto funciona com mouse, sem exigir toque longo.
-    section.addEventListener('pointerdown',event=>{
-      if(event.pointerType!=='mouse'||event.button!==0||mousePointer!==null)return;
-      const btn=event.target.closest?.('#reservationGrid button[data-res-date]');
+    // Arraste com mouse no desktop: atualiza apenas as classes, sem recriar os botões sob o cursor.
+    section.addEventListener('pointerdown',e=>{
+      if(e.pointerType!=='mouse'||e.button!==0||mouseActive)return;
+      const btn=e.target.closest?.('#reservationGrid button[data-res-date]');
       const key=btn?.dataset.resDate||'';
       if(!draftStart||draftEnd||key!==draftStart||!canUse(key))return;
-      mousePointer=event.pointerId;mouseCandidate=true;mouseDragging=false;mouseStartKey=key;
-      mouseStartX=event.clientX;mouseStartY=event.clientY;
-    });
-    section.addEventListener('pointermove',event=>{
-      if(!mouseCandidate||event.pointerId!==mousePointer)return;
-      const dx=event.clientX-mouseStartX,dy=event.clientY-mouseStartY;
-      if(!mouseDragging&&Math.hypot(dx,dy)<7)return;
-      mouseDragging=true;
+      mouseActive=true;mouseDragging=false;mouseOrigin=key;mousePointer=e.pointerId;lastMouseKey=key;
       try{section.setPointerCapture(mousePointer)}catch{}
-      const key=keyUnder(event.clientX,event.clientY);
-      if(key)updateRange(key);
     });
-    const finishMouse=event=>{
-      if(!mouseCandidate||event.pointerId!==mousePointer)return;
-      if(mouseDragging)completeDrag();
-      try{if(section.hasPointerCapture(mousePointer))section.releasePointerCapture(mousePointer)}catch{}
-      mousePointer=null;mouseCandidate=false;mouseDragging=false;mouseStartKey='';
+    section.addEventListener('pointermove',e=>{
+      if(!mouseActive||e.pointerId!==mousePointer)return;
+      mouseDragging=true;
+      const key=keyUnder(e.clientX,e.clientY);
+      if(key&&key!==lastMouseKey)applyRange(mouseOrigin,key,'mouse');
+    });
+    const finishMouse=e=>{
+      if(!mouseActive||e.pointerId!==mousePointer)return;
+      if(mouseDragging){gestureSuppressClickUntil=Date.now()+500;paintRange()}
+      try{section.releasePointerCapture(mousePointer)}catch{}
+      mouseActive=false;mouseDragging=false;mouseOrigin='';mousePointer=null;lastMouseKey='';
     };
     section.addEventListener('pointerup',finishMouse);
     section.addEventListener('pointercancel',finishMouse);
-    // Swipe horizontal fora da data inicial continua trocando o mês.
-    section.addEventListener('touchstart',event=>{
-      if(!event.touches.length)return;
-      const btn=event.target.closest?.('#reservationGrid button[data-res-date]');
-      if(btn?.dataset.resDate===draftStart&&!draftEnd)return;
-      swipeCandidate=true;swipeStartX=event.touches[0].clientX;swipeStartY=event.touches[0].clientY;
-    },{passive:true});
-    section.addEventListener('touchend',event=>{
-      if(!swipeCandidate||!event.changedTouches.length)return;
-      const t=event.changedTouches[0],dx=t.clientX-swipeStartX,dy=t.clientY-swipeStartY;
-      swipeCandidate=false;
-      if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.25){
-        const next=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth()+(dx<0?1:-1),1);
-        const current=new Date(new Date().getFullYear(),new Date().getMonth(),1);
-        if(dx>0&&next<current)return;
-        reservationMonth=next;renderReservationCalendar();
-      }
-    },{passive:true});
-    section.addEventListener('touchcancel',()=>{swipeCandidate=false},{passive:true});
   };
 
   const openReservationPreview=(item)=>{
