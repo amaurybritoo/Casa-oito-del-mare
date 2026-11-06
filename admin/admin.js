@@ -52,6 +52,25 @@ async function normalizePositions(table,data){const list=orderedRows(data);if(li
 async function moveRecordToPosition(table,id,position){const list=orderedRows(await rows(table));const index=list.findIndex(row=>String(row.id)===String(id));if(index<0)return false;const target=Math.max(0,Math.min(list.length-1,Math.floor(Number(position)||1)-1));if(index===target)return false;const [item]=list.splice(index,1);list.splice(target,0,item);await assignPositions(table,list);return true}
 async function insertAtPosition(table,payload,position,data){const list=orderedRows(data);const target=Math.max(1,Math.min(list.length+1,Math.floor(Number(position)||list.length+1)));const result=await supabase.from(table).insert({...payload,position:target}).select('*').single();if(result.error)throw result.error;list.splice(target-1,0,result.data);await assignPositions(table,list);return list.map((row,index)=>({...row,position:index+1}))}
 function askDelete(title,detail){return new Promise(resolve=>{const dialog=document.createElement('dialog');dialog.className='admin-dialog';dialog.innerHTML=`<div class="admin-dialog-mark">8</div><p class="eyebrow">CASA OITO DEL MARE</p><h2>${esc(title)}</h2><p>${esc(detail)}</p><div class="admin-dialog-actions"><button type="button" class="secondary" data-cancel>Cancelar</button><button type="button" class="danger-confirm" data-confirm>Excluir</button></div>`;let settled=false;const finish=value=>{if(settled)return;settled=true;dialog.close();dialog.remove();resolve(value)};dialog.querySelector('[data-cancel]').onclick=()=>finish(false);dialog.querySelector('[data-confirm]').onclick=()=>finish(true);dialog.addEventListener('cancel',event=>{event.preventDefault();finish(false)});document.body.append(dialog);dialog.showModal()})}
+function brandedNotice(title,detail,type='success'){
+  return new Promise(resolve=>{
+    const dialog=document.createElement('dialog');dialog.className='admin-dialog branded-notice-dialog';
+    dialog.innerHTML=`<div class="admin-dialog-mark">${type==='error'?'!':'8'}</div><p class="eyebrow">CASA OITO DEL MARE</p><h2>${esc(title)}</h2><p>${esc(detail)}</p><div class="admin-dialog-actions"><button type="button" class="primary" data-ok>Entendi</button></div>`;
+    const finish=()=>{if(dialog.open)dialog.close();dialog.remove();resolve()};
+    dialog.querySelector('[data-ok]').onclick=finish;dialog.addEventListener('cancel',e=>{e.preventDefault();finish()});
+    document.body.append(dialog);dialog.showModal();
+  });
+}
+function brandedConfirm(title,detail,confirmLabel='Confirmar'){
+  return new Promise(resolve=>{
+    const dialog=document.createElement('dialog');dialog.className='admin-dialog branded-confirm-dialog';
+    dialog.innerHTML=`<div class="admin-dialog-mark">8</div><p class="eyebrow">CASA OITO DEL MARE</p><h2>${esc(title)}</h2><p>${esc(detail)}</p><div class="admin-dialog-actions"><button type="button" class="secondary" data-cancel>Cancelar</button><button type="button" class="danger-confirm" data-confirm>${esc(confirmLabel)}</button></div>`;
+    let done=false;const finish=value=>{if(done)return;done=true;if(dialog.open)dialog.close();dialog.remove();resolve(value)};
+    dialog.querySelector('[data-cancel]').onclick=()=>finish(false);dialog.querySelector('[data-confirm]').onclick=()=>finish(true);
+    dialog.addEventListener('cancel',e=>{e.preventDefault();finish(false)});
+    document.body.append(dialog);dialog.showModal();
+  });
+}
 function message(text,error=false){$('#loginMsg').textContent=text||'';$('#loginMsg').style.color=error?'#ffb5aa':''}
 function configured(){return SUPABASE_URL.startsWith('https://')&&SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')}
 function showLogin(){const login=$('#login'),app=$('#app');app.hidden=true;app.style.display='none';login.hidden=false;login.style.removeProperty('display');login.setAttribute('aria-hidden','false');app.setAttribute('aria-hidden','true')}
@@ -371,7 +390,7 @@ async function auditLogView(){
   $('#auditFilter').onchange=paint;$('#auditActorFilter').onchange=paint;$('#auditSearch').oninput=paint;$('#refreshAudit').onclick=()=>{if(holdTriggered){holdTriggered=false;return}load()};
   const hold=$('#refreshAudit');let holdTimer=null,holdStarted=0,holdTriggered=false;
   const cancelHold=()=>{if(holdTimer)clearInterval(holdTimer);holdTimer=null;holdStarted=0;hold.textContent='↻ Atualizar histórico';hold.classList.remove('holding');};
-  hold.addEventListener('pointerdown',event=>{if(event.button!==undefined&&event.button!==0)return;event.preventDefault();cancelHold();holdStarted=Date.now();hold.classList.add('holding');hold.textContent='Segure… 20 segundos';holdTimer=setInterval(()=>{const left=Math.max(0,20-Math.floor((Date.now()-holdStarted)/1000));hold.textContent=`Segure… ${left} segundos`;if(left===0){cancelHold();holdTriggered=true;if(!confirm('Você concluiu a ação secreta. Deseja realmente apagar todos os registros do histórico? Esta ação não pode ser desfeita.'))return;supabase.rpc('admin_purge_audit_log').then(({error})=>{if(error){alert('Não foi possível limpar o histórico. Verifique se a migração de segurança foi aplicada e se você entrou como Administrador.');return}alert('Histórico limpo. O registro de segurança da limpeza foi preservado.');load()})}},250);});
+  hold.addEventListener('pointerdown',event=>{if(event.button!==undefined&&event.button!==0)return;event.preventDefault();cancelHold();holdStarted=Date.now();hold.classList.add('holding');hold.textContent='Segure… 20 segundos';holdTimer=setInterval(async()=>{const left=Math.max(0,20-Math.floor((Date.now()-holdStarted)/1000));hold.textContent=`Segure… ${left} segundos`;if(left===0){cancelHold();holdTriggered=true;if(!await brandedConfirm('Apagar todo o histórico?','Esta ação remove os registros exibidos no LOG e não pode ser desfeita. O registro de segurança da limpeza será preservado.','Apagar histórico'))return;hold.textContent='LIMPANDO…';supabase.rpc('admin_purge_audit_log').then(async({error})=>{if(error){await brandedNotice('Não foi possível limpar o histórico.','Confira se a migração de segurança foi aplicada no Supabase e se você entrou com o acesso de Administrador. Detalhe técnico: '+(error.message||'erro não informado'),'error');hold.textContent='Atualizar histórico';return}await brandedNotice('Histórico limpo.','Os registros anteriores foram apagados. O registro de segurança da limpeza foi preservado.');hold.textContent='Atualizar histórico';load()})}},250);});
   ['pointerup','pointercancel','pointerleave','blur'].forEach(name=>hold.addEventListener(name,cancelHold));window.addEventListener('pointerup',cancelHold);
   await load();
 }

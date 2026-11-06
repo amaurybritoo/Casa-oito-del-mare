@@ -1298,3 +1298,12 @@ a,button,[role="button"],label,select,summary,input[type="checkbox"],input[type=
 .audit-before-after{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:9px}
 .audit-before-after>span{min-width:0;overflow-wrap:anywhere;white-space:normal}
 @media(max-width:850px){.audit-before-after{grid-template-columns:1fr}.bn{z-index:1000}}
+
+/* Alertas e confirmações com a identidade visual da Casa Oito */
+.branded-notice-dialog,.branded-confirm-dialog{width:min(90vw,440px);padding:28px 26px;border:1px solid #d9bd98;border-radius:24px;background:linear-gradient(155deg,#fffdf8 0%,#f3eee4 100%);color:#173b3d;box-shadow:0 24px 80px rgba(6,31,32,.35)}
+.branded-notice-dialog::backdrop,.branded-confirm-dialog::backdrop{background:rgba(6,31,32,.62);backdrop-filter:blur(7px)}
+.branded-notice-dialog .admin-dialog-mark,.branded-confirm-dialog .admin-dialog-mark{width:48px;height:48px;background:#173b3d;color:#efc49e;border:1px solid #c7a477}
+.branded-notice-dialog h2,.branded-confirm-dialog h2{font:36px/1.05 'Cormorant Garamond',Georgia,serif;color:#173b3d}
+.branded-notice-dialog>p:not(.eyebrow),.branded-confirm-dialog>p:not(.eyebrow){font:14px/1.65 'DM Sans',Arial,sans-serif;color:#64746d}
+.branded-notice-dialog .primary{border:0;background:#173b3d;color:#efc49e}
+.branded-confirm-dialog .danger-confirm{background:#9a493f;color:#fff}

@@ -97,88 +97,72 @@ export function initStayPicker({ checkin, checkout, getAvailability }) {
   // Segurar numa data livre e arrastar seleciona o período; deslizar para o lado troca o mês.
   // Durante o arraste, o mês só troca se não houver data ocupada entre o início da seleção e o outro mês.
   function bindGestures() {
-    let holdTimer = null, edgeTimer = null, pointerId = null, dragging = false, swiping = false;
-    let startX = 0, startY = 0, dragStartKey = '', dragLastKey = '', edgeHintUntil = 0;
-    const stopTimers = () => { clearTimeout(holdTimer); holdTimer = null; clearInterval(edgeTimer); edgeTimer = null; };
-    const keyUnder = (x, y) => document.elementFromPoint(x, y)?.closest?.('.stay-picker .calendar-day[data-date]')?.dataset.date || '';
-    const firstFree = dir => {
-      const free = [...grid.querySelectorAll('.calendar-day[data-date]')].filter(b => isFree(b.dataset.date));
-      return free.length ? (dir > 0 ? free[0] : free[free.length - 1]).dataset.date : '';
+    let edgeTimer=null,pointerId=null,dragging=false,swiping=false,pendingRange=false;
+    let startX=0,startY=0,dragStartKey='',dragLastKey='',edgeHintUntil=0;
+    const stopTimers=()=>{clearInterval(edgeTimer);edgeTimer=null};
+    const keyUnder=(x,y)=>document.elementFromPoint(x,y)?.closest?.('.stay-picker .calendar-day[data-date]')?.dataset.date||'';
+    const firstFree=dir=>{const free=[...grid.querySelectorAll('.calendar-day[data-date]')].filter(b=>isFree(b.dataset.date));return free.length?(dir>0?free[0]:free[free.length-1]).dataset.date:''};
+    const pathBlocked=dir=>{if(!dragStartKey)return false;const dest=monthCrossKey(month,dir),a=dragStartKey;return pathReserved(a<dest?a:dest,a<dest?dest:a)};
+    const applyDragKey=key=>{
+      if(!dragging||!isFree(key)||key===dragLastKey)return;
+      const a=dragStartKey,lo=a<=key?a:key,hi=a<=key?key:a;
+      if(pathReserved(lo,hi))return;
+      dragLastKey=key;start=lo;end=hi>lo?hi:'';hideInfo();render();
     };
-    const pathBlocked = dir => {
-      if (!dragStartKey) return false;
-      const dest = monthCrossKey(month, dir), a = dragStartKey;
-      return pathReserved(a < dest ? a : dest, a < dest ? dest : a);
+    const edgeStep=dir=>{
+      if(!dragging)return;
+      if(pathBlocked(dir)){if(Date.now()>=edgeHintUntil){edgeHintUntil=Date.now()+1800;try{navigator.vibrate?.(18)}catch{}}return}
+      if(!shift(dir))return;const boundary=firstFree(dir);if(boundary)applyDragKey(boundary);
     };
-    const applyDragKey = key => {
-      if (!dragging || !isFree(key) || key === dragLastKey) return;
-      const a = dragStartKey, lo = a <= key ? a : key, hi = a <= key ? key : a;
-      if (pathReserved(lo, hi)) return;                      // não atravessa data ocupada
-      dragLastKey = key; start = lo; end = hi > lo ? hi : '';
-      hideInfo(); render();
+    const moveSelection=(x,y)=>{
+      if(!dragging)return;const key=keyUnder(x,y);if(key)applyDragKey(key);
+      const r=grid.getBoundingClientRect(),edge=44;
+      if(x>r.right-edge){if(!edgeTimer)edgeTimer=setInterval(()=>edgeStep(1),300)}
+      else if(x<r.left+edge){if(!edgeTimer)edgeTimer=setInterval(()=>edgeStep(-1),300)}
+      else stopTimers();
     };
-    const edgeStep = dir => {
-      if (!dragging) return;
-      if (pathBlocked(dir)) {                                // bloqueio silencioso (só vibração onde houver)
-        if (Date.now() >= edgeHintUntil) { edgeHintUntil = Date.now() + 1800; try { navigator.vibrate?.(18); } catch { /* sem vibração */ } }
-        return;
+    const finish=()=>{
+      stopTimers();if(pointerId!==null){try{grid.releasePointerCapture(pointerId)}catch{}}
+      pointerId=null;dragging=false;swiping=false;pendingRange=false;dragStartKey='';dragLastKey='';
+      grid.classList.toggle('has-start-date',!!start);
+    };
+    // O primeiro toque escolhe a entrada normalmente. Depois disso, arrastar a partir
+    // da própria entrada inicia a seleção do período e impede o scroll da página.
+    grid.style.touchAction='pan-y';
+    grid.addEventListener('pointerdown',e=>{
+      if(pointerId!==null||(e.pointerType==='mouse'&&e.button!==0))return;
+      const btn=e.target.closest?.('.calendar-day[data-date]');if(!btn)return;
+      pointerId=e.pointerId;startX=e.clientX;startY=e.clientY;dragging=false;swiping=false;
+      dragStartKey='';dragLastKey='';
+      if(start&& !end && btn.dataset.date===start && isFree(start)){
+        pendingRange=true;dragStartKey=start;dragLastKey=start;
       }
-      if (!shift(dir)) return;
-      const boundary = firstFree(dir);
-      if (boundary) applyDragKey(boundary);
-    };
-    const moveSelection = (x, y) => {
-      if (!dragging) return;
-      const key = keyUnder(x, y); if (key) applyDragKey(key);
-      const r = grid.getBoundingClientRect(), edge = 44;
-      if (x > r.right - edge) { if (!edgeTimer) edgeTimer = setInterval(() => edgeStep(1), 300); }
-      else if (x < r.left + edge) { if (!edgeTimer) edgeTimer = setInterval(() => edgeStep(-1), 300); }
-      else { clearInterval(edgeTimer); edgeTimer = null; }
-    };
-    const beginLongPress = () => {
-      if (!dragStartKey || swiping) return;
-      holdTimer = null; dragging = true;
-      start = dragStartKey; end = ''; hideInfo();
-      if (pointerId !== null) { try { grid.setPointerCapture(pointerId); } catch { /* ok */ } }
-      render();
-    };
-    const finish = () => {
-      stopTimers();
-      if (pointerId !== null) { try { grid.releasePointerCapture(pointerId); } catch { /* ok */ } }
-      pointerId = null; dragging = false; swiping = false; dragStartKey = ''; dragLastKey = '';
-    };
-    grid.style.touchAction = 'none';
-    grid.addEventListener('pointerdown', e => {
-      if (pointerId !== null) return;
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      const btn = e.target.closest?.('.calendar-day[data-date]');
-      if (!btn) return;
-      pointerId = e.pointerId; startX = e.clientX; startY = e.clientY; dragging = false; swiping = false; dragStartKey = ''; dragLastKey = '';
-      const key = btn.dataset.date || '';
-      // Sem captura aqui: capturar no pointerdown redireciona o clique e o toque simples deixa de selecionar.
-      if (key && isFree(key)) { dragStartKey = key; dragLastKey = key; holdTimer = setTimeout(beginLongPress, 450); }
     });
-    grid.addEventListener('pointermove', e => {
-      if (pointerId !== e.pointerId) return;
-      const dx = e.clientX - startX, dy = e.clientY - startY;
-      if (!dragging && !swiping && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
-        if (Math.abs(dx) > Math.abs(dy) * 1.12 && Math.abs(dx) > 26) { swiping = true; clearTimeout(holdTimer); holdTimer = null; }
-        else if (Math.abs(dy) > Math.abs(dx)) { clearTimeout(holdTimer); holdTimer = null; }
+    grid.addEventListener('pointermove',e=>{
+      if(pointerId!==e.pointerId)return;
+      const dx=e.clientX-startX,dy=e.clientY-startY;
+      if(pendingRange&&!dragging&&Math.hypot(dx,dy)>8){
+        if(Math.abs(dy)>Math.abs(dx)*0.85 || Math.abs(dx)>8){
+          dragging=true;pendingRange=false;
+          try{grid.setPointerCapture(pointerId)}catch{}
+          e.preventDefault();
+        }
       }
-      if (swiping || dragging) { moveSelection(e.clientX, e.clientY); e.preventDefault(); if (!grid.hasPointerCapture(pointerId)) { try { grid.setPointerCapture(pointerId); } catch { /* ok */ } } }
+      if(!dragging&&!swiping&&Math.abs(dx)>26&&Math.abs(dx)>Math.abs(dy)*1.12)swiping=true;
+      if(dragging){moveSelection(e.clientX,e.clientY);e.preventDefault()}
     });
-    grid.addEventListener('pointerup', e => {
-      if (pointerId !== e.pointerId) return;
-      const dx = e.clientX - startX, dy = e.clientY - startY, wasDrag = dragging, wasSwipe = swiping;
-      stopTimers();
-      if (wasDrag) { suppressUntil = Date.now() + 700; render(); finish(); return; }
-      if (wasSwipe || (Math.abs(dx) >= 52 && Math.abs(dx) > Math.abs(dy) * 1.12)) { if (shift(dx < 0 ? 1 : -1)) suppressUntil = Date.now() + 700; }
+    grid.addEventListener('pointerup',e=>{
+      if(pointerId!==e.pointerId)return;
+      const dx=e.clientX-startX,dy=e.clientY-startY,wasDrag=dragging,wasSwipe=swiping;
+      if(wasDrag){const key=keyUnder(e.clientX,e.clientY);if(key)applyDragKey(key);suppressUntil=Date.now()+700;render();finish();return}
+      if(wasSwipe&&(Math.abs(dx)>=52)&&Math.abs(dx)>Math.abs(dy)*1.12){if(shift(dx<0?1:-1))suppressUntil=Date.now()+700}
       finish();
     });
-    grid.addEventListener('pointercancel', e => { if (pointerId === e.pointerId) finish(); });
-    grid.addEventListener('lostpointercapture', () => { if (pointerId !== null && !dragging && !swiping) finish(); });
-    grid.addEventListener('contextmenu', e => { if (dragging) e.preventDefault(); });
-    grid.addEventListener('click', e => { if (Date.now() < suppressUntil) { e.preventDefault(); e.stopPropagation(); } }, true);
+    grid.addEventListener('pointercancel',e=>{if(pointerId===e.pointerId)finish()});
+    grid.addEventListener('lostpointercapture',()=>{if(pointerId!==null&&!dragging&&!swiping)finish()});
+    grid.addEventListener('contextmenu',e=>{if(dragging)e.preventDefault()});
+    grid.addEventListener('click',e=>{if(Date.now()<suppressUntil){e.preventDefault();e.stopPropagation()}},true);
+    grid.classList.toggle('has-start-date',!!start);
   }
 
   function shift(dir) {

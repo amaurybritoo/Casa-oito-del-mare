@@ -106,7 +106,7 @@
   z-index: 1;
   grid-auto-rows: var(--cal-cell, 44px);
   min-height: 0;
-  touch-action: none;
+  touch-action: pan-y;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -135,7 +135,7 @@
   cursor: pointer;
   opacity: 1;
   pointer-events: auto;
-  touch-action: none;
+  touch-action: pan-y;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -286,3 +286,9 @@
 @media (prefers-reduced-motion: reduce) {
   :is(.reservation-day, .calendar-day), :is(.reservation-toolbar, .calendar-head) button { transition: none; }
 }
+
+
+/* Calendário público: scroll normal antes de escolher entrada; arraste a partir
+   da entrada selecionada para capturar o gesto e escolher a saída. */
+.stay-picker .calendar-grid.has-start-date .calendar-day.is-checkin{touch-action:none}
+.stay-picker .calendar-grid.has-start-date{touch-action:pan-y}
