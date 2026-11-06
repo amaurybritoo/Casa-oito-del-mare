@@ -472,12 +472,24 @@ function renderCalendar(){
     html+=`<button class="${cls}${isPast?' is-past':''}" type="button" data-date="${key}" aria-label="${d} de ${monthEl.textContent.toLowerCase()}${label}" ${unavailable?'aria-disabled="true"':''}>${d}</button>`;
   }
   grid.innerHTML=html;
+  grid.querySelectorAll('button[data-date]').forEach(btn=>{
+    btn.addEventListener('click',event=>selectPublicCalendarDate(event,btn));
+  });
+  // Toque/clique em qualquer espaço vazio do calendário limpa o período.
+  // Em capture, identifica o alvo antes do handler do dia interromper a propagação.
+  if(!grid.dataset.blankResetBound){
+    grid.dataset.blankResetBound='1';
+    grid.addEventListener('click',event=>{
+      if(event.target.closest('button[data-date]')) return;
+      if(event.target.closest('#calendarPrev,#calendarNext,[data-calendar-prev],[data-calendar-next],.calendar-legend,.calendar-holiday-info')) return;
+      checkinDate=null;checkoutDate=null;selectedDate=null;
+      clearCalendarError();clearHolidayInfo();updateCalendarWhatsApp();renderCalendar();
+    },true);
+  }
 }
 
-// Um único listener no calendário deixa o toque confiável no Safari/iPhone e
-// evita que a renderização do calendário durante o clique perca o evento.
-$('#calendarGrid')?.addEventListener('click', event=>{
-  const btn=event.target.closest?.('#calendarGrid [data-date]');
+
+function selectPublicCalendarDate(event, btn){
   if(!btn) return;
   event.preventDefault();
   event.stopPropagation();
@@ -487,23 +499,20 @@ $('#calendarGrid')?.addEventListener('click', event=>{
   const holiday=holidayForKey(key);
   if(holiday)showHolidayInfo(key,holiday);
   else clearHolidayInfo();
-  // Segundo clique na mesma data de entrada limpa a seleção; qualquer outra data livre vira a nova entrada.
   if(key===checkinDate && !checkoutDate){
-    checkinDate=null; checkoutDate=null; selectedDate=null; clearCalendarError(); clearHolidayInfo(); updateCalendarWhatsApp(); renderCalendar(); return;
+    checkinDate=null;checkoutDate=null;selectedDate=null;
+    clearCalendarError();clearHolidayInfo();updateCalendarWhatsApp();renderCalendar();return;
   }
-  if(!checkinDate || (checkinDate && checkoutDate)){
-    checkinDate=key; checkoutDate=null; clearCalendarError(); updateCalendarWhatsApp(); renderCalendar(); return;
-  }
-  if(parseDateKey(key)<=parseDateKey(checkinDate)){
-    checkinDate=key; checkoutDate=null; clearCalendarError(); updateCalendarWhatsApp(); renderCalendar(); return;
+  if(!checkinDate || (checkinDate && checkoutDate) || parseDateKey(key)<=parseDateKey(checkinDate)){
+    checkinDate=key;checkoutDate=null;clearCalendarError();updateCalendarWhatsApp();renderCalendar();return;
   }
   if(rangeHasReserved(checkinDate,key)){
-    checkinDate=null; checkoutDate=null; clearCalendarError(); updateCalendarWhatsApp(); renderCalendar();
-    showCalendarError();
-    return;
+    checkinDate=null;checkoutDate=null;clearCalendarError();updateCalendarWhatsApp();renderCalendar();
+    showCalendarError();return;
   }
-  checkoutDate=key; clearCalendarError(); updateCalendarWhatsApp(); renderCalendar();
-});
+  checkoutDate=key;clearCalendarError();updateCalendarWhatsApp();renderCalendar();
+}
+
 function updateCalendarWhatsApp(){
   const w=$('#calendarWhatsapp');
   if(!w) return;
@@ -539,6 +548,18 @@ function openStayCalendar(){
   startLiveWatch();
 }
 $('[data-close-stay]')?.addEventListener('click',()=>$('#stayDialog')?.close());
+// Qualquer toque/clique fora da área dos números (grade) limpa entrada e saída.
+// A área da grade inteira, inclusive espaços vazios entre os dias, preserva a seleção.
+(()=>{
+  const dialog=$('#stayDialog');
+  if(!dialog || dialog.dataset.outsideGridResetBound) return;
+  dialog.dataset.outsideGridResetBound='1';
+  dialog.addEventListener('click',event=>{
+    if(event.target.closest('#calendarGrid')) return;
+    checkinDate=null;checkoutDate=null;selectedDate=null;
+    clearCalendarError();clearHolidayInfo();updateCalendarWhatsApp();renderCalendar();
+  },true);
+})();
 $('#stayDialog')?.addEventListener('click',event=>{
   const target=event.target;
   const dialog=$('#stayDialog');
@@ -560,10 +581,10 @@ $('#calendarNext')?.addEventListener('click',()=>{calendarMonth=new Date(calenda
   const grid=$('#calendarGrid');
   if(!grid) return;
   const host=grid.closest('dialog')||grid.parentElement||grid;
-  let holdTimer=null,edgeTimer=null,pointerId=null,dragging=false,swiping=false;
+  let edgeTimer=null,pointerId=null,dragging=false,swiping=false,pendingRange=false;
   let startX=0,startY=0,lastX=0,lastY=0,dragStartKey='',dragLastKey='',tapKey='',suppressUntil=0;
   const currentMonth=()=>new Date(new Date().getFullYear(),new Date().getMonth(),1);
-  const stopTimers=()=>{clearTimeout(holdTimer);holdTimer=null;clearInterval(edgeTimer);edgeTimer=null};
+  const stopTimers=()=>{clearInterval(edgeTimer);edgeTimer=null};
   const available=key=>{
     const st=availabilityStatusMap().get(key)||'available';
     return /^\d{4}-\d{2}-\d{2}$/.test(String(key))&&key>=todayKey()&&st==='available';
@@ -588,18 +609,10 @@ $('#calendarNext')?.addEventListener('click',()=>{calendarMonth=new Date(calenda
     checkinDate=nextStart;checkoutDate=nextEnd;selectedDate=nextStart;
     clearCalendarError();clearHolidayInfo();updateCalendarWhatsApp();renderCalendar();
   };
-  const beginLongPress=()=>{
-    if(!dragStartKey||swiping)return;
-    holdTimer=null;dragging=true;
-    checkinDate=dragStartKey;checkoutDate=dragStartKey;selectedDate=dragStartKey;
-    updateCalendarWhatsApp();
-    if(pointerId!==null)try{grid.setPointerCapture(pointerId)}catch{}
-    renderCalendar();
-  };
   const finish=()=>{
     stopTimers();
     if(pointerId!==null)try{grid.releasePointerCapture(pointerId)}catch{}
-    pointerId=null;dragging=false;swiping=false;dragStartKey='';dragLastKey='';tapKey='';
+    pointerId=null;dragging=false;swiping=false;pendingRange=false;dragStartKey='';dragLastKey='';tapKey='';
   };
   // Durante o arraste, não dá para trocar de mês se houver data reservada/bloqueada entre o início da seleção e o outro mês.
   const pathReserved=(a,b)=>{
@@ -637,21 +650,27 @@ $('#calendarNext')?.addEventListener('click',()=>{calendarMonth=new Date(calenda
     else{clearInterval(edgeTimer);edgeTimer=null}
   };
   const startGesture=(x,y,key)=>{
-    startX=x;startY=y;lastX=x;lastY=y;dragging=false;swiping=false;
+    startX=x;startY=y;lastX=x;lastY=y;dragging=false;swiping=false;pendingRange=false;
     dragStartKey='';dragLastKey='';tapKey=key||'';
-    if(key&&available(key)){dragStartKey=key;dragLastKey=key;holdTimer=setTimeout(beginLongPress,450)}
+    // Só a entrada já escolhida inicia o arraste para definir a saída.
+    if(key&&available(key)&&checkinDate===key&&!checkoutDate){
+      pendingRange=true;dragStartKey=key;dragLastKey=key;
+    }
   };
   const moveGesture=(x,y)=>{
     lastX=x;lastY=y;
     const dx=x-startX,dy=y-startY;
+    if(pendingRange&&!dragging&&Math.hypot(dx,dy)>7){
+      dragging=true;pendingRange=false;
+      try{if(pointerId!==null)grid.setPointerCapture(pointerId)}catch{}
+      if(checkoutDate!==dragStartKey){checkoutDate=dragStartKey;updateCalendarWhatsApp();renderCalendar()}
+    }
     if(!dragging&&!swiping&&(Math.abs(dx)>10||Math.abs(dy)>10)){
       if(Math.abs(dx)>Math.abs(dy)*1.12&&Math.abs(dx)>26){
-        swiping=true;clearTimeout(holdTimer);holdTimer=null;
-      }else if(Math.abs(dy)>Math.abs(dx)){
-        clearTimeout(holdTimer);holdTimer=null;
+        swiping=true;
       }
     }
-    if(swiping||dragging)moveSelection(x,y);
+    if(dragging){moveSelection(x,y);return}
   };
   const endGesture=(x,y)=>{
     const dx=x-startX,dy=y-startY;
@@ -668,7 +687,7 @@ $('#calendarNext')?.addEventListener('click',()=>{calendarMonth=new Date(calenda
     }
     finish();
   };
-  grid.style.touchAction='none';
+  grid.style.touchAction='pan-y';
   grid.addEventListener('pointerdown',event=>{
     if(pointerId!==null)return;
     if(event.pointerType==='mouse'&&event.button!==0)return;

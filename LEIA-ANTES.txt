@@ -20,3 +20,6 @@ CASA OITO DEL MARE — CORREÇÃO DO LOG E DO MENU MAIS
 - Role a lista dentro de Mais; somente a folha deve rolar. O fundo da página deve permanecer parado.
 
 Se o Supabase ainda retornar erro de permissão, confirme que o SQL foi executado no projeto jkrexqaroxbcjvqiaggm, não em outro projeto.
+
+4) Calendário de edição de reserva
+- O bloqueio de rolagem agora é compartilhado entre o formulário de edição e o seletor de datas. Ao abrir 'Alterar período', a página de fundo permanece travada durante a troca entre os dois diálogos e só volta a rolar quando o último diálogo for fechado.

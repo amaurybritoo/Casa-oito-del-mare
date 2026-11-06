@@ -282,3 +282,44 @@ body:has(.stay-picker[open]){overflow:hidden}
 @media(prefers-reduced-motion:reduce){.card,.card-open,.card-cta{transition:none}}
 .card-caption .nb{white-space:nowrap}
 .card-caption strong{text-wrap:balance}
+
+/* iOS Safari: o documento fica travado pelo JS enquanto o seletor está aberto.
+   A rolagem, se necessária, acontece somente dentro do conteúdo do diálogo. */
+.stay-picker{
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+}
+.stay-picker .stay-dialog-inner{
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+}
+.stay-picker::backdrop{
+  overscroll-behavior:none;
+}
+html:has(.stay-picker[open]),
+body:has(.stay-picker[open]){
+  overscroll-behavior:none;
+}
+
+/* Todos os calendários de período: somente a data de entrada selecionada captura o arraste. */
+@media (max-width: 850px) {
+  #calendarGrid { touch-action: pan-y; }
+  #calendarGrid .calendar-day[data-date] { touch-action: pan-y; }
+  #calendarGrid .calendar-day.is-checkin:not(.is-checkout) { touch-action: none; }
+  .stay-picker .calendar-grid { touch-action: pan-y; }
+  .stay-picker .calendar-grid .calendar-day[data-date] { touch-action: pan-y; }
+  .stay-picker .calendar-grid .calendar-day.is-checkin:not(.is-checkout) { touch-action: none; }
+}
+
+/* Correção de interação: números do calendário público permanecem clicáveis no toque. */
+#calendarGrid .calendar-day[data-date],
+.stay-picker .calendar-day[data-date]{
+  pointer-events:auto!important;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+#calendarGrid .calendar-day[data-date][aria-disabled="true"],
+.stay-picker .calendar-day[data-date][aria-disabled="true"]{
+  cursor:not-allowed;
+}

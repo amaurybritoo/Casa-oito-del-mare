@@ -292,3 +292,12 @@
    da entrada selecionada para capturar o gesto e escolher a saída. */
 .stay-picker .calendar-grid.has-start-date .calendar-day.is-checkin{touch-action:none}
 .stay-picker .calendar-grid.has-start-date{touch-action:pan-y}
+
+
+/* Página pública: ao arrastar a partir da entrada selecionada, o gesto pertence ao seletor
+   de período e não ao scroll vertical do calendário/modal. Os outros pontos continuam roláveis. */
+#calendarGrid .calendar-day.is-checkin {
+  touch-action: none !important;
+  -webkit-user-select: none;
+  user-select: none;
+}

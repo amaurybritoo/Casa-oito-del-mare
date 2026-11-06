@@ -189,3 +189,33 @@
     box-shadow:0 -8px 18px rgba(247,242,231,.96);
   }
 }
+
+/* A lista da folha rola; Sair permanece fixo no rodapé visível da própria folha. */
+@media(max-width:850px){
+  .bn-sheet{
+    display:flex!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+    padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))!important;
+  }
+  .bn-sheet-head{flex:0 0 auto}
+  .bn-sheet-scroll{
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    padding:0 2px 8px;
+  }
+  .bn-sheet .bn-out{
+    position:relative!important;
+    inset:auto!important;
+    flex:0 0 auto!important;
+    width:100%;
+    min-height:56px;
+    margin:10px 0 0!important;
+    z-index:8;
+    box-shadow:0 -8px 16px rgba(247,242,231,.98)!important;
+  }
+}

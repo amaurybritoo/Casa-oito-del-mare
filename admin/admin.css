@@ -1362,3 +1362,17 @@ a,button,[role="button"],label,select,summary,input[type="checkbox"],input[type=
     touch-action:none!important;
   }
 }
+
+/* O calendário administrativo usa a mesma regra dos calendários públicos. */
+@media(max-width:850px){
+  #app #view #reservationGrid{touch-action:pan-y!important}
+  #app #view #reservationGrid button[data-res-date]{touch-action:pan-y!important}
+  #app #view #reservationGrid button.is-range-start:not(.is-range-end){touch-action:none!important}
+}
+
+/* Calendário de edição de reserva: scroll normal até o arraste começar na entrada selecionada. */
+@media(max-width:850px){
+  dialog.reservation-date-picker-dialog .reservation-date-picker-grid{touch-action:pan-y!important}
+  dialog.reservation-date-picker-dialog .reservation-date-picker-grid button[data-picker-date]{touch-action:pan-y!important}
+  dialog.reservation-date-picker-dialog .reservation-date-picker-grid button.is-range-start:not(.is-range-end){touch-action:none!important}
+}

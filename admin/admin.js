@@ -634,9 +634,36 @@ async function editLinkProfile(record){
 const calendarLegendHtml=(footer='')=>`<div class="cal-legend" role="list"><span role="listitem"><i class="cal-dot is-available"></i>disponível</span><span role="listitem"><i class="cal-dot is-pre"></i>pré-reserva</span><span role="listitem"><i class="cal-dot is-reserved"></i>reservado</span><span role="listitem"><i class="cal-dot is-blocked"></i>bloqueado</span><span role="listitem"><i class="cal-dot is-holiday"></i>feriado</span><span role="listitem"><i class="cal-dot is-holiday-rj"></i>feriado RJ</span></div>${footer}`;
 let reservationMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let reservationScrollLockY=0;
+let reservationScrollLockCount=0;
+let reservationScrollSavedStyles=null;
 function adminTodayKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
-function lockReservationScroll(){if(document.body.dataset.reservationScrollLocked==='1')return;reservationScrollLockY=window.scrollY||window.pageYOffset||0;document.body.dataset.reservationScrollLocked='1';document.documentElement.classList.add('reservation-modal-open');document.body.classList.add('reservation-modal-open');document.body.style.top=`-${reservationScrollLockY}px`}
-function unlockReservationScroll(){if(document.body.dataset.reservationScrollLocked!=='1')return;document.documentElement.classList.remove('reservation-modal-open');document.body.classList.remove('reservation-modal-open');document.body.style.removeProperty('top');delete document.body.dataset.reservationScrollLocked;window.scrollTo(0,reservationScrollLockY)}
+function lockReservationScroll(){
+  reservationScrollLockCount++;
+  if(reservationScrollLockCount>1)return;
+  const body=document.body,html=document.documentElement;
+  reservationScrollLockY=window.scrollY||window.pageYOffset||0;
+  reservationScrollSavedStyles={
+    body:{position:body.style.position,top:body.style.top,left:body.style.left,right:body.style.right,width:body.style.width,overflow:body.style.overflow,touchAction:body.style.touchAction},
+    html:{overflow:html.style.overflow,overscrollBehavior:html.style.overscrollBehavior}
+  };
+  body.dataset.reservationScrollLocked='1';
+  html.classList.add('reservation-modal-open');body.classList.add('reservation-modal-open');
+  html.style.overflow='hidden';html.style.overscrollBehavior='none';
+  body.style.position='fixed';body.style.top=`-${reservationScrollLockY}px`;
+  body.style.left='0';body.style.right='0';body.style.width='100%';
+  body.style.overflow='hidden';body.style.touchAction='none';
+}
+function unlockReservationScroll(){
+  if(reservationScrollLockCount<=0)return;
+  reservationScrollLockCount--;
+  if(reservationScrollLockCount>0)return;
+  const saved=reservationScrollSavedStyles;reservationScrollSavedStyles=null;
+  const body=document.body,html=document.documentElement;
+  html.classList.remove('reservation-modal-open');body.classList.remove('reservation-modal-open');
+  if(saved){Object.assign(body.style,saved.body);Object.assign(html.style,saved.html)}
+  delete body.dataset.reservationScrollLocked;
+  window.scrollTo(0,reservationScrollLockY);
+}
 function brDateFromKey(key){const m=String(key).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?`${m[3]}/${m[2]}/${m[1]}`:key}
 function validDateKey(key){const m=String(key).match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return false;const d=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));return d.getFullYear()===Number(m[1])&&d.getMonth()===Number(m[2])-1&&d.getDate()===Number(m[3])}
 function addDaysKey(key,amount){const d=new Date(`${key}T12:00:00`);d.setDate(d.getDate()+amount);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
@@ -795,7 +822,10 @@ async function reservationsView(){
     if(grid){
       grid.onclick=event=>{
         const btn=event.target.closest('button[data-res-date]');
-        if(!btn || !grid.contains(btn))return;
+        if(!btn || !grid.contains(btn)){
+          if(draftStart||draftEnd){draftStart=null;draftEnd=null;editingId='';clearSelectionError();if(hInfo){hInfo.hidden=true;hInfo.textContent=''}renderReservationCalendar()}
+          return;
+        }
         event.preventDefault();
         event.stopPropagation();
         if(Date.now()<gestureSuppressClickUntil)return;
@@ -894,10 +924,6 @@ async function reservationsView(){
       const key=keyUnder(t.clientX,t.clientY);
       if(!touchDragging){
         if(Math.hypot(dx,dy)<7||!key||key===touchOrigin)return;
-        // Se a entrada ainda não estava marcada, só interpretamos movimento
-        // predominantemente horizontal como seleção de período. Movimento
-        // vertical continua sendo scroll normal da página.
-        if(!touchExplicit&&Math.abs(dy)>Math.abs(dx)*0.75)return;
         touchDragging=true;
       }
       if(e.cancelable)e.preventDefault();
@@ -917,13 +943,12 @@ async function reservationsView(){
       if(touchActive||!e.touches.length)return;
       const btn=e.target.closest?.('#reservationGrid button[data-res-date]');
       const key=btn?.dataset.resDate||'';
-      if(!canUse(key))return;
-      // Funciona nos dois gestos: tocar+arrastar numa única passada ou arrastar
-      // novamente a partir da entrada que já estava selecionada.
-      const alreadySelected=!!draftStart&&!draftEnd&&key===draftStart;
+      // Mesma regra dos outros calendários: primeiro toque marca a entrada;
+      // o arraste seguinte precisa começar exatamente nessa entrada.
+      if(!draftStart||draftEnd||key!==draftStart||!canUse(key))return;
       const t=e.touches[0];
       touchActive=true;touchDragging=false;touchOrigin=key;touchX=t.clientX;touchY=t.clientY;
-      touchExplicit=alreadySelected;lastTouchKey=key;
+      touchExplicit=true;lastTouchKey=key;
       document.addEventListener('touchmove',onTouchMove,{capture:true,passive:false});
       document.addEventListener('touchend',onTouchEnd,{capture:true,passive:false});
       document.addEventListener('touchcancel',onTouchCancel,{capture:true,passive:true});
@@ -1037,17 +1062,16 @@ async function reservationsView(){
       dialog.querySelector('[data-picker-next]').onclick=()=>{pickerMonth=new Date(pickerMonth.getFullYear(),pickerMonth.getMonth()+1,1);render()};
       dialog.querySelector('[data-picker-close]').onclick=close;
 
-      // Gesto no seletor de período: Pointer Events único, com swipe separado
-      // de toque longo + arraste. A seleção usa chaves YYYY-MM-DD e não é perdida
-      // quando o mês é redesenhado.
+      // Calendário de edição: mesma regra dos demais seletores de período.
+      // Um toque marca a entrada; somente um novo arraste iniciado nela escolhe a saída.
       const pickerGrid=dialog.querySelector('.reservation-date-picker-grid');
       if(pickerGrid && !dialog.dataset.pickerGestureBound){
         dialog.dataset.pickerGestureBound='1';
-        pickerGrid.style.touchAction='none';
+        pickerGrid.style.touchAction='pan-y';
         let pId=null,pStartX=0,pStartY=0,pLastX=0,pLastY=0,pDrag=false,pSwipe=false;
-        let pHold=null,pStartKey='',pLastKey='',pSuppress=0,pEdge=null;
+        let pStartKey='',pLastKey='',pSuppress=0,pEdge=null;
         const pickerCurrentMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
-        const stopPickerTimers=()=>{clearTimeout(pHold);pHold=null;clearInterval(pEdge);pEdge=null};
+        const stopPickerTimers=()=>{clearInterval(pEdge);pEdge=null};
         const pickerShift=dir=>{
           const next=new Date(pickerMonth.getFullYear(),pickerMonth.getMonth()+dir,1);
           if(dir<0&&next<pickerCurrentMonth)return false;
@@ -1056,12 +1080,11 @@ async function reservationsView(){
         const pickerKeyUnder=(x,y)=>document.elementFromPoint(x,y)?.closest?.('button[data-picker-date]')?.dataset.pickerDate||'';
         let pHintUntil=0;
         const pickerEdgeStep=dir=>{
-          if(pStartKey){
-            const dest=monthCrossKey(pickerMonth,dir),a=pStartKey;
-            if(rangeConflict(records,a<dest?a:dest,a<dest?dest:a,current?.id||'')){
-              if(Date.now()>=pHintUntil){pHintUntil=Date.now()+1800;try{navigator.vibrate?.(18)}catch{}}
-              return;
-            }
+          if(!pStartKey)return;
+          const dest=monthCrossKey(pickerMonth,dir),a=pStartKey;
+          if(rangeConflict(records,a<dest?a:dest,a<dest?dest:a,current?.id||'')){
+            if(Date.now()>=pHintUntil){pHintUntil=Date.now()+1800;try{navigator.vibrate?.(18)}catch{}}
+            return;
           }
           if(pickerShift(dir)){const k=pickerKeyUnder(pLastX,pLastY);if(k)applyPickerDrag(k)}
         };
@@ -1078,12 +1101,6 @@ async function reservationsView(){
           else pickerError='';
           render();
         };
-        const beginPickerDrag=()=>{
-          if(!pStartKey||pSwipe)return;
-          pHold=null;pDrag=true;rangeStart=pStartKey;rangeEnd=pStartKey;pickerError='';
-          try{dialog.setPointerCapture(pId)}catch{}
-          render();
-        };
         const finishPickerGesture=()=>{
           stopPickerTimers();
           if(pId!==null){try{dialog.releasePointerCapture(pId)}catch{}}
@@ -1093,19 +1110,25 @@ async function reservationsView(){
           if(event.pointerType==='mouse'&&event.button!==0)return;
           if(pId!==null)return;
           const btn=event.target.closest?.('button[data-picker-date]');
-          const insideGrid=event.target.closest?.('.reservation-date-picker-grid');
-          if(!insideGrid)return;
+          if(!event.target.closest?.('.reservation-date-picker-grid'))return;
           pId=event.pointerId;pStartX=event.clientX;pStartY=event.clientY;pLastX=event.clientX;pLastY=event.clientY;pDrag=false;pSwipe=false;
           pStartKey='';pLastKey='';
-          if(btn&&!btn.disabled){pStartKey=btn.dataset.pickerDate;pLastKey=pStartKey;pHold=setTimeout(beginPickerDrag,420)}
+          // Só a entrada atualmente selecionada inicia o gesto de saída.
+          if(target==='range'&&btn&&!btn.disabled&&btn.dataset.pickerDate===rangeStart){
+            pStartKey=rangeStart;pLastKey=rangeStart;
+          }
         });
         dialog.addEventListener('pointermove',event=>{
           if(pId!==event.pointerId)return;
           pLastX=event.clientX;pLastY=event.clientY;
           const dx=event.clientX-pStartX,dy=event.clientY-pStartY;
+          if(!pDrag&&!pSwipe&&pStartKey&&Math.hypot(dx,dy)>7){
+            pDrag=true;
+            try{dialog.setPointerCapture(pId)}catch{}
+            rangeEnd=pStartKey;pickerError='';render();
+          }
           if(!pDrag&&!pSwipe&&(Math.abs(dx)>10||Math.abs(dy)>10)){
-            if(Math.abs(dx)>Math.abs(dy)*1.15&&Math.abs(dx)>24){pSwipe=true;clearTimeout(pHold);pHold=null;event.preventDefault()}
-            else if(Math.abs(dy)>Math.abs(dx)){clearTimeout(pHold);pHold=null}
+            if(Math.abs(dx)>Math.abs(dy)*1.15&&Math.abs(dx)>24)pSwipe=true;
           }
           if(pSwipe){event.preventDefault();return}
           if(!pDrag)return;
@@ -1115,20 +1138,21 @@ async function reservationsView(){
           const r=grid.getBoundingClientRect(),edge=34;
           if(event.clientX>r.right-edge){if(!pEdge)pEdge=setInterval(()=>pickerEdgeStep(1),320)}
           else if(event.clientX<r.left+edge){if(!pEdge)pEdge=setInterval(()=>pickerEdgeStep(-1),320)}
-          else{clearInterval(pEdge);pEdge=null}
+          else stopPickerTimers();
         });
         dialog.addEventListener('pointerup',event=>{
           if(pId!==event.pointerId)return;
-          const dx=event.clientX-pStartX,dy=event.clientY-pStartY;stopPickerTimers();
-          if(pDrag){event.preventDefault();pSuppress=Date.now()+700;render();finishPickerGesture();return}
+          const dx=event.clientX-pStartX,dy=event.clientY-pStartY;
+          stopPickerTimers();
+          if(pDrag){event.preventDefault();pickerSuppressClickUntil=Date.now()+700;render();finishPickerGesture();return}
           if(pSwipe||(Math.abs(dx)>=55&&Math.abs(dx)>Math.abs(dy)*1.15)){
-            event.preventDefault();if(pickerShift(dx<0?1:-1))pSuppress=Date.now()+700;
+            event.preventDefault();if(pickerShift(dx<0?1:-1))pickerSuppressClickUntil=Date.now()+700;
           }
           finishPickerGesture();
         });
         dialog.addEventListener('pointercancel',event=>{if(pId===event.pointerId)finishPickerGesture()});
         dialog.addEventListener('contextmenu',event=>{if(pDrag)event.preventDefault()});
-        dialog.addEventListener('click',event=>{if(Date.now()<pSuppress){event.preventDefault();event.stopPropagation()}},true);
+        dialog.addEventListener('click',event=>{if(Date.now()<pickerSuppressClickUntil){event.preventDefault();event.stopPropagation()}},true);
       }
 
       dialog.querySelector('[data-picker-confirm]')?.addEventListener('click',finishRange);
@@ -1165,15 +1189,15 @@ async function reservationsView(){
 
     };
     document.body.append(dialog);
-    const close=()=>{if(dialog.open)dialog.close();dialog.remove();unlockReservationScroll()};
+    const close=()=>{if(dialog.open)dialog.close();else dialog.remove()};
     dialog.addEventListener('click',event=>{
       if(target!=='range')return;
-      if(event.target.closest('[data-picker-close],[data-picker-date],[data-picker-confirm],[data-picker-prev],[data-picker-next]'))return;
+      if(event.target.closest('[data-picker-close],[data-picker-date],[data-picker-confirm],[data-picker-prev],[data-picker-next],.cal-legend,.calendar-holiday-info'))return;
       if(!rangeStart&&!rangeEnd)return;
-      rangeStart='';rangeEnd='';pickerHolidayKey='';render();
+      rangeStart='';rangeEnd='';pickerHolidayKey='';pickerError='';render();
     });
     dialog.addEventListener('cancel',event=>{event.preventDefault();close()});
-    dialog.addEventListener('close',()=>unlockReservationScroll(),{once:true});
+    dialog.addEventListener('close',()=>{unlockReservationScroll();dialog.remove()},{once:true});
     render();lockReservationScroll();dialog.showModal();
   };
   const openReservationEditor=async(id,fromSelection=false,overrides={})=>{
@@ -1186,7 +1210,7 @@ async function reservationsView(){
     dialog.innerHTML=`<form method="dialog" class="reservation-form"><div class="reservation-dialog-top"><div><p class="eyebrow">${current?'EDITAR RESERVA':'NOVA RESERVA'}</p><h2>${checkIn===checkOut?brDateFromKey(checkIn):`${brDateFromKey(checkIn)} → ${brDateFromKey(checkOut)}`}</h2><p>Confira o período e preencha os dados da estadia.</p></div><button type="button" class="reservation-close" data-close aria-label="Fechar">×</button></div><div class="reservation-date-summary"><button type="button" class="reservation-date-pick" data-date-target="range"><span>ENTRADA</span><b>${brDateFromKey(checkIn)}</b><span class="reservation-date-divider" aria-hidden="true"></span><span>SAÍDA</span><b>${brDateFromKey(checkOut)}</b><small>Alterar período</small></button></div><div class="reservation-editor-section"><div class="reservation-section-heading"><span>DADOS DA ESTADIA</span><small>Informações do hóspede e situação</small></div><label class="reservation-form-field"><span>Estado da reserva</span><select name="status"><option value="pre" ${preserved.status==='pre'?'selected':''}>Pré-reserva</option><option value="reserved" ${preserved.status==='reserved'?'selected':''}>Reservado</option><option value="blocked" ${preserved.status==='blocked'?'selected':''}>Bloqueado</option></select></label><div class="reservation-fields"><label class="reservation-form-field"><span>Nome do hóspede</span><input name="name" autocomplete="name" value="${esc(preserved.name)}" placeholder="Ex.: João da Silva"></label><label class="reservation-form-field"><span>Telefone</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" value="${esc(preserved.phone)}" placeholder="(21) 99999-9999"></label></div><label class="reservation-form-field"><span>Observação <small>OPCIONAL</small></span><textarea name="note" rows="3" placeholder="Ex.: casal · aniversário · chegada às 14h">${esc(preserved.note)}</textarea></label></div><div class="reservation-dialog-actions">${current?'<button type="button" class="danger reservation-delete" data-delete>Excluir reserva</button>':''}<div class="reservation-actions-main"><button type="button" class="secondary reservation-cancel" data-close>Cancelar</button><button type="submit" class="primary">${current?'Salvar alterações':'Salvar reserva'}</button></div></div></form>`;
     document.body.append(dialog);
     let closedByDatePicker=false;
-    const close=()=>{if(dialog.open)dialog.close();unlockReservationScroll();if(fromSelection&&!closedByDatePicker){draftStart=null;draftEnd=null;renderReservationCalendar()}};
+    const close=()=>{if(dialog.open)dialog.close();if(fromSelection&&!closedByDatePicker){draftStart=null;draftEnd=null;renderReservationCalendar()}};
     dialog.querySelectorAll('[data-close]').forEach(b=>b.onclick=close);
     dialog.addEventListener('click',event=>{if(event.target===dialog)close()});
     dialog.addEventListener('cancel',event=>{event.preventDefault();close()});

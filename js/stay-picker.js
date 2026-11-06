@@ -44,6 +44,50 @@ export function initStayPicker({ checkin, checkout, getAvailability }) {
   let map = new Map(), loaded = false, loading = null;
   let month = new Date(firstMonth), start = '', end = '';
   let suppressUntil = 0;
+  let pageLock = null;
+
+  // iOS Safari pode mover o documento mesmo com dialog.showModal() e overflow:hidden.
+  // Fixamos o body na posição atual e restauramos exatamente ao fechar o diálogo.
+  const preventPageTouch = event => {
+    if (!dialog?.open) return;
+    if (event.target === dialog || !dialog.contains(event.target)) {
+      if (event.cancelable) event.preventDefault();
+    }
+  };
+  const lockPageScroll = () => {
+    if (pageLock) return;
+    const body = document.body, html = document.documentElement;
+    const y = window.scrollY || window.pageYOffset || 0;
+    pageLock = {
+      y,
+      body: {
+        position: body.style.position, top: body.style.top,
+        left: body.style.left, right: body.style.right,
+        width: body.style.width, overflow: body.style.overflow,
+        touchAction: body.style.touchAction
+      },
+      html: { overflow: html.style.overflow, overscrollBehavior: html.style.overscrollBehavior }
+    };
+    html.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    body.style.position = 'fixed';
+    body.style.top = `-${y}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    body.style.overflow = 'hidden';
+    body.style.touchAction = 'none';
+    document.addEventListener('touchmove', preventPageTouch, { capture: true, passive: false });
+  };
+  const unlockPageScroll = () => {
+    if (!pageLock) return;
+    const saved = pageLock;
+    pageLock = null;
+    document.removeEventListener('touchmove', preventPageTouch, true);
+    Object.assign(document.body.style, saved.body);
+    Object.assign(document.documentElement.style, saved.html);
+    window.scrollTo(0, saved.y);
+  };
 
   const statusOf = k => map.get(k) || 'available';
   const isFree = k => k >= todayKey && statusOf(k) === 'available';
@@ -70,6 +114,7 @@ export function initStayPicker({ checkin, checkout, getAvailability }) {
       <div class="stay-picker-actions"><button type="button" class="stay-picker-clear" data-clear>Limpar</button><button type="button" class="stay-picker-confirm" data-confirm>Confirmar datas</button></div>
     </div>`;
     document.body.appendChild(dialog);
+    dialog.addEventListener('close', unlockPageScroll);
     grid = dialog.querySelector('.calendar-grid');
     titleEl = dialog.querySelector('.calendar-head strong');
     summaryEl = dialog.querySelector('.stay-picker-summary');
@@ -82,13 +127,16 @@ export function initStayPicker({ checkin, checkout, getAvailability }) {
     dialog.addEventListener('click', e => {
       if (e.target === dialog) { resetSelection(); dialog.close(); return; }
       if (Date.now() < suppressUntil) return;
-      if (!e.target.closest('button, .calendar-day:not(.empty), .calendar-holiday-info, .cal-legend')) resetSelection();
+      const inGrid=e.target.closest('.stay-picker .calendar-grid');
+      const isDate=!!e.target.closest('.stay-picker .calendar-day[data-date]');
+      const isControl=!!e.target.closest('[data-prev],[data-next],[data-clear],[data-confirm],button[data-close],.calendar-holiday-info,.cal-legend');
+      if ((inGrid&&!isDate&&!isControl) || (!inGrid&&!isControl)) resetSelection();
     });
     prevBtn.addEventListener('click', () => shift(-1));
     dialog.querySelector('[data-next]').addEventListener('click', () => shift(1));
     dialog.querySelector('[data-clear]').addEventListener('click', resetSelection);
     confirmBtn.addEventListener('click', confirm);
-    grid.addEventListener('click', onPick);
+    // Os dias recebem o próprio listener em render(), evitando falhas de delegação em toque.
 
     bindGestures();
   }
@@ -204,6 +252,13 @@ export function initStayPicker({ checkin, checkout, getAvailability }) {
       html += `<button type="button" class="${cls.join(' ')}" data-date="${key}" aria-label="${esc(label)}"${blocked ? ' aria-disabled="true"' : ''}><span>${d}</span></button>`;
     }
     grid.innerHTML = html;
+    grid.querySelectorAll('button.calendar-day[data-date]').forEach(btn=>{
+      btn.addEventListener('click', event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        onPick({ target: btn });
+      });
+    });
     summaryEl.textContent = !start
       ? 'Toque numa data para uma diária, ou em duas datas para um período'
       : end ? `Entrada ${brDate(start)} · Saída ${brDate(end)}`
@@ -257,7 +312,7 @@ export function initStayPicker({ checkin, checkout, getAvailability }) {
     month = new Date(base.getFullYear(), base.getMonth(), 1);
     if (month < firstMonth) month = new Date(firstMonth);
     hideInfo(); render();
-    if (!dialog.open) dialog.showModal();
+    if (!dialog.open) { dialog.showModal(); lockPageScroll(); }
     if (!loaded) {
       summaryEl.textContent = 'Carregando disponibilidade…';
       await ensureAvailability();

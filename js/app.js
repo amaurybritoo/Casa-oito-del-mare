@@ -452,7 +452,7 @@ const followingDay=value=>{const [year,month,day]=value.split('-').map(Number),d
 checkin.min=todayISO;checkout.min=todayISO;
 // Seletor próprio de datas: mostra as datas reservadas/bloqueadas (o calendário nativo do navegador não permite isso).
 let stayPickerPromise=null,stayPickerBusyUntil=0;
-const loadStayPicker=()=>stayPickerPromise||(stayPickerPromise=import('./stay-picker.js?v=20261008-3').then(mod=>mod.initStayPicker({checkin,checkout,getAvailability:async()=>{
+const loadStayPicker=()=>stayPickerPromise||(stayPickerPromise=import('./stay-picker.js?v=20261106-4').then(mod=>mod.initStayPicker({checkin,checkout,getAvailability:async()=>{
   try{await supabaseModulePromise}catch{return null}
   initializeSupabaseClient();if(!supabase)return null;
   const {data}=await supabase.from('link_page_settings').select('availability').eq('id',1).maybeSingle();
