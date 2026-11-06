@@ -840,113 +840,114 @@ async function reservationsView(){
   // A seleção continua válida mesmo quando a grade é redesenhada ao atravessar um mês.
   // Ligado só depois que o HTML do calendário existe (antes rodava cedo demais e os gestos nunca eram ativados).
   const bindReservationGestures=()=>{
-  const root=$('#view');
-  const reservationCalendarSection=$('#view .reservation-calendar-section');
-  if(reservationCalendarSection){
-    let holdTimer=null,edgeTimer=null,pointerId=null,dragging=false,swiping=false,touchActive=false;
-    let startX=0,startY=0,lastX=0,lastY=0,dragStartKey='',dragLastKey='',tapKey='',suppressUntil=0;
-    const currentMonth=()=>new Date(new Date().getFullYear(),new Date().getMonth(),1);
-    const stopTimers=()=>{clearTimeout(holdTimer);holdTimer=null;clearInterval(edgeTimer);edgeTimer=null};
-    const shiftMonth=dir=>{
-      const next=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth()+dir,1);
-      if(dir<0&&next<currentMonth())return false;
-      reservationMonth=next;renderReservationCalendar();return true;
-    };
-    const firstSelectableInMonth=dir=>{
-      const cells=[...document.querySelectorAll('#view #reservationGrid button[data-res-date]')];
-      const usable=cells.filter(canUse);
-      if(!usable.length)return '';
-      return dir>0?usable[0].dataset.resDate:usable[usable.length-1].dataset.resDate;
-    };
-    const keyUnder=(x,y)=>document.elementFromPoint(x,y)?.closest?.('#reservationGrid button[data-res-date]')?.dataset.resDate||'';
+    const root=$('#view');
+    const section=root.querySelector('.reservation-calendar-section');
+    if(!section)return;
+    const grid=root.querySelector('#reservationGrid');
     const canUse=key=>!!key&&validDateKey(key)&&key>=adminTodayKey()&&!reservationAt(records,key);
-    // Durante o arraste, não dá para trocar de mês se houver data reservada/bloqueada entre o início da seleção e o outro mês.
-    let edgeHintUntil=0;
-    // Bloqueio silencioso: sem aviso na tela, só um toque de vibração discreto (onde o aparelho suporta).
-    const edgeBlockedHint=()=>{
-      if(Date.now()<edgeHintUntil)return;edgeHintUntil=Date.now()+1800;
-      try{navigator.vibrate?.(18)}catch{}
+    const keyUnder=(x,y)=>document.elementFromPoint(x,y)?.closest?.('#view #reservationGrid button[data-res-date]')?.dataset.resDate||'';
+    const stopTouch=()=>{
+      document.removeEventListener('touchmove',onTouchMove,{capture:true});
+      document.removeEventListener('touchend',onTouchEnd,{capture:true});
+      document.removeEventListener('touchcancel',onTouchCancel,{capture:true});
+      touchCandidate=false;touchDragging=false;touchStartKey='';touchStartX=touchStartY=0;
     };
-    const pathBlocked=dir=>{
-      if(!dragStartKey)return false;
-      const dest=monthCrossKey(reservationMonth,dir),a=dragStartKey;
-      return !!rangeConflict(records,a<dest?a:dest,a<dest?dest:a,'');
-    };
-    const applyDragKey=key=>{
-      if(!canUse(key)||key===dragLastKey)return;
-      dragLastKey=key;
-      const a=dragStartKey,b=key,nextStart=a<=b?a:b,nextEnd=a<=b?b:a;
-      if(rangeConflict(records,nextStart,nextEnd,editingId||''))return;
-      draftStart=nextStart;draftEnd=nextEnd;editingId='';clearSelectionError();renderReservationCalendar();
-    };
-    const beginLongPress=()=>{
-      if(!dragStartKey||swiping)return;
-      holdTimer=null;dragging=true;draftStart=dragStartKey;draftEnd=dragStartKey;editingId='';
-      if(pointerId!==null)try{reservationCalendarSection.setPointerCapture(pointerId)}catch{}
+    let touchCandidate=false,touchDragging=false,touchStartKey='',touchStartX=0,touchStartY=0;
+    let mousePointer=null,mouseCandidate=false,mouseDragging=false,mouseStartKey='',mouseStartX=0,mouseStartY=0;
+    let swipeStartX=0,swipeStartY=0,swipeCandidate=false;
+    const updateRange=key=>{
+      if(!key||!canUse(key)||!touchStartKey&& !mouseStartKey)return;
+      const origin=touchStartKey||mouseStartKey;
+      const first=origin<=key?origin:key,last=origin<=key?key:origin;
+      if(rangeConflict(records,first,last,editingId||''))return;
+      draftStart=first;draftEnd=last;editingId='';clearSelectionError();
       renderReservationCalendar();
     };
-    const edgeStep=dir=>{
-      if(!dragging)return;
-      if(pathBlocked(dir)){edgeBlockedHint();return}
-      if(!shiftMonth(dir))return;
-      // Ao cruzar a borda do mês, o primeiro/último dia selecionável do novo mês
-      // entra imediatamente no período. Assim o gesto não “salta” para uma data intermediária.
-      const boundary=firstSelectableInMonth(dir);
-      if(boundary)applyDragKey(boundary);
+    const completeDrag=()=>{
+      gestureSuppressClickUntil=Date.now()+850;
+      renderReservationCalendar();
     };
-    const finish=()=>{stopTimers();if(pointerId!==null)try{reservationCalendarSection.releasePointerCapture(pointerId)}catch{}pointerId=null;dragging=false;swiping=false;dragStartKey='';dragLastKey='';tapKey='';touchActive=false};
-    const moveSelection=(x,y)=>{
-      if(!dragging)return;
-      lastX=x;lastY=y;
-      const key=keyUnder(x,y);if(key)applyDragKey(key);
-      const grid=$('#view #reservationGrid');if(!grid)return;const r=grid.getBoundingClientRect(),edge=52;
-      if(x>r.right-edge){if(!edgeTimer)edgeTimer=setInterval(()=>edgeStep(1),320)}
-      else if(x<r.left+edge){if(!edgeTimer)edgeTimer=setInterval(()=>edgeStep(-1),320)}
-      else{clearInterval(edgeTimer);edgeTimer=null}
-    };
-    const startGesture=(x,y,key)=>{startX=x;startY=y;lastX=x;lastY=y;dragging=false;swiping=false;dragStartKey='';dragLastKey='';tapKey=key||'';if(key&&canUse(key)){dragStartKey=key;dragLastKey=key;holdTimer=setTimeout(beginLongPress,480)}};
-    const moveGesture=(x,y)=>{
-      lastX=x;lastY=y;
-      const dx=x-startX,dy=y-startY;
-      if(!dragging&&!swiping&&(Math.abs(dx)>10||Math.abs(dy)>10)){
-        if(Math.abs(dx)>Math.abs(dy)*1.12&&Math.abs(dx)>26){swiping=true;clearTimeout(holdTimer);holdTimer=null}
-        else if(Math.abs(dy)>Math.abs(dx)){clearTimeout(holdTimer);holdTimer=null}
+    const onTouchMove=event=>{
+      if(!touchCandidate||!event.touches.length)return;
+      const touch=event.touches[0],dx=touch.clientX-touchStartX,dy=touch.clientY-touchStartY;
+      if(!touchDragging){
+        if(Math.hypot(dx,dy)<7)return;
+        touchDragging=true;
       }
-      if(swiping||dragging)moveSelection(x,y);
+      if(event.cancelable)event.preventDefault();
+      const key=keyUnder(touch.clientX,touch.clientY);
+      if(key)updateRange(key);
     };
-    const endGesture=(x,y)=>{
-      const dx=x-startX,dy=y-startY;stopTimers();
-      if(dragging){suppressUntil=Date.now()+900;renderReservationCalendar();finish();return}
-      if(swiping||(Math.abs(dx)>=52&&Math.abs(dx)>Math.abs(dy)*1.12)){
-        if(shiftMonth(dx<0?1:-1))suppressUntil=Date.now()+900;
+    const onTouchEnd=event=>{
+      if(!touchCandidate)return;
+      if(touchDragging){
+        const touch=event.changedTouches?.[0];
+        if(touch){const key=keyUnder(touch.clientX,touch.clientY);if(key)updateRange(key)}
+        completeDrag();
       }
-      finish();
+      stopTouch();
     };
-    const reservationGrid=root.querySelector('#reservationGrid');
-    if(reservationGrid)reservationGrid.style.touchAction='pan-y';
-    // Os eventos de toque continuam indo para o elemento onde o dedo encostou, mesmo que a grade seja redesenhada
-    // (o que acontece ao iniciar o toque longo). Por isso move/end/cancel são ligados nesse elemento, e não na seção.
-    reservationCalendarSection.addEventListener('touchstart',event=>{
-      if(!event.touches.length||touchActive)return;
-      touchActive=true;
-      const t=event.touches[0],target=event.target,btn=target.closest?.('#reservationGrid button[data-res-date]');
-      startGesture(t.clientX,t.clientY,btn?.dataset.resDate||'');
-      const unbind=()=>{target.removeEventListener('touchmove',move);target.removeEventListener('touchend',end);target.removeEventListener('touchcancel',cancel)};
-      const move=ev=>{if(!touchActive||!ev.touches.length)return;const p=ev.touches[0];moveGesture(p.clientX,p.clientY);if(swiping||dragging)ev.preventDefault()};
-      const end=ev=>{unbind();if(!touchActive)return;const p=ev.changedTouches[0];endGesture(p.clientX,p.clientY)/* O clique nativo do botão trata o toque simples; não dispare btn.click() (causava clique duplo). */};
-      const cancel=()=>{unbind();if(touchActive)finish()};
-      target.addEventListener('touchmove',move,{passive:false});
-      target.addEventListener('touchend',end,{passive:false});
-      target.addEventListener('touchcancel',cancel,{passive:false});
+    const onTouchCancel=()=>stopTouch();
+    // O toque simples escolhe a entrada pelo click normal. Depois disso, somente
+    // um gesto iniciado exatamente na entrada selecionada vira arraste de período.
+    section.addEventListener('touchstart',event=>{
+      if(touchCandidate||!event.touches.length)return;
+      const btn=event.target.closest?.('#reservationGrid button[data-res-date]');
+      const key=btn?.dataset.resDate||'';
+      if(!draftStart||draftEnd||key!==draftStart||!canUse(key))return;
+      const touch=event.touches[0];
+      touchCandidate=true;touchDragging=false;touchStartKey=key;
+      touchStartX=touch.clientX;touchStartY=touch.clientY;
+      document.addEventListener('touchmove',onTouchMove,{capture:true,passive:false});
+      document.addEventListener('touchend',onTouchEnd,{capture:true,passive:false});
+      document.addEventListener('touchcancel',onTouchCancel,{capture:true,passive:true});
     },{passive:true});
-    const coarse=()=>window.matchMedia?.('(pointer:coarse)').matches||'ontouchstart' in window;
-    reservationCalendarSection.addEventListener('pointerdown',event=>{if(coarse())return;if(event.pointerType==='mouse'&&event.button!==0)return;if(pointerId!==null)return;const inGrid=event.target.closest('#reservationGrid');if(!inGrid)return;pointerId=event.pointerId;const btn=event.target.closest('#reservationGrid button[data-res-date]');startGesture(event.clientX,event.clientY,btn?.dataset.resDate||'');/* Sem captura aqui: capturar no pointerdown redirecionava o clique e o mouse deixava de selecionar datas. */},{passive:false});
-    reservationCalendarSection.addEventListener('pointermove',event=>{if(coarse()||pointerId!==event.pointerId)return;moveGesture(event.clientX,event.clientY);if((swiping||dragging)&&!reservationCalendarSection.hasPointerCapture(pointerId)){try{reservationCalendarSection.setPointerCapture(pointerId)}catch{}}if(swiping||dragging)event.preventDefault()},{passive:false});
-    reservationCalendarSection.addEventListener('pointerup',event=>{if(coarse()||pointerId!==event.pointerId)return;endGesture(event.clientX,event.clientY);event.preventDefault()},{passive:false});
-    reservationCalendarSection.addEventListener('pointercancel',event=>{if(!coarse()&&pointerId===event.pointerId)finish()},{passive:false});
-    reservationCalendarSection.addEventListener('contextmenu',event=>{if(dragging)event.preventDefault()});
-    reservationCalendarSection.addEventListener('click',event=>{if(Date.now()<suppressUntil){event.preventDefault();event.stopPropagation()}},true);
-  }
+
+    // Desktop: o mesmo gesto funciona com mouse, sem exigir toque longo.
+    section.addEventListener('pointerdown',event=>{
+      if(event.pointerType!=='mouse'||event.button!==0||mousePointer!==null)return;
+      const btn=event.target.closest?.('#reservationGrid button[data-res-date]');
+      const key=btn?.dataset.resDate||'';
+      if(!draftStart||draftEnd||key!==draftStart||!canUse(key))return;
+      mousePointer=event.pointerId;mouseCandidate=true;mouseDragging=false;mouseStartKey=key;
+      mouseStartX=event.clientX;mouseStartY=event.clientY;
+    });
+    section.addEventListener('pointermove',event=>{
+      if(!mouseCandidate||event.pointerId!==mousePointer)return;
+      const dx=event.clientX-mouseStartX,dy=event.clientY-mouseStartY;
+      if(!mouseDragging&&Math.hypot(dx,dy)<7)return;
+      mouseDragging=true;
+      try{section.setPointerCapture(mousePointer)}catch{}
+      const key=keyUnder(event.clientX,event.clientY);
+      if(key)updateRange(key);
+    });
+    const finishMouse=event=>{
+      if(!mouseCandidate||event.pointerId!==mousePointer)return;
+      if(mouseDragging)completeDrag();
+      try{if(section.hasPointerCapture(mousePointer))section.releasePointerCapture(mousePointer)}catch{}
+      mousePointer=null;mouseCandidate=false;mouseDragging=false;mouseStartKey='';
+    };
+    section.addEventListener('pointerup',finishMouse);
+    section.addEventListener('pointercancel',finishMouse);
+    // Swipe horizontal fora da data inicial continua trocando o mês.
+    section.addEventListener('touchstart',event=>{
+      if(!event.touches.length)return;
+      const btn=event.target.closest?.('#reservationGrid button[data-res-date]');
+      if(btn?.dataset.resDate===draftStart&&!draftEnd)return;
+      swipeCandidate=true;swipeStartX=event.touches[0].clientX;swipeStartY=event.touches[0].clientY;
+    },{passive:true});
+    section.addEventListener('touchend',event=>{
+      if(!swipeCandidate||!event.changedTouches.length)return;
+      const t=event.changedTouches[0],dx=t.clientX-swipeStartX,dy=t.clientY-swipeStartY;
+      swipeCandidate=false;
+      if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.25){
+        const next=new Date(reservationMonth.getFullYear(),reservationMonth.getMonth()+(dx<0?1:-1),1);
+        const current=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+        if(dx>0&&next<current)return;
+        reservationMonth=next;renderReservationCalendar();
+      }
+    },{passive:true});
+    section.addEventListener('touchcancel',()=>{swipeCandidate=false},{passive:true});
   };
 
   const openReservationPreview=(item)=>{

@@ -1307,3 +1307,34 @@ a,button,[role="button"],label,select,summary,input[type="checkbox"],input[type=
 .branded-notice-dialog>p:not(.eyebrow),.branded-confirm-dialog>p:not(.eyebrow){font:14px/1.65 'DM Sans',Arial,sans-serif;color:#64746d}
 .branded-notice-dialog .primary{border:0;background:#173b3d;color:#efc49e}
 .branded-confirm-dialog .danger-confirm{background:#9a493f;color:#fff}
+
+@media(max-width:700px){
+  .reservation-date-picker-dialog{
+    max-height:calc(100dvh - 28px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  .reservation-date-picker{padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+  .reservation-date-picker .reservation-register-button{
+    position:sticky;
+    bottom:0;
+    z-index:2;
+    margin-top:14px;
+    margin-bottom:0;
+    box-shadow:0 -8px 18px rgba(251,250,245,.9);
+  }
+  .reservation-dialog{
+    max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+    overflow-x:hidden;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .reservation-form{padding-bottom:calc(22px + env(safe-area-inset-bottom,0px))}
+}
+
+@media(max-width:850px){
+  #reservationGrid{touch-action:pan-y}
+  #reservationGrid button.is-range-start:not(.is-range-end){touch-action:none;-webkit-user-select:none;user-select:none}
+}

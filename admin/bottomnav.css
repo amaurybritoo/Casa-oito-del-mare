@@ -43,3 +43,12 @@
 @media(max-width:850px) and (prefers-reduced-motion:reduce){
   .bn,.bn svg,.bn-backdrop,.bn-sheet,.bn-sheet.open{transition:none!important}
 }
+
+@media(max-width:850px){
+  /* O conteúdo da agenda precisa terminar acima da barra fixa e da área segura do iPhone. */
+  #app>main{padding-bottom:calc(124px + env(safe-area-inset-bottom,0px))!important}
+  #app #view{padding-bottom:calc(34px + env(safe-area-inset-bottom,0px))}
+  #app .reservation-panel{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+  #app .reservation-calendar-section{scroll-margin-bottom:calc(118px + env(safe-area-inset-bottom,0px))}
+  #app .reservation-register-button{margin-bottom:8px;min-height:52px}
+}
