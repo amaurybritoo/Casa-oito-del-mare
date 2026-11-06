@@ -56,3 +56,13 @@ body:has(.overview-view){background:#e8ece6}
 @media(max-width:700px){#app aside.settings-open .admin-settings-nav{margin-bottom:24px!important}#app aside.settings-open #logout{margin-top:18px!important}}
 @media(max-width:700px){.overview-view .stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.overview-view .stat,.overview-view .stat-appointments{min-height:100px;padding:13px 12px}.overview-view .stat strong{font-size:34px}.overview-view .stats .stat-appointments strong{font-size:39px}.overview-view .stat span{font-size:9px}.overview-panel{padding:15px}.overview-access-metrics>div{padding:12px}}
+
+/* Cards de reservas na visão geral abrem a prévia completa */
+.overview-reservation-open{width:100%;font:inherit;color:inherit;text-align:left;cursor:pointer;background:transparent;border:0;border-bottom:1px solid var(--line,#d9dfd7);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 2px;border-radius:0}
+.overview-reservation-open:last-child{border-bottom:0}
+.overview-reservation-open:hover{background:rgba(185,154,101,.08)}
+.overview-reservation-open:focus-visible{outline:2px solid #b99a65;outline-offset:3px;border-radius:8px}
+.overview-reservation-open>span:first-child{display:grid;gap:4px}
+.overview-reservation-open strong{font-weight:700}
+.overview-reservation-open small{font-size:13px}
+.overview-reservation-open .overview-status{flex-shrink:0}

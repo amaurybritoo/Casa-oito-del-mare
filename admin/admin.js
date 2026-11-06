@@ -15,7 +15,7 @@ const cardPages=[['casa','Por dentro da casa'],['estrutura','A vida à beira-mar
 const defaultCarouselImages=new Set(['./assets/gallery/detalhe-03.jpg','./assets/gallery/detalhe-11.jpg','./assets/gallery/detalhe-13.jpg','./assets/gallery/casa-05.jpg']);
 const featureIcons=[['quartos','Quartos'],['praia','Mar'],['limpeza','Serviço'],['gourmet','Área gourmet'],['piscina','Piscina e sauna'],['wifi','Wi-Fi'],['carro','Garagem'],['pets','Pets'],['horario','Horários']];
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function showToast(text,type='success'){let host=document.getElementById('adminToastHost');if(!host){host=document.createElement('div');host.id='adminToastHost';host.className='admin-toast-host';host.setAttribute('aria-live','polite');host.setAttribute('aria-atomic','true');document.body.append(host)}const toast=document.createElement('div');toast.className=`admin-toast ${type==='error'?'is-error':'is-success'}`;toast.textContent=text;host.append(toast);requestAnimationFrame(()=>toast.classList.add('is-visible'));window.setTimeout(()=>{toast.classList.remove('is-visible');window.setTimeout(()=>toast.remove(),250)},3200)}
+function showToast(text,type='success'){let host=document.getElementById('adminToastHost');if(!host){host=document.createElement('div');host.id='adminToastHost';host.className='admin-toast-host';host.setAttribute('aria-live','polite');host.setAttribute('aria-atomic','true');document.body.append(host)}const toast=document.createElement('div');toast.className=`admin-toast ${type==='error'?'is-error':'is-success'}`;const mark=document.createElement('span');mark.className='admin-toast-mark';mark.textContent=type==='error'?'!':'✓';mark.setAttribute('aria-hidden','true');const label=document.createElement('span');label.className='admin-toast-message';label.textContent=text;toast.append(mark,label);host.append(toast);requestAnimationFrame(()=>toast.classList.add('is-visible'));window.setTimeout(()=>{toast.classList.remove('is-visible');window.setTimeout(()=>toast.remove(),250)},3200)}
 
 function formatPhoneBr(value){
   const raw=String(value??'');
@@ -274,7 +274,7 @@ async function auditLogView(){
   const areaNames={gallery:'Galeria de fotos',videos:'Vídeos',links:'Cards da página inicial',activities:'Comodidades da casa',site_content:'Textos do site',tourist_points:'Pontos turísticos',link_page_settings:'Página de links e reservas'};
   const actorNames={fernanda:{name:'Fernando',code:'Código Fernando'},monica:{name:'Monica',code:'Código Monica'},camila:{name:'Camila',code:'Código Camila'},admin:{name:'Administrador',code:'Código administrador'}};
   const fieldNames={title:'Título',name:'Nome',description:'Descrição',subtitle:'Subtítulo',position:'Ordem de exibição',visible:'Visibilidade',is_visible:'Visibilidade',active:'Ativo',url:'Endereço/link',image_url:'Imagem',video_url:'Vídeo',target_section:'Destino',availability:'Disponibilidade e reservas',check_in:'Entrada',check_out:'Saída',status:'Situação',phone:'Telefone',note:'Observação',guest_name:'Hóspede',price:'Preço',text:'Texto',content:'Conteúdo',key:'Identificação'};
-  const actionText={INSERT:'adicionou um novo item',UPDATE:'alterou informações',DELETE:'removeu um item'};
+  const actionText={INSERT:'adicionou um novo item',UPDATE:'alterou um item',DELETE:'removeu um item'};
   const humanize=value=>String(value||'').replace(/[_-]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
   const pretty=value=>{if(value===null||value===undefined||value==='')return 'Não informado';if(typeof value==='boolean')return value?'Sim':'Não';if(Array.isArray(value))return value.length?`${value.length} item(ns)`:'Nenhum';if(typeof value==='object')return Object.entries(value).map(([k,v])=>`${fieldNames[k]||humanize(k)}: ${pretty(v)}`).join(' · ');return String(value)};
   function summarizeAvailability(value){
@@ -309,35 +309,33 @@ async function auditLogView(){
   function compareReservationChanges(oldValue,newValue){
     const oldRows=Array.isArray(oldValue?.reservations)?oldValue.reservations:[];
     const newRows=Array.isArray(newValue?.reservations)?newValue.reservations:[];
-    const used=new Set(),messages=[];
+    const used=new Set(),rows=[];
     const identity=r=>r.id?`id:${r.id}`:`person:${String(r.phone||'').replace(/\D/g,'')}|${String(r.name||r.guest_name||'').trim().toLocaleLowerCase('pt-BR')}`;
+    const fields=[['name','Hóspede'],['phone','Telefone'],['note','Observação'],['status','Situação']];
     for(const oldRow of oldRows){
-      let matchIndex=-1;
-      if(oldRow.id)matchIndex=newRows.findIndex((r,i)=>!used.has(i)&&r.id&&String(r.id)===String(oldRow.id));
-      if(matchIndex<0){
-        const key=identity(oldRow);
-        if(!key.endsWith('|'))matchIndex=newRows.findIndex((r,i)=>!used.has(i)&&identity(r)===key);
+      let ix=oldRow.id?newRows.findIndex((r,i)=>!used.has(i)&&r.id&&String(r.id)===String(oldRow.id)):-1;
+      if(ix<0){const key=identity(oldRow);if(!key.endsWith('|'))ix=newRows.findIndex((r,i)=>!used.has(i)&&identity(r)===key);}
+      if(ix<0){
+        const oldStart=oldRow.check_in||oldRow.checkIn||oldRow.date||'';
+        const oldEnd=oldRow.check_out||oldRow.checkOut||oldStart;
+        ix=newRows.findIndex((r,i)=>{if(used.has(i))return false;const ns=r.check_in||r.checkIn||r.date||'',ne=r.check_out||r.checkOut||ns;return oldStart&&ns&&oldStart<=ne&&ns<=oldEnd});
       }
-      if(matchIndex<0){
-        messages.push(`Foi removida ${reservationLabel(oldRow)} marcada ${reservationRange(oldRow)}.`);
+      if(ix<0){
+        rows.push({label:'Reserva removida',before:`${reservationLabel(oldRow)} · ${reservationRange(oldRow)}`,after:'Reserva removida da agenda'});
         continue;
       }
-      used.add(matchIndex);
-      const next=newRows[matchIndex];
-      const oldStart=oldRow.check_in||oldRow.checkIn||oldRow.date||'';
-      const oldEnd=oldRow.check_out||oldRow.checkOut||oldStart;
-      const newStart=next.check_in||next.checkIn||next.date||'';
-      const newEnd=next.check_out||next.checkOut||newStart;
-      const oldStatus=reservationKind(oldRow),newStatus=reservationKind(next);
-      if(oldStart!==newStart||oldEnd!==newEnd||oldStatus!==newStatus){
-        const person=String(next.name||next.guest_name||oldRow.name||oldRow.guest_name||'').trim();
-        messages.push(`${person?`A reserva de ${person}`:'A reserva'} que estava ${reservationRange(oldRow)} foi alterada para ${reservationRange(next)}${oldStatus!==newStatus?`, passando de ${oldStatus} para ${newStatus}`:''}.`);
+      used.add(ix);const next=newRows[ix];const diffs=[];
+      const oldStart=oldRow.check_in||oldRow.checkIn||oldRow.date||'',oldEnd=oldRow.check_out||oldRow.checkOut||oldStart;
+      const newStart=next.check_in||next.checkIn||next.date||'',newEnd=next.check_out||next.checkOut||newStart;
+      if(oldStart!==newStart||oldEnd!==newEnd)diffs.push({label:'Período',before:reservationRange(oldRow),after:reservationRange(next)});
+      for(const [key,label] of fields){
+        const ov=String(oldRow[key]??(key==='name'?oldRow.guest_name??'':''));const nv=String(next[key]??(key==='name'?next.guest_name??'':''));
+        if(ov!==nv)diffs.push({label,before:ov||'Não informado',after:nv||'Não informado'});
       }
+      if(diffs.length)rows.push({label:`Alterações na reserva${next.name||next.guest_name?` de ${next.name||next.guest_name}`:''}`,details:diffs});
     }
-    newRows.forEach((row,i)=>{if(!used.has(i)){
-      messages.push(`Foi adicionada ${reservationLabel(row)} para ${reservationRange(row)}.`);
-    }});
-    return messages;
+    newRows.forEach((row,i)=>{if(!used.has(i))rows.push({label:'Nova reserva',before:'Não existia na agenda',after:`${reservationLabel(row)} · ${reservationRange(row)}`})});
+    return rows;
   }
   function changesFor(item){
     const before=item.old_data||{},after=item.new_data||{};
@@ -345,30 +343,29 @@ async function auditLogView(){
     const rows=[];
     for(const key of keys){
       if(key==='availability'){
-        const oldSummary=summarizeAvailability(before[key]),newSummary=summarizeAvailability(after[key]);
         const reservationChanges=compareReservationChanges(before[key],after[key]);
         if(reservationChanges.length){
-          rows.push({label:'Alterações nas reservas e nas datas',value:reservationChanges.join(' ')});
-        }else if(item.action==='INSERT')rows.push({label:'Agenda e disponibilidade',value:`Configuração inicial: ${newSummary}.`});
-        else if(item.action==='DELETE')rows.push({label:'Agenda e disponibilidade',value:`Configuração removida. Antes: ${oldSummary}.`});
-        else if(JSON.stringify(before[key])!==JSON.stringify(after[key]))rows.push({label:'Agenda e disponibilidade',before:oldSummary,after:newSummary});
+          reservationChanges.forEach(change=>{
+            if(change.details)rows.push({label:change.label,details:change.details});
+            else rows.push({label:change.label,before:change.before,after:change.after});
+          });
+        }else if(JSON.stringify(before[key])!==JSON.stringify(after[key])){
+          rows.push({label:'Disponibilidade da agenda',before:item.action==='INSERT'?'Não existia configuração':summarizeAvailability(before[key]),after:item.action==='DELETE'?'Configuração removida':summarizeAvailability(after[key])});
+        }
         continue;
       }
-      if((key==='reservedDates'||key==='reservations')&&Array.isArray(before[key])&&Array.isArray(after[key])){
-        if(JSON.stringify(before[key])!==JSON.stringify(after[key]))rows.push({label:key==='reservedDates'?'Datas indisponíveis':'Reservas cadastradas',before:`${before[key].length} ${key==='reservedDates'?'datas bloqueadas':'registros na agenda'}`,after:`${after[key].length} ${key==='reservedDates'?'datas bloqueadas':'registros na agenda'}`});
-        continue;
-      }
-      if(item.action==='INSERT'&&after[key]!==null&&after[key]!==undefined)rows.push({label:fieldNames[key]||humanize(key),value:pretty(after[key])});
-      else if(item.action==='DELETE'&&before[key]!==null&&before[key]!==undefined)rows.push({label:fieldNames[key]||humanize(key),value:pretty(before[key])});
+      if(key==='reservedDates'||key==='reservations')continue;
+      if(item.action==='INSERT'&&after[key]!==null&&after[key]!==undefined)rows.push({label:fieldNames[key]||humanize(key),before:'Não existia',after:pretty(after[key])});
+      else if(item.action==='DELETE'&&before[key]!==null&&before[key]!==undefined)rows.push({label:fieldNames[key]||humanize(key),before:pretty(before[key]),after:'Item removido'});
       else if(item.action==='UPDATE'&&JSON.stringify(before[key])!==JSON.stringify(after[key]))rows.push({label:fieldNames[key]||humanize(key),before:pretty(before[key]),after:pretty(after[key])});
     }
-    return rows.slice(0,16);
+    return rows.slice(0,24);
   }
   function paint(){
     const areaFilter=$('#auditFilter').value,actorFilter=$('#auditActorFilter').value,query=$('#auditSearch').value.trim().toLocaleLowerCase('pt-BR');
     const list=entries.filter(item=>{const actor=item.actor_code_id||'unknown';const actorName=actorNames[actor]?.name||item.actor_name||'Identificação não disponível';const text=[actorName,item.action,item.table_name,item.record_label,JSON.stringify(item.old_data||{}),JSON.stringify(item.new_data||{})].join(' ').toLocaleLowerCase('pt-BR');return(!areaFilter||item.table_name===areaFilter)&&(!actorFilter||actor===actorFilter)&&(!query||text.includes(query))});
     if(!list.length){results.innerHTML='<div class="empty audit-empty">Nenhuma alteração encontrada com esses filtros. Tente escolher “Todas as áreas” e “Todas as pessoas”.</div>';return}
-    results.innerHTML=`<div class="audit-count">${list.length} alterações encontradas</div><div class="audit-list">${list.map(item=>{const actor=actorNames[item.actor_code_id]||null;const actorName=actor?.name||item.actor_name||'Identificação não disponível';const codeLabel=actor?.code||'Acesso antigo ou não identificado';const area=areaNames[item.table_name]||humanize(item.table_name);const action=actionText[item.action]||'fez uma alteração';const label=item.record_label||'item sem nome';const date=new Date(item.created_at);const dateText=Number.isNaN(date.getTime())?'Data indisponível':new Intl.DateTimeFormat('pt-BR',{dateStyle:'full',timeStyle:'short'}).format(date);const changes=changesFor(item);const changeHtml=changes.length?changes.map(change=>change.value!==undefined?`<div class="audit-change"><b>${esc(change.label)}</b><p>${esc(change.value)}</p></div>`:item.action==='UPDATE'?`<div class="audit-change"><b>${esc(change.label)}</b><div class="audit-before-after"><span><small>ANTES</small>${esc(change.before)}</span><span><small>DEPOIS</small>${esc(change.after)}</span></div></div>`:`<div class="audit-change"><b>${esc(change.label)}</b><p>${esc(change.value)}</p></div>`).join(''):'<p class="audit-no-diff">Este registro antigo não guardou os detalhes de cada campo.</p>';return `<details class="audit-entry"><summary><span class="audit-action action-${String(item.action||'').toLowerCase()}">${esc(item.action==='INSERT'?'Adicionado':item.action==='DELETE'?'Removido':'Alterado')}</span><span class="audit-entry-main"><b>${esc(area)}: ${esc(label)}</b><small>${esc(actorName)} · ${esc(action)}</small></span><time>${esc(dateText)}</time><span class="audit-chevron" aria-hidden="true">⌄</span></summary><div class="audit-entry-details"><div class="audit-human-summary"><b>${esc(actorName)}</b> ${esc(action)} na seção <b>${esc(area)}</b>.<p>${esc(label)}</p></div><div class="audit-meta"><span><b>Responsável:</b> ${esc(actorName)}</span><span><b>Identificação:</b> ${esc(codeLabel)}</span><span><b>Quando:</b> ${esc(dateText)}</span><span><b>Onde:</b> ${esc(area)}</span></div><h3 class="audit-details-title">O que mudou</h3><div class="audit-readable-changes">${changeHtml}</div></div></details>`}).join('')}</div>`;
+    results.innerHTML=`<div class="audit-count">${list.length} alterações encontradas</div><div class="audit-list">${list.map(item=>{const actor=actorNames[item.actor_code_id]||null;const actorName=actor?.name||item.actor_name||'Identificação não disponível';const codeLabel=actor?.code||'Acesso antigo ou não identificado';const area=areaNames[item.table_name]||humanize(item.table_name);const action=actionText[item.action]||'fez uma alteração';const label=item.record_label||'item sem nome';const date=new Date(item.created_at);const dateText=Number.isNaN(date.getTime())?'Data indisponível':new Intl.DateTimeFormat('pt-BR',{dateStyle:'full',timeStyle:'short'}).format(date);const changes=changesFor(item);const changeHtml=changes.length?changes.map(change=>change.details?`<div class="audit-change"><b>${esc(change.label)}</b>${change.details.map(detail=>`<div class="audit-before-after"><span><small>${esc(detail.label)} · ANTES</small>${esc(detail.before)}</span><span><small>${esc(detail.label)} · DEPOIS</small>${esc(detail.after)}</span></div>`).join('')}</div>`:`<div class="audit-change"><b>${esc(change.label)}</b><div class="audit-before-after"><span><small>ANTES</small>${esc(change.before)}</span><span><small>DEPOIS</small>${esc(change.after)}</span></div></div>`).join(''):'<p class="audit-no-diff">Não há detalhes suficientes para comparar esta alteração.</p>';return `<details class="audit-entry"><summary><span class="audit-action action-${String(item.action||'').toLowerCase()}">${esc(item.action==='INSERT'?'Adicionado':item.action==='DELETE'?'Removido':'Alterado')}</span><span class="audit-entry-main"><b>${esc(area)}: ${esc(label)}</b><small>${esc(actorName)} · ${esc(action)}</small></span><time>${esc(dateText)}</time><span class="audit-chevron" aria-hidden="true">⌄</span></summary><div class="audit-entry-details"><div class="audit-meta"><span><b>Responsável:</b> ${esc(actorName)}</span><span><b>Identificação:</b> ${esc(codeLabel)}</span><span><b>Quando:</b> ${esc(dateText)}</span><span><b>Onde:</b> ${esc(area)}</span></div><h3 class="audit-details-title">O que mudou</h3><div class="audit-readable-changes">${changeHtml}</div></div></details>`}).join('')}</div>`;
   }
   async function load(){results.innerHTML='<div class="audit-loading" role="status">Atualizando o histórico…</div>';const {data,error}=await supabase.from('admin_audit_log').select('*').order('created_at',{ascending:false}).limit(500);if(error){results.innerHTML=`<div class="panel-tip"><b>Não foi possível abrir o histórico</b><p>${esc(error.message||'Confira a conexão e a configuração do banco.')}</p><p>Verifique a migração do histórico no Supabase.</p></div>`;return}entries=data||[];paint()}
   $('#auditFilter').onchange=paint;$('#auditActorFilter').onchange=paint;$('#auditSearch').oninput=paint;$('#refreshAudit').onclick=()=>{if(holdTriggered){holdTriggered=false;return}load()};
@@ -402,10 +399,40 @@ async function overview(){
   const statusLabel={reserved:'Reservado',pre:'Pré-reserva',blocked:'Bloqueado'};
   const statusPill=item=>`<span class="overview-status status-${esc(item.status)}">${esc(statusLabel[item.status]||'Reserva')}</span>`;
   const nextLine=(title,item,field)=>`<div class="overview-date-row overview-date-${field}"><span>${title}</span>${item?`<strong>${dateLabel(item[field])}</strong><small>${esc(item.name||'Hóspede não informado')} · ${esc(statusLabel[item.status]||'Reserva')}</small>`:'<strong class="overview-none">Nenhuma prevista</strong>'}</div>`;
-  const reservationList=upcoming.slice(0,5).map(item=>`<div class="overview-reservation"><div><strong>${dateLabel(item.check_in)}${item.check_out!==item.check_in?` – ${dateLabel(item.check_out)}`:''}</strong><small>${esc(item.name||'Hóspede não informado')}</small></div>${statusPill(item)}</div>`).join('')||'<p class="overview-empty">Nenhuma reserva próxima cadastrada.</p>';
+  const reservationList=upcoming.slice(0,5).map(item=>`<button type="button" class="overview-reservation overview-reservation-open" data-overview-res-id="${esc(item.id)}" aria-label="Ver detalhes da reserva de ${esc(item.name||'hóspede não informado')}"><span><strong>${dateLabel(item.check_in)}${item.check_out!==item.check_in?` – ${dateLabel(item.check_out)}`:''}</strong><small>${esc(item.name||'Hóspede não informado')}</small></span>${statusPill(item)}</button>`).join('')||'<p class="overview-empty">Nenhuma reserva próxima cadastrada.</p>';
   $('#view').innerHTML=`<div class="view overview-view"><div class="view-head"><div><p class="eyebrow">CASA OITO DEL MARE</p><h1>Visão geral.</h1><p>Agenda e indicadores rápidos da casa.</p></div></div>${needsSetup?migrationHelp():''}<div class="stats"><button type="button" class="stat" data-overview-view="gallery" aria-label="Abrir galeria de fotos"><strong>${counts.gallery??'—'}</strong><span>Fotos</span></button><button type="button" class="stat" data-overview-view="videos" aria-label="Abrir vídeos"><strong>${counts.videos??'—'}</strong><span>Vídeos</span></button><button type="button" class="stat" data-overview-view="tourist" aria-label="Abrir pontos turísticos"><strong>${counts.tourist_points??'—'}</strong><span>Pontos turísticos</span></button><button type="button" class="stat stat-appointments" data-overview-view="reservations" aria-label="Abrir reservas"><strong>${appointments}</strong><span>Agendamentos ativos</span></button></div><div class="overview-grid"><section class="overview-panel"><div class="overview-panel-heading"><div><p class="eyebrow">AGENDA</p><h2>Próximas datas</h2></div><button type="button" class="overview-link" data-overview-reservations>Ver calendário</button></div><div class="overview-date-pair">${nextLine('Próxima entrada',nextEntry,'check_in')}${nextLine('Próxima saída',nextExit,'check_out')}</div></section><section class="overview-panel overview-analytics-panel"><div class="overview-panel-heading"><div><p class="eyebrow">ANO ATUAL</p><h2>Acessos</h2></div>${analyticsAvailable?'<button type="button" class="overview-data-live" data-reset-analytics title="Segure por 30 segundos para zerar as contagens" aria-label="Coletando. Segure por 30 segundos para zerar as contagens">Coletando</button>':'<span class="overview-data-pending">Ativar coleta</span>'}</div><div class="overview-access-metrics"><div><strong>${analyticsAvailable?analytics.visit:'—'}</strong><span>Visitas</span></div><div><strong>${analyticsAvailable?analytics.whatsapp_click:'—'}</strong><span>Cliques no WhatsApp</span></div></div>${analyticsAvailable?'':'<p class="analytics-setup-note">Aplique a <a href="../supabase/migrations/20261002_site_analytics.sql" target="_blank" rel="noopener">atualização de métricas do Supabase</a> para começar a contar. Os registros começam após a ativação.</p>'}</section><section class="overview-panel overview-reservations-panel"><div class="overview-panel-heading"><div><p class="eyebrow">AGENDA</p><h2>Reservas próximas</h2></div><button type="button" class="overview-link" data-overview-reservations>Ver todas</button></div><div class="overview-reservation-list">${reservationList}</div></section></div></div>`;
   document.querySelectorAll('[data-overview-view]').forEach(button=>button.onclick=()=>{current=button.dataset.overviewView;document.querySelectorAll('nav button[data-view]').forEach(item=>item.classList.toggle('active',item.dataset.view===current));render(current)});
   document.querySelectorAll('[data-overview-reservations]').forEach(button=>button.onclick=()=>{current='reservations';document.querySelectorAll('nav button[data-view]').forEach(item=>item.classList.toggle('active',item.dataset.view==='reservations'));render(current)});
+  function openOverviewReservationPreview(item){
+    if(!item)return;
+    const meta={reserved:['Reservado','reserved'],pre:['Pré-reservado','pre'],blocked:['Bloqueado','blocked']}[item.status]||['Reservado','reserved'];
+    const dateText=key=>validDateKey(key)?new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'}).format(new Date(`${key}T12:00:00`)):'Data não informada';
+    const period=`${dateText(item.check_in)} → ${dateText(item.check_out)}`;
+    const digits=String(item.phone||'').replace(/\D/g,'');
+    const phone=digits.length===10||digits.length===11?`55${digits}`:digits.startsWith('0')?`55${digits.slice(1)}`:digits;
+    const message=encodeURIComponent(`Olá! Estou entrando em contato sobre a estadia de ${period} na Casa Oito Del Mare.`);
+    const dialog=document.createElement('dialog');
+    dialog.className='reservation-preview-dialog';
+    dialog.innerHTML=`<div class="reservation-preview">
+      <button type="button" class="reservation-preview-close" aria-label="Fechar">×</button>
+      <div class="reservation-preview-top"><p class="eyebrow">DETALHES DA RESERVA</p><h2>${period}</h2><div class="reservation-preview-status status-${meta[1]}"><i class="status-dot" aria-hidden="true"></i>${meta[0]}</div></div>
+      <div class="reservation-preview-data">
+        <div><span>HÓSPEDE</span><strong>${esc(item.name||'Hóspede não informado')}</strong></div>
+        <div class="reservation-preview-contact"><span>TELEFONE · WHATSAPP</span>${phone?`<a class="reservation-preview-phone" href="https://wa.me/${phone}?text=${message}" target="_blank" rel="noopener noreferrer"><span>${esc(item.phone)}</span><i aria-hidden="true">↗</i></a>`:'<strong class="reservation-preview-no-phone">Telefone não informado</strong>'}</div>
+        ${item.note?`<div class="reservation-preview-note"><span>OBSERVAÇÃO</span><p>${esc(item.note)}</p></div>`:''}
+      </div>
+    </div>`;
+    document.body.append(dialog);
+    const close=()=>{if(dialog.open)dialog.close();dialog.remove()};
+    dialog.querySelector('.reservation-preview-close').onclick=close;
+    dialog.addEventListener('click',event=>{if(event.target===dialog)close()});
+    dialog.addEventListener('cancel',event=>{event.preventDefault();close()});
+    dialog.showModal();
+  }
+  document.querySelectorAll('[data-overview-res-id]').forEach(button=>button.addEventListener('click',()=>{
+    const item=upcoming.find(reservation=>String(reservation.id)===String(button.dataset.overviewResId));
+    openOverviewReservationPreview(item);
+  }));
   wireAnalyticsReset();
   $('#reloadView')?.addEventListener('click',reloadAfterMigration)
 }

@@ -1285,3 +1285,16 @@ a,button,[role="button"],label,select,summary,input[type="checkbox"],input[type=
 .audit-before-after small{font-size:12px;letter-spacing:.1em}
 .audit-human-summary{font-size:18px;line-height:1.75}
 .audit-meta{font-size:15px}
+
+/* Confirmação de sucesso mais clara e acessível */
+.admin-toast-host{z-index:12000}
+.admin-toast{display:flex;align-items:center;gap:11px;min-height:58px;padding:15px 18px;border:1px solid #d7c5a4;border-radius:16px;background:#173b3d;color:#fff;font-size:15px;line-height:1.5;box-shadow:0 14px 36px rgba(12,38,38,.24)}
+.admin-toast-mark{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:50%;background:#e8d5b4;color:#173b3d;font-size:17px;font-weight:900}
+.admin-toast.is-error{border-color:#e7b8ad;background:#7f302a}
+.admin-toast.is-error .admin-toast-mark{background:#fff0ec;color:#8f352d}
+.admin-toast-message{flex:1}
+.audit-human-summary{display:none!important}
+.audit-change{padding:15px 16px}
+.audit-before-after{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:9px}
+.audit-before-after>span{min-width:0;overflow-wrap:anywhere;white-space:normal}
+@media(max-width:850px){.audit-before-after{grid-template-columns:1fr}.bn{z-index:1000}}

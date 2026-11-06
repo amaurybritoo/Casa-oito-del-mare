@@ -30,11 +30,11 @@ Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "Método não permitido." }, 405);
 
   const configuredCodes = [
-    { id: "fernanda", value: Deno.env.get("ADMIN_CODE_FERNANDA") },
-    { id: "monica", value: Deno.env.get("ADMIN_CODE_MONICA") },
-    { id: "camila", value: Deno.env.get("ADMIN_CODE_CAMILA") },
-    { id: "admin", value: Deno.env.get("ADMIN_CODE_ADMIN") },
-  ].filter((item): item is { id: string; value: string } => Boolean(item.value));
+    { id: "fernanda", name: "Fernando", value: Deno.env.get("ADMIN_CODE_FERNANDA") },
+    { id: "monica", name: "Monica", value: Deno.env.get("ADMIN_CODE_MONICA") },
+    { id: "camila", name: "Camila", value: Deno.env.get("ADMIN_CODE_CAMILA") },
+    { id: "admin", name: "Administrador", value: Deno.env.get("ADMIN_CODE_ADMIN") },
+  ].filter((item): item is { id: string; name: string; value: string } => Boolean(item.value));
   const email = Deno.env.get("ADMIN_AUTH_EMAIL");
   const password = Deno.env.get("ADMIN_AUTH_PASSWORD");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -69,7 +69,7 @@ Deno.serve(async (request) => {
   const account = users.users.find((user) => user.email?.toLowerCase() === email.toLowerCase());
   if (!account) return json({ error: "A conta administrativa configurada não foi encontrada." }, 503);
   const { error: metadataError } = await adminClient.auth.admin.updateUserById(account.id, {
-    app_metadata: { ...(account.app_metadata || {}), access_code_id: matched.id },
+    app_metadata: { ...(account.app_metadata || {}), access_code_id: matched.id, access_code_name: matched.name },
   });
   if (metadataError) return json({ error: "Não foi possível identificar o responsável pelo acesso." }, 503);
 

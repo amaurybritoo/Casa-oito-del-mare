@@ -98,7 +98,7 @@ export function initBottomNavigation(navigate) {
   sheet.addEventListener('touchcancel', endDrag);
 
   // Teclado aberto: esconde a barra para ela não subir junto com o teclado.
-  const typing = el => el && (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' ||
+  const typing = el => el && (el.tagName === 'TEXTAREA' ||
     (el.tagName === 'INPUT' && !/^(checkbox|radio|range|file|button|submit|reset|color)$/i.test(el.type)));
   document.addEventListener('focusin', e => { if (mq.matches && typing(e.target)) bar.classList.add('is-hidden'); });
   document.addEventListener('focusout', () => setTimeout(() => { if (!typing(document.activeElement)) bar.classList.remove('is-hidden'); }, 80));
